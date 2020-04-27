@@ -48,34 +48,34 @@ func newExoscaleClient() (*egoscale.Client, error) {
 }
 
 func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
-	//TODO Initialize is not implemented
+	//TODO Initialize is not implemented.
 }
 
-// clusters is not implemented
+// LoadBalancer is not implemented.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	// example:
 	// return c.loadbalancers, true
 	return nil, false
 }
 
-// clusters is not implemented
+// Instances is not implemented.
 func (c *cloudProvider) Instances() (cloudprovider.Instances, bool) {
 	// example:
 	// return c.instances, true
 	return nil, false
 }
 
-// clusters is not implemented
+// Zones is not implemented.
 func (c *cloudProvider) Zones() (cloudprovider.Zones, bool) {
 	return nil, false
 }
 
-// clusters is not implemented
+// clusters is not implemented.
 func (c *cloudProvider) Clusters() (cloudprovider.Clusters, bool) {
 	return nil, false
 }
 
-// routes is not implemented
+// routes is not implemented.
 func (c *cloudProvider) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
 }
@@ -84,7 +84,7 @@ func (c *cloudProvider) ProviderName() string {
 	return providerName
 }
 
-// has cluster id is not implemented
+// HasClusterID is not implemented.
 func (c *cloudProvider) HasClusterID() bool {
 	return false
 }
