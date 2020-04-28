@@ -8,6 +8,15 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 )
 
+var (
+	version string
+	commit  string
+
+	versionString = fmt.Sprintf(
+		"%s/%s", version, commit,
+	)
+)
+
 const (
 	// ProviderName specifies the name for the Exoscale provider
 	providerName string = "exoscale"
