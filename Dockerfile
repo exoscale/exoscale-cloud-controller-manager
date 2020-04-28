@@ -21,12 +21,11 @@ ARG BUILD_DATE
 
 LABEL org.label-schema.build-date=${BUILD_DATE} \
       org.label-schema.vcs-ref=${VCS_REF} \
-      org.label-schema.vcs-url="https://github.com/exoscale/cli" \
+      org.label-schema.vcs-url="https://github.com/exoscale/exoscale-cloud-controller-manager" \
       org.label-schema.version=${VERSION} \
-      org.label-schema.name="exo" \
+      org.label-schema.name="exoscale-cloud-controller-manager" \
       org.label-schema.vendor="Exoscale" \
-      org.label-schema.description="Exoscale CLI" \
-      org.label-schema.url="https://exoscale.github.io/cli" \
+      org.label-schema.description="Exoscale Cloud Controller Manager" \
       org.label-schema.schema-version="1.0"
 
 
