@@ -28,7 +28,7 @@ spec:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
       containers:
-      - image: exoscale/exoscale-cloud-controller-manager:dev
+      - image: exoscale/cloud-controller-manager:dev
         imagePullPolicy: Always
         name: exoscale-cloud-controller-manager
         args:
