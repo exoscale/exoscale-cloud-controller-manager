@@ -3,7 +3,6 @@ package exoscale
 import (
 	"context"
 
-	"github.com/exoscale/egoscale"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -21,17 +20,7 @@ func newInstances(provider *cloudProvider) cloudprovider.Instances {
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	r, err := i.p.client.GetWithContext(
-		ctx,
-		egoscale.VirtualMachine{Name: string(name)},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	vm := r.(*egoscale.VirtualMachine)
-
-	return nodeAddresses(vm)
+	return nil, cloudprovider.NotImplemented
 }
 
 // NodeAddressesByProviderID returns the addresses of the specified instance.
@@ -82,15 +71,4 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
 	return false, cloudprovider.NotImplemented
-}
-
-func nodeAddresses(vm *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
-	var addresses []v1.NodeAddress
-	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: vm.Name})
-
-	nic := vm.DefaultNic()
-
-	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()})
-
-	return addresses, nil
 }
