@@ -22,10 +22,10 @@ const (
 )
 
 type cloudProvider struct {
-	client        *egoscale.Client
-	instances     cloudprovider.Instances
-	zones         cloudprovider.Zones
-	loadbalancers cloudprovider.LoadBalancer
+	client       *egoscale.Client
+	instances    cloudprovider.Instances
+	zones        cloudprovider.Zones
+	loadbalancer cloudprovider.LoadBalancer
 }
 
 func init() {
@@ -41,10 +41,10 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 	}
 
 	return &cloudProvider{
-		client:        client,
-		instances:     newInstances(client),
-		loadbalancers: newLoadBalancer(client),
-		zones:         newZones(client),
+		client:       client,
+		instances:    newInstances(client),
+		loadbalancer: newLoadBalancer(client),
+		zones:        newZones(client),
 	}, nil
 }
 
@@ -57,7 +57,7 @@ func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 // LoadBalancer returns a balancer interface.
 // Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return c.loadbalancers, true
+	return c.loadbalancer, true
 }
 
 // Instances returns an instances interface.
