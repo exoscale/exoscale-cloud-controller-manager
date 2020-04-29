@@ -41,12 +41,12 @@ spec:
               secretKeyRef:
                 key: api-key
                 name: exoscale-credential
-          - name: EXOSCALE_SECRET_KEY
+          - name: EXOSCALE_API_SECRET
             valueFrom:
               secretKeyRef:
                 key: api-secret
                 name: exoscale-credential
-          - name: EXOSCALE_COMPUTE_ENDPOINT
+          - name: EXOSCALE_API_ENDPOINT
             valueFrom:
               secretKeyRef:
                 key: api-endpoint

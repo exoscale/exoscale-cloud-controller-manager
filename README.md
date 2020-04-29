@@ -16,8 +16,8 @@ Export your Exoscale credentials in your shell.
 
 ```Shell
 export EXOSCALE_API_KEY=EXO...
-export EXOSCALE_SECRET_KEY=XXX...
-export EXOSCALE_COMPUTE_ENDPOINT="https://api.exoscale.com/v1"
+export EXOSCALE_API_SECRET=XXX...
+export EXOSCALE_API_ENDPOINT="https://api.exoscale.com/v1"
 ```
 
 then apply 
