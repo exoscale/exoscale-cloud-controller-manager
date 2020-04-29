@@ -63,18 +63,12 @@ func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 	//TODO Initialize is not implemented.
 }
 
-// LoadBalancer is not implemented.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	// example:
-	// return c.loadbalancers, true
-	return nil, false
+	return c.loadbalancers, true
 }
 
-// Instances is not implemented.
 func (c *cloudProvider) Instances() (cloudprovider.Instances, bool) {
-	// example:
-	// return c.instances, true
-	return nil, false
+	return c.instances, true
 }
 
 // Zones is not implemented.
