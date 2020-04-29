@@ -3,18 +3,17 @@ package exoscale
 import (
 	"context"
 
-	"github.com/exoscale/egoscale"
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
 type loadBalancer struct {
-	client *egoscale.Client
+	p *cloudProvider
 }
 
-func newLoadBalancer(client *egoscale.Client) cloudprovider.LoadBalancer {
+func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 	return &loadBalancer{
-		client: client,
+		p: provider,
 	}
 }
 

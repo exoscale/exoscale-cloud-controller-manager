@@ -40,12 +40,16 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("Could not create exoscale client: %#v", err)
 	}
 
-	return &cloudProvider{
-		client:       client,
-		instances:    newInstances(client),
-		loadBalancer: newLoadBalancer(client),
-		zones:        newZones(client),
-	}, nil
+	provider := &cloudProvider{
+		client: client,
+	}
+
+	provider.instances = newInstances(provider)
+	provider.loadBalancer = newLoadBalancer(provider)
+	provider.zones = newZones(provider)
+
+	return provider, nil
+
 }
 
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines

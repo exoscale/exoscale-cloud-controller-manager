@@ -10,18 +10,18 @@ import (
 )
 
 type instances struct {
-	client *egoscale.Client
+	p *cloudProvider
 }
 
-func newInstances(client *egoscale.Client) cloudprovider.Instances {
+func newInstances(provider *cloudProvider) cloudprovider.Instances {
 	return &instances{
-		client: client,
+		p: provider,
 	}
 }
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	r, err := i.client.GetWithContext(
+	r, err := i.p.client.GetWithContext(
 		ctx,
 		egoscale.VirtualMachine{Name: string(name)},
 	)

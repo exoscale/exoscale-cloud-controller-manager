@@ -3,18 +3,17 @@ package exoscale
 import (
 	"context"
 
-	"github.com/exoscale/egoscale"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
 type zones struct {
-	client *egoscale.Client
+	p *cloudProvider
 }
 
-func newZones(client *egoscale.Client) cloudprovider.Zones {
+func newZones(provider *cloudProvider) cloudprovider.Zones {
 	return &zones{
-		client: client,
+		p: provider,
 	}
 }
 
