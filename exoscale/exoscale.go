@@ -24,7 +24,10 @@ const (
 
 // cloudProvider implents Instances, Zones, and LoadBalancer
 type cloudProvider struct {
-	client *egoscale.Client
+	client        *egoscale.Client
+	instances     cloudprovider.Instances
+	zones         cloudprovider.Zones
+	loadbalancers cloudprovider.LoadBalancer
 }
 
 func init() {
@@ -43,8 +46,8 @@ func newExoscaleCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	return &cloudProvider{
-		client: client,
-		// instances:     newInstances(resources, region),
+		client:    client,
+		instances: newInstances(client),
 		// zones:         newZones(resources, region),
 		// loadbalancers: newLoadBalancers(resources, doClient, region),
 		// ...etc

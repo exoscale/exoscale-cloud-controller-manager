@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	github.com/exoscale/egoscale v1.19.0
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
 	k8s.io/cloud-provider v0.17.0
 	k8s.io/component-base v0.17.0
 	k8s.io/kubernetes v1.18.2
