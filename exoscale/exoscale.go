@@ -18,11 +18,9 @@ var (
 )
 
 const (
-	// ProviderName specifies the name for the Exoscale provider
 	providerName string = "exoscale"
 )
 
-// cloudProvider implents Instances, Zones, and LoadBalancer
 type cloudProvider struct {
 	client        *egoscale.Client
 	instances     cloudprovider.Instances
@@ -45,38 +43,43 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 	return &cloudProvider{
 		client:        client,
 		instances:     newInstances(client),
-		loadbalancers: newLoadBalancers(client),
-		// zones:         newZones(client),
-		// ...etc
+		loadbalancers: newLoadBalancer(client),
+		zones:         newZones(client),
 	}, nil
 }
 
 func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 }
 
+// LoadBalancer returns a balancer interface.
+// Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return c.loadbalancers, true
 }
 
+// Instances returns an instances interface.
+// Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) Instances() (cloudprovider.Instances, bool) {
 	return c.instances, true
 }
 
-// Zones is not implemented.
+// Zones returns a zones interface.
+// Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) Zones() (cloudprovider.Zones, bool) {
-	return nil, false
+	return c.zones, false
 }
 
-// clusters is not implemented.
+// Clusters is not implemented.
 func (c *cloudProvider) Clusters() (cloudprovider.Clusters, bool) {
 	return nil, false
 }
 
-// routes is not implemented.
+// Routes is not implemented.
 func (c *cloudProvider) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
 }
 
+// ProviderName returns the cloud provider ID.
 func (c *cloudProvider) ProviderName() string {
 	return providerName
 }

@@ -8,29 +8,27 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 )
 
-type loadbalancers struct {
+type loadbalancer struct {
 	client *egoscale.Client
-	// can handle more variable
 }
 
-func newLoadBalancers(client *egoscale.Client) cloudprovider.LoadBalancer {
-	return &loadbalancers{
+func newLoadBalancer(client *egoscale.Client) cloudprovider.LoadBalancer {
+	return &loadbalancer{
 		client: client,
 	}
 }
 
-// TODO: Break this up into different interfaces (LB, etc) when we have more than one type of service
 // GetLoadBalancer returns whether the specified load balancer exists, and
 // if so, what its status is.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadbalancers) GetLoadBalancer(ctx context.Context, clusterName string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
+func (l *loadbalancer) GetLoadBalancer(ctx context.Context, clusterName string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
 	return nil, false, cloudprovider.NotImplemented
 }
 
 // GetLoadBalancerName returns the name of the load balancer. Implementations must treat the
 // *v1.Service parameter as read-only and not modify it.
-func (l *loadbalancers) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
+func (l *loadbalancer) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
 	return ""
 }
 
@@ -38,7 +36,7 @@ func (l *loadbalancers) GetLoadBalancerName(ctx context.Context, clusterName str
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadbalancers) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
+func (l *loadbalancer) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	return nil, cloudprovider.NotImplemented
 }
 
@@ -46,7 +44,7 @@ func (l *loadbalancers) EnsureLoadBalancer(ctx context.Context, clusterName stri
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadbalancers) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
+func (l *loadbalancer) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
 	return cloudprovider.NotImplemented
 }
 
@@ -58,6 +56,6 @@ func (l *loadbalancers) UpdateLoadBalancer(ctx context.Context, clusterName stri
 // doesn't exist even if some part of it is still laying around.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadbalancers) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
+func (l *loadbalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
 	return cloudprovider.NotImplemented
 }

@@ -11,7 +11,6 @@ import (
 
 type instances struct {
 	client *egoscale.Client
-	// can handle more variable
 }
 
 func newInstances(client *egoscale.Client) cloudprovider.Instances {
@@ -21,9 +20,6 @@ func newInstances(client *egoscale.Client) cloudprovider.Instances {
 }
 
 // NodeAddresses returns the addresses of the specified instance.
-// TODO(roberthbailey): This currently is only used in such a way that it
-// returns the address of the calling instance. We should do a rename to
-// make this clearer.
 func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
 	r, err := i.client.GetWithContext(
 		ctx,
@@ -88,8 +84,6 @@ func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID
 	return false, cloudprovider.NotImplemented
 }
 
-//Will be moved to another file.
-// nodeAddresses returns a []v1.NodeAddress from VirtualMachine.
 func nodeAddresses(vm *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
 	var addresses []v1.NodeAddress
 	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: vm.Name})
