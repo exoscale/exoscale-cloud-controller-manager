@@ -1,11 +1,32 @@
 # Exoscale Cloud Controller Manager
 
-:warning: WIP Repository :warning:
-
 `exoscale-cloud-controller-manager` is the Kubernetes cloud controller manager implementation for Exoscale.
 Read more about cloud controller managers [here](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 Running `exoscale-cloud-controller-manager` allows you to leverage many of the cloud provider features offered by Exoscale on your kubernetes clusters.
 
 ## Getting Started
 
-Learn more about running Exoscale cloud controller manager [here](./doc/kubeadm)!
+Learn more about how to bootstrap a k8s for Exoscale cloud controller manager [here](./doc/kubeadm)!
+
+Once your cluster is deployed
+
+### Setup your secrets
+
+export your Exoscale credentials in your shell
+
+```Shell
+export EXOSCALE_API_KEY=EXO...
+export EXOSCALE_SECRET_KEY=XXX...
+export EXOSCALE_COMPUTE_ENDPOINT="https://api.exoscale.com/v1"
+```
+
+then apply 
+```Shell
+./deployment/secret.sh
+```
+
+### Deploy Exoscale Cloud Controller Manager
+
+```Shell
+kubectl apply -f ./deployment/deployment.yml
+```
