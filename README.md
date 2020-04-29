@@ -6,7 +6,7 @@ Running `exoscale-cloud-controller-manager` allows you to leverage many of the c
 
 ## Getting Started
 
-### prerequisite (optional)
+### Prerequisite (optional)
 
 Learn more about how to bootstrap a k8s for Exoscale cloud controller manager [here](./doc/kubeadm)!
 
