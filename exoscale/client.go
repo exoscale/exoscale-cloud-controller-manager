@@ -37,7 +37,7 @@ func newExoscaleClient() (*egoscale.Client, error) {
 	}
 
 	if envKey == "" || envSecret == "" {
-		return nil, fmt.Errorf("configuration missing for API Key %q or Secret Key %q", envKey, envSecret)
+		return nil, errors.New("incomplete or missing for API credentials")
 	}
 
 	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
