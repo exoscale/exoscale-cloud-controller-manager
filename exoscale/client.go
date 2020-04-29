@@ -11,17 +11,9 @@ import (
 const defaultComputeEndpoint = "https://api.exoscale.com/v1"
 
 func newExoscaleClient() (*egoscale.Client, error) {
-	envEndpoint := readFromEnv(
-		"EXOSCALE_API_ENDPOINT",
-	)
-
-	envKey := readFromEnv(
-		"EXOSCALE_API_KEY",
-	)
-
-	envSecret := readFromEnv(
-		"EXOSCALE_API_SECRET",
-	)
+	envEndpoint := os.Getenv("EXOSCALE_API_ENDPOINT")
+	envKey := os.Getenv("EXOSCALE_API_KEY")
+	envSecret := os.Getenv("EXOSCALE_API_SECRET")
 
 	if envEndpoint == "" {
 		envEndpoint = defaultComputeEndpoint
@@ -34,14 +26,4 @@ func newExoscaleClient() (*egoscale.Client, error) {
 	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
 
 	return egoscale.NewClient(envEndpoint, envKey, envSecret), nil
-}
-
-// readFromEnv is a os.Getenv on steroids
-func readFromEnv(keys ...string) string {
-	for _, key := range keys {
-		if value, ok := os.LookupEnv(key); ok {
-			return value
-		}
-	}
-	return ""
 }
