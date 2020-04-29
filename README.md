@@ -1,4 +1,4 @@
-# Exoscale Cloud Controller 
+# Exoscale Cloud Controller Manager
 
 :warning: WIP Repository :warning:
 
