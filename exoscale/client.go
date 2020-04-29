@@ -11,7 +11,6 @@ import (
 const defaultComputeEndpoint = "https://api.exoscale.com/v1"
 
 func newExoscaleClient() (*egoscale.Client, error) {
-	// an attempt to mimic existing behaviours
 	envEndpoint := readFromEnv(
 		"EXOSCALE_API_ENDPOINT",
 	)
