@@ -31,36 +31,27 @@ type cloudProvider struct {
 }
 
 func init() {
-	cloudprovider.RegisterCloudProvider(providerName, func(config io.Reader) (cloudprovider.Interface, error) {
-		// Config param is optional.
-		// Can be possible to use it to load config (secrets...etc) from here:
-		// https://pkg.go.dev/k8s.io/cloud-provider@v0.17.0?tab=doc#Factory
-		return newExoscaleCloud(config)
+	cloudprovider.RegisterCloudProvider(providerName, func(io.Reader) (cloudprovider.Interface, error) {
+		return newExoscaleCloud()
 	})
 }
 
-func newExoscaleCloud(_ io.Reader) (cloudprovider.Interface, error) {
+func newExoscaleCloud() (cloudprovider.Interface, error) {
 	client, err := newExoscaleClient()
 	if err != nil {
 		return nil, fmt.Errorf("Could not create exoscale client: %#v", err)
 	}
 
 	return &cloudProvider{
-		client:    client,
-		instances: newInstances(client),
-		// zones:         newZones(resources, region),
-		// loadbalancers: newLoadBalancers(resources, doClient, region),
+		client:        client,
+		instances:     newInstances(client),
+		loadbalancers: newLoadBalancers(client),
+		// zones:         newZones(client),
 		// ...etc
 	}, nil
 }
 
-func newExoscaleClient() (*egoscale.Client, error) {
-	//TODO
-	return nil, cloudprovider.NotImplemented
-}
-
 func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
-	//TODO Initialize is not implemented.
 }
 
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {

@@ -33,18 +33,20 @@ spec:
         name: exoscale-cloud-controller-manager
         args:
           - --cloud-provider=exoscale
+          - --leader-elect=true
+          - --allow-untagged-cloud
         env:
           - name: EXOSCALE_API_KEY
             valueFrom:
               secretKeyRef:
                 key: api-key
                 name: exoscale-credential
-          - name: EXOSCALE_API_SECRET
+          - name: EXOSCALE_SECRET_KEY
             valueFrom:
               secretKeyRef:
                 key: api-secret
                 name: exoscale-credential
-          - name: EXOSCALE_API_ENDPOINT
+          - name: EXOSCALE_COMPUTE_ENDPOINT
             valueFrom:
               secretKeyRef:
                 key: api-endpoint
@@ -66,7 +68,7 @@ metadata:
 #WIP Allow all for development
 rules:
 - apiGroups:
-  - ""
+  - "*"
   resources:
   - "*"
   verbs:
