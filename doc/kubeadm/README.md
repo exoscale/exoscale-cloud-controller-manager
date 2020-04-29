@@ -4,7 +4,7 @@
 
 ## Install
 
-follow the installation on k8s documentation
+Follow the instructions in the k8s documentation
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
 
 at the step of `kubeadm init`
