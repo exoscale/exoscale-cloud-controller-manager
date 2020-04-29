@@ -40,6 +40,8 @@ func newExoscaleClient() (*egoscale.Client, error) {
 		return nil, fmt.Errorf("configuration missing for API Key %q or Secret Key %q", envKey, envSecret)
 	}
 
+	egoscale.UserAgent = fmt.Sprintf("Exoscale-CCM/%s %s", versionString, egoscale.UserAgent)
+
 	return egoscale.NewClient(envEndpoint, envKey, envSecret), nil
 }
 

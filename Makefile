@@ -11,7 +11,7 @@ version:
 
 .PHONY: docker
 docker:
-	docker build --rm -f "Dockerfile" \
+	docker build --rm \
 		-t exoscale/cloud-controller-manager \
 		--build-arg VERSION="${VERSION}" \
 		--build-arg VCS_REF="${GIT_REVISION}" \
