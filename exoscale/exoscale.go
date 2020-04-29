@@ -37,7 +37,7 @@ func init() {
 func newExoscaleCloud() (cloudprovider.Interface, error) {
 	client, err := newExoscaleClient()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create exoscale client: %#v", err)
+		return nil, fmt.Errorf("Could not create Exoscale client: %v", err)
 	}
 
 	provider := &cloudProvider{
