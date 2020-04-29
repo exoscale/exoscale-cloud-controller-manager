@@ -6,13 +6,13 @@ Running `exoscale-cloud-controller-manager` allows you to leverage many of the c
 
 ## Getting Started
 
-Learn more about how to bootstrap a k8s for Exoscale cloud controller manager [here](./doc/kubeadm)!
+### pre
 
-Once your cluster is deployed
+Learn more about how to bootstrap a k8s for Exoscale cloud controller manager [here](./doc/kubeadm)!
 
 ### Setup your secrets
 
-export your Exoscale credentials in your shell
+Export your Exoscale credentials in your shell.
 
 ```Shell
 export EXOSCALE_API_KEY=EXO...
