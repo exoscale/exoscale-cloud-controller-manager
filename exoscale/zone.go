@@ -2,6 +2,8 @@ package exoscale
 
 import (
 	"context"
+	"io/ioutil"
+	"net/http"
 
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -22,19 +24,40 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	resp, err := http.Get("http://metadata.exoscale.com/1.0/meta-data/availability-zone")
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+	defer resp.Body.Close()
+
+	zone, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: string(zone)}, nil
 }
 
 // GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerID
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	vm, err := z.p.virtualMachineByProviderID(ctx, providerID)
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: vm.ZoneName}, nil
 }
 
 // GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node name
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	vm, err := z.p.virtualMachineByName(ctx, nodeName)
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: vm.ZoneName}, nil
 }
