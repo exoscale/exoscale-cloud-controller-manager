@@ -63,3 +63,7 @@ func formatProviderID(providerID string) (string, error) {
 
 	return strings.TrimPrefix(providerID, prefix), nil
 }
+
+func formatProviderID(providerID string) string {
+	return strings.TrimLeft(providerID, "exoscale://")
+}
