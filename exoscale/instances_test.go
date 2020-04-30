@@ -109,7 +109,6 @@ func (s *ConfigTestSuite) TestInstanceID() {
 	node, err := instances.InstanceID(ctx, types.NodeName("k8s-master"))
 
 	s.Require().Nil(err)
-	s.Require().NotNil(node)
 
 	s.Require().Equal(node, "8a3a817d-3874-477c-adaf-2b2ce9172528")
 }
@@ -122,7 +121,6 @@ func (s *ConfigTestSuite) TestInstanceType() {
 	nodeType, err := instances.InstanceType(ctx, types.NodeName("k8s-master"))
 
 	s.Require().Nil(err)
-	s.Require().NotNil(nodeType)
 
 	s.Require().Equal(nodeType, "Medium")
 }
@@ -135,7 +133,6 @@ func (s *ConfigTestSuite) TestInstanceTypeByProviderID() {
 	nodeType, err := instances.InstanceTypeByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
 
 	s.Require().Nil(err)
-	s.Require().NotNil(nodeType)
 
 	s.Require().Equal(nodeType, "Medium")
 }
