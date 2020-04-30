@@ -20,7 +20,13 @@ func (c *cloudProvider) virtualMachineByName(ctx context.Context, name types.Nod
 
 func (c *cloudProvider) virtualMachineByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
 	id := formatProviderID(providerID)
-	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{ID: egoscale.MustParseUUID(id)})
+
+	uuid, err := egoscale.ParseUUID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{ID: uuid})
 	if err != nil {
 		return nil, err
 	}
