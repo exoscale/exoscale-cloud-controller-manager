@@ -104,7 +104,7 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
-	vm, err := i.p.virtualMachineByName(ctx, types.NodeName(providerID))
+	vm, err := i.p.virtualMachineByProviderID(ctx, providerID)
 	if err != nil {
 		return false, err
 	}
