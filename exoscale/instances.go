@@ -10,10 +10,6 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 )
 
-const (
-	metadataServer = "http://metadata.exoscale.com/1.0/meta-data/"
-)
-
 var labelInvalidCharsRegex *regexp.Regexp = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
 
 type instances struct {
