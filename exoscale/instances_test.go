@@ -76,7 +76,6 @@ func (s *ConfigTestSuite) TestNodeAddresses() {
 	s.Require().NotNil(nodeAddress)
 
 	expectedAddresses := []v1.NodeAddress{
-		{Type: v1.NodeHostName, Address: "k8s-master"},
 		{Type: v1.NodeExternalIP, Address: "159.100.251.253"},
 	}
 
@@ -94,7 +93,6 @@ func (s *ConfigTestSuite) TestNodeAddressesByProviderID() {
 	s.Require().NotNil(nodeAddress)
 
 	expectedAddresses := []v1.NodeAddress{
-		{Type: v1.NodeHostName, Address: "k8s-master"},
 		{Type: v1.NodeExternalIP, Address: "159.100.251.253"},
 	}
 
