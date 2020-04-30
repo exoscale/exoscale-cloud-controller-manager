@@ -30,7 +30,7 @@ func (c *cloudProvider) virtualMachineByProviderID(ctx context.Context, provider
 
 func nodeAddresses(vm *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
 	var addresses []v1.NodeAddress
-	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: vm.HostName})
+	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: vm.Name})
 
 	nic := vm.DefaultNic()
 
