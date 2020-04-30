@@ -101,6 +101,90 @@ func (s *ConfigTestSuite) TestNodeAddressesByProviderID() {
 	s.Require().Equal(expectedAddresses, nodeAddress)
 }
 
+func (s *ConfigTestSuite) TestInstanceID() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	node, err := instances.InstanceID(ctx, types.NodeName("k8s-master"))
+
+	s.Require().Nil(err)
+	s.Require().NotNil(node)
+
+	s.Require().Equal(node, "8a3a817d-3874-477c-adaf-2b2ce9172528")
+}
+
+func (s *ConfigTestSuite) TestInstanceType() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	nodeType, err := instances.InstanceType(ctx, types.NodeName("k8s-master"))
+
+	s.Require().Nil(err)
+	s.Require().NotNil(nodeType)
+
+	s.Require().Equal(nodeType, "Medium")
+}
+
+func (s *ConfigTestSuite) TestInstanceTypeByProviderID() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	nodeType, err := instances.InstanceTypeByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
+
+	s.Require().Nil(err)
+	s.Require().NotNil(nodeType)
+
+	s.Require().Equal(nodeType, "Medium")
+}
+
+func (s *ConfigTestSuite) TestAddSSHKeyToAllInstances() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	err := instances.AddSSHKeyToAllInstances(ctx, "", nil)
+
+	s.Require().NotNil(err)
+}
+
+func (s *ConfigTestSuite) TestCurrentNodeName() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	nodeName, err := instances.CurrentNodeName(ctx, "k8s-master")
+
+	s.Require().Nil(err)
+	s.Require().NotNil(nodeName)
+
+	s.Require().Equal(nodeName, types.NodeName("k8s-master"))
+}
+
+func (s *ConfigTestSuite) TestInstanceExistsByProviderID() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	nodeExist, err := instances.InstanceExistsByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
+
+	s.Require().Nil(err)
+	s.Require().True(nodeExist)
+}
+
+func (s *ConfigTestSuite) TestInstanceShutdownByProviderID() {
+	ctx := context.Background()
+	instances, ts := newFakeInstanceAPI()
+	defer ts.Close()
+
+	nodeShutdown, err := instances.InstanceShutdownByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
+
+	s.Require().Nil(err)
+	s.Require().False(nodeShutdown)
+}
+
 func TestConfigTestSuite(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }
