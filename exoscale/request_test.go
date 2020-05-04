@@ -21,7 +21,7 @@ type testServer struct {
 	responses    []response
 }
 
-func newServer(responses ...response) *testServer {
+func newTestServer(responses ...response) *testServer {
 	mux := http.NewServeMux()
 
 	ts := &testServer{
