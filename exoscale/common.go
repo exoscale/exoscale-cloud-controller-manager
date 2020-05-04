@@ -36,16 +36,12 @@ func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, provide
 }
 
 func nodeAddresses(instance *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
-	var addresses []v1.NodeAddress
-
 	nic := instance.DefaultNic()
 	if nic == nil {
 		return nil, fmt.Errorf("default NIC not found for instance %q", instance.ID.String())
 	}
-
-	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()})
-
-	return addresses, nil
+	
+	return []v1.NodeAddress{{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()}}, nil
 }
 
 func formatProviderID(providerID string) string {
