@@ -40,7 +40,7 @@ func nodeAddresses(vm *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
 
 	nic := vm.DefaultNic()
 	if nic == nil {
-		return nil, fmt.Errorf("default nic not found for instance %q", vm.ID.String())
+		return nil, fmt.Errorf("default NIC not found for instance %q", vm.ID.String())
 	}
 
 	addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()})
