@@ -65,7 +65,7 @@ func (i *instances) InstanceType(ctx context.Context, name types.NodeName) (stri
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ``), nil
+	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ""), nil
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
@@ -75,7 +75,7 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ``), nil
+	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ""), nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
