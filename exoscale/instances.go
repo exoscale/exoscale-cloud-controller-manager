@@ -24,12 +24,12 @@ func newInstances(provider *cloudProvider) cloudprovider.Instances {
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	vm, err := i.p.virtualMachineByName(ctx, name)
+	instance, err := i.p.computeInstanceByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodeAddresses(vm)
+	return nodeAddresses(instance)
 }
 
 // NodeAddressesByProviderID returns the addresses of the specified instance.
@@ -38,44 +38,44 @@ func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 // from the node whose nodeaddresses are being queried. i.e. local metadata
 // services cannot be used in this method to obtain nodeaddresses
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
-	vm, err := i.p.virtualMachineByProviderID(ctx, providerID)
+	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodeAddresses(vm)
+	return nodeAddresses(instance)
 }
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist, we must return ("", cloudprovider.InstanceNotFound)
 // cloudprovider.InstanceNotFound should NOT be returned for instances that exist but are stopped/sleeping
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	vm, err := i.p.virtualMachineByName(ctx, nodeName)
+	instance, err := i.p.computeInstanceByName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
 
-	return vm.ID.String(), nil
+	return instance.ID.String(), nil
 }
 
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(ctx context.Context, name types.NodeName) (string, error) {
-	vm, err := i.p.virtualMachineByName(ctx, name)
+	instance, err := i.p.computeInstanceByName(ctx, name)
 	if err != nil {
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(vm.ServiceOfferingName, ``), nil
+	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ``), nil
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
-	vm, err := i.p.virtualMachineByProviderID(ctx, providerID)
+	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(vm.ServiceOfferingName, ``), nil
+	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ``), nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
@@ -94,7 +94,7 @@ func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
-	_, err := i.p.virtualMachineByProviderID(ctx, providerID)
+	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return false, err
 	}
@@ -104,10 +104,10 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
-	vm, err := i.p.virtualMachineByProviderID(ctx, providerID)
+	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return false, err
 	}
 
-	return egoscale.VirtualMachineState(vm.State) == egoscale.VirtualMachineShutdowned, nil
+	return egoscale.VirtualMachineState(instance.State) == egoscale.VirtualMachineShutdowned, nil
 }
