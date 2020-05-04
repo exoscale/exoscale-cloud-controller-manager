@@ -10,7 +10,7 @@ import (
 
 func TestGetZoneByProviderID(t *testing.T) {
 	ctx := context.Background()
-	p, ts := newFakeInstanceAPI()
+	p, ts := newMockInstanceAPI()
 	zones := &zones{p: p}
 	defer ts.Close()
 
@@ -26,7 +26,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 
 func TestGetZoneByNodeName(t *testing.T) {
 	ctx := context.Background()
-	p, ts := newFakeInstanceAPI()
+	p, ts := newMockInstanceAPI()
 	zones := &zones{p: p}
 	defer ts.Close()
 

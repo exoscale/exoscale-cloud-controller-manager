@@ -24,7 +24,7 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
-	resp, err := http.Get(metadataEndpoint + "availability-zone")
+	resp, err := http.Get(metadataServer + "availability-zone")
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
