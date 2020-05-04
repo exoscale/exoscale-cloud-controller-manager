@@ -18,10 +18,10 @@ type testHTTPResponse struct {
 type testServer struct {
 	*httptest.Server
 	lastResponse int
-	responses    []response
+	responses    []testHTTPResponse
 }
 
-func newTestServer(responses ...response) *testServer {
+func newTestServer(responses ...testHTTPResponse) *testServer {
 	mux := http.NewServeMux()
 
 	ts := &testServer{

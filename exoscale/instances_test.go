@@ -11,7 +11,7 @@ import (
 )
 
 func newFakeInstanceAPI() (*instances, *testServer) {
-	ts := newServer(response{200, jsonContentType, `
+	ts := newTestServer(testHTTPResponse{200, jsonContentType, `
 {"listvirtualmachinesresponse": {
 	"count": 1,
 	"virtualmachine": [
