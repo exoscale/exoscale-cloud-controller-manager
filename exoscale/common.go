@@ -2,6 +2,7 @@ package exoscale
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,7 +21,10 @@ func (c *cloudProvider) computeInstanceByName(ctx context.Context, name types.No
 }
 
 func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
-	id := formatProviderID(providerID)
+	id, err := formatProviderID(providerID)
+	if err != nil {
+		return nil, err
+	}
 
 	uuid, err := egoscale.ParseUUID(id)
 	if err != nil {
@@ -46,6 +50,16 @@ func nodeAddresses(instance *egoscale.VirtualMachine) ([]v1.NodeAddress, error) 
 	}, nil
 }
 
-func formatProviderID(providerID string) string {
-	return strings.TrimLeft(providerID, "exoscale://")
+func formatProviderID(providerID string) (string, error) {
+	if providerID == "" {
+		return "", errors.New("provider ID cannot be empty")
+	}
+
+	const prefix = "exoscale://"
+
+	if !strings.HasPrefix(providerID, prefix) {
+		return "", fmt.Errorf("provider ID %q is missing prefix %q", providerID, prefix)
+	}
+
+	return strings.TrimPrefix(providerID, prefix), nil
 }
