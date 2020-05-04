@@ -42,22 +42,22 @@ func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	vm, err := z.p.computeInstanceByProviderID(ctx, providerID)
+	instance, err := z.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
 
-	return cloudprovider.Zone{Region: vm.ZoneName}, nil
+	return cloudprovider.Zone{Region: instance.ZoneName}, nil
 }
 
 // GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node name
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	vm, err := z.p.computeInstanceByName(ctx, nodeName)
+	instance, err := z.p.computeInstanceByName(ctx, nodeName)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
 
-	return cloudprovider.Zone{Region: vm.ZoneName}, nil
+	return cloudprovider.Zone{Region: instance.ZoneName}, nil
 }
