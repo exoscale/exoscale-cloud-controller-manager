@@ -96,6 +96,10 @@ func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types
 func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
+		if csError, ok := err.(*egoscale.ErrorResponse); ok && csError.ErrorCode == egoscale.ParamError {
+			return false, nil
+		}
+
 		return false, err
 	}
 

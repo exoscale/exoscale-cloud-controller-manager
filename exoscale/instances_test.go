@@ -19,6 +19,17 @@ const (
 	testInstanceServiceOffering = "Medium"
 )
 
+func newMockInstanceAPINotFound() (*instances, *testServer) {
+	ts := newTestServer(testHTTPResponse{200, `
+{"listvirtualmachinesresponse": {}}`})
+
+	return &instances{
+		&cloudProvider{
+			client: egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+		},
+	}, ts
+}
+
 func newMockInstanceAPI() (*instances, *testServer) {
 	ts := newTestServer(testHTTPResponse{200, fmt.Sprintf(`
 {"listvirtualmachinesresponse": {
@@ -162,6 +173,17 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, nodeExist)
+}
+
+func TestInstanceNotExistsByProviderID(t *testing.T) {
+	ctx := context.Background()
+	instances, ts := newMockInstanceAPINotFound()
+	defer ts.Close()
+
+	nodeExist, err := instances.InstanceExistsByProviderID(ctx, "exoscale://00113bd2-d6cc-418e-831d-2d4785f6e5b6")
+
+	require.NoError(t, err)
+	require.False(t, nodeExist)
 }
 
 func TestInstanceShutdownByProviderID(t *testing.T) {
