@@ -77,7 +77,7 @@ func TestNodeAddresses(t *testing.T) {
 
 	nodeAddress, err := instances.NodeAddresses(ctx, types.NodeName(testInstanceName))
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, nodeAddress)
 
 	expectedAddresses := []v1.NodeAddress{
@@ -94,7 +94,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 
 	nodeAddress, err := instances.NodeAddressesByProviderID(ctx, testInstanceProviderID)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, nodeAddress)
 
 	expectedAddresses := []v1.NodeAddress{
@@ -111,7 +111,7 @@ func TestInstanceID(t *testing.T) {
 
 	node, err := instances.InstanceID(ctx, types.NodeName(testInstanceName))
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, node, testInstanceID)
 }
@@ -123,7 +123,7 @@ func TestInstanceType(t *testing.T) {
 
 	nodeType, err := instances.InstanceType(ctx, types.NodeName(testInstanceName))
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, nodeType, testInstanceServiceOffering)
 }
@@ -135,7 +135,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 
 	nodeType, err := instances.InstanceTypeByProviderID(ctx, testInstanceProviderID)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, nodeType, testInstanceServiceOffering)
 }
@@ -147,7 +147,7 @@ func TestCurrentNodeName(t *testing.T) {
 
 	nodeName, err := instances.CurrentNodeName(ctx, testInstanceName)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, nodeName)
 
 	require.Equal(t, nodeName, types.NodeName(testInstanceName))
@@ -160,7 +160,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 
 	nodeExist, err := instances.InstanceExistsByProviderID(ctx, testInstanceProviderID)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.True(t, nodeExist)
 }
 
@@ -171,6 +171,6 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 
 	nodeShutdown, err := instances.InstanceShutdownByProviderID(ctx, testInstanceProviderID)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.False(t, nodeShutdown)
 }
