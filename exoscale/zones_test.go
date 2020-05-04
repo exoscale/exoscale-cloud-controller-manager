@@ -14,7 +14,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 	zones := &zones{p: p}
 	defer ts.Close()
 
-	zone, err := zones.GetZoneByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
+	zone, err := zones.GetZoneByProviderID(ctx, testInstanceProviderID)
 
 	require.NoError(t, err)
 	require.NotNil(t, zone)
