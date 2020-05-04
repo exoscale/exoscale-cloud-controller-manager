@@ -19,7 +19,7 @@ const (
 	testInstanceServiceOffering = "Medium"
 )
 
-func newFakeInstanceAPI() (*instances, *testServer) {
+func newMockInstanceAPI() (*instances, *testServer) {
 	ts := newTestServer(testHTTPResponse{200, "application/json", fmt.Sprintf(`
 {"listvirtualmachinesresponse": {
 	"count": 1,
@@ -72,7 +72,7 @@ func newFakeInstanceAPI() (*instances, *testServer) {
 
 func TestNodeAddresses(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeAddress, err := instances.NodeAddresses(ctx, types.NodeName(testInstanceName))
@@ -89,7 +89,7 @@ func TestNodeAddresses(t *testing.T) {
 
 func TestNodeAddressesByProviderID(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeAddress, err := instances.NodeAddressesByProviderID(ctx, testInstanceProviderID)
@@ -106,7 +106,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 
 func TestInstanceID(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	node, err := instances.InstanceID(ctx, types.NodeName(testInstanceName))
@@ -118,7 +118,7 @@ func TestInstanceID(t *testing.T) {
 
 func TestInstanceType(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeType, err := instances.InstanceType(ctx, types.NodeName(testInstanceName))
@@ -130,7 +130,7 @@ func TestInstanceType(t *testing.T) {
 
 func TestInstanceTypeByProviderID(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeType, err := instances.InstanceTypeByProviderID(ctx, testInstanceProviderID)
@@ -142,7 +142,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 
 func TestAddSSHKeyToAllInstances(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	err := instances.AddSSHKeyToAllInstances(ctx, "", nil)
@@ -152,7 +152,7 @@ func TestAddSSHKeyToAllInstances(t *testing.T) {
 
 func TestCurrentNodeName(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeName, err := instances.CurrentNodeName(ctx, testInstanceName)
@@ -165,7 +165,7 @@ func TestCurrentNodeName(t *testing.T) {
 
 func TestInstanceExistsByProviderID(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeExist, err := instances.InstanceExistsByProviderID(ctx, testInstanceProviderID)
@@ -176,7 +176,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 
 func TestInstanceShutdownByProviderID(t *testing.T) {
 	ctx := context.Background()
-	instances, ts := newFakeInstanceAPI()
+	instances, ts := newMockInstanceAPI()
 	defer ts.Close()
 
 	nodeShutdown, err := instances.InstanceShutdownByProviderID(ctx, testInstanceProviderID)
