@@ -9,7 +9,7 @@ const (
 	jsonContentType = "application/json"
 )
 
-type response struct {
+type testHTTPResponse struct {
 	code        int
 	contentType string
 	body        string
