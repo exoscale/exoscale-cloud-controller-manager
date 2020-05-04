@@ -40,8 +40,10 @@ func nodeAddresses(instance *egoscale.VirtualMachine) ([]v1.NodeAddress, error) 
 	if nic == nil {
 		return nil, fmt.Errorf("default NIC not found for instance %q", instance.ID.String())
 	}
-	
-	return []v1.NodeAddress{{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()}}, nil
+
+	return []v1.NodeAddress{
+		{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()},
+	}, nil
 }
 
 func formatProviderID(providerID string) string {
