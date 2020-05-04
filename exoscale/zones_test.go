@@ -2,11 +2,13 @@ package exoscale
 
 import (
 	"context"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
-func (s *ConfigTestSuite) TestGetZoneByProviderID() {
+func TestGetZoneByProviderID(t *testing.T) {
 	ctx := context.Background()
 	p, ts := newFakeInstanceAPI()
 	zones := &zones{p: p}
@@ -14,14 +16,15 @@ func (s *ConfigTestSuite) TestGetZoneByProviderID() {
 
 	zone, err := zones.GetZoneByProviderID(ctx, "exoscale://8a3a817d-3874-477c-adaf-2b2ce9172528")
 
-	s.Require().Nil(err)
+	require.Nil(t, err)
+	require.NotNil(t, zone)
 
 	expectedZone := cloudprovider.Zone{Region: "ch-dk-2"}
 
-	s.Require().Equal(expectedZone, zone)
+	require.Equal(t, expectedZone, zone)
 }
 
-func (s *ConfigTestSuite) TestGetZoneByNodeName() {
+func TestGetZoneByNodeName(t *testing.T) {
 	ctx := context.Background()
 	p, ts := newFakeInstanceAPI()
 	zones := &zones{p: p}
@@ -29,9 +32,10 @@ func (s *ConfigTestSuite) TestGetZoneByNodeName() {
 
 	zone, err := zones.GetZoneByNodeName(ctx, "k8s-master")
 
-	s.Require().Nil(err)
+	require.Nil(t, err)
+	require.NotNil(t, zone)
 
 	expectedZone := cloudprovider.Zone{Region: "ch-dk-2"}
 
-	s.Require().Equal(expectedZone, zone)
+	require.Equal(t, expectedZone, zone)
 }

@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
+
 func (c *cloudProvider) computeInstanceByName(ctx context.Context, name types.NodeName) (*egoscale.VirtualMachine, error) {
 	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{Name: string(name)})
 	if err != nil {

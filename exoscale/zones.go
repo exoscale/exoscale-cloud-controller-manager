@@ -42,7 +42,7 @@ func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	vm, err := z.p.virtualMachineByProviderID(ctx, providerID)
+	vm, err := z.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
@@ -54,7 +54,7 @@ func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (clo
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	vm, err := z.p.virtualMachineByName(ctx, nodeName)
+	vm, err := z.p.computeInstanceByName(ctx, nodeName)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
