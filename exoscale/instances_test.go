@@ -167,20 +167,18 @@ func TestCurrentNodeName(t *testing.T) {
 func TestInstanceExistsByProviderID(t *testing.T) {
 	ctx := context.Background()
 	instances, ts := newMockInstanceAPI()
-	defer ts.Close()
 
 	nodeExist, err := instances.InstanceExistsByProviderID(ctx, testInstanceProviderID)
 
 	require.NoError(t, err)
 	require.True(t, nodeExist)
-}
 
-func TestInstanceNotExistsByProviderID(t *testing.T) {
-	ctx := context.Background()
-	instances, ts := newMockInstanceAPINotFound()
+	ts.Close()
+
+	instances, ts = newMockInstanceAPINotFound()
 	defer ts.Close()
 
-	nodeExist, err := instances.InstanceExistsByProviderID(ctx, "exoscale://00113bd2-d6cc-418e-831d-2d4785f6e5b6")
+	nodeExist, err = instances.InstanceExistsByProviderID(ctx, "exoscale://00113bd2-d6cc-418e-831d-2d4785f6e5b6")
 
 	require.NoError(t, err)
 	require.False(t, nodeExist)
