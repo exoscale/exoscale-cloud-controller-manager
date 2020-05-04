@@ -140,16 +140,6 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 	require.Equal(t, nodeType, testInstanceServiceOffering)
 }
 
-func TestAddSSHKeyToAllInstances(t *testing.T) {
-	ctx := context.Background()
-	instances, ts := newMockInstanceAPI()
-	defer ts.Close()
-
-	err := instances.AddSSHKeyToAllInstances(ctx, "", nil)
-
-	require.NotNil(t, err)
-}
-
 func TestCurrentNodeName(t *testing.T) {
 	ctx := context.Background()
 	instances, ts := newMockInstanceAPI()
