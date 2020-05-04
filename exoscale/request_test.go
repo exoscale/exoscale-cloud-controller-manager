@@ -35,7 +35,6 @@ func newServer(responses ...response) *testServer {
 	return ts
 }
 
-// ServeHTTP handles a request and writes the answer
 func (ts *testServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	i := ts.lastResponse
 	if i >= len(ts.responses) {
