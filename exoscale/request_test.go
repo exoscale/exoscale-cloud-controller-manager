@@ -6,9 +6,8 @@ import (
 )
 
 type testHTTPResponse struct {
-	code        int
-	contentType string
-	body        string
+	code int
+	body string
 }
 
 type testServer struct {
@@ -42,7 +41,7 @@ func (ts *testServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response := ts.responses[i]
 	ts.lastResponse++
 
-	w.Header().Set("Content-Type", response.contentType)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.code)
 	w.Write([]byte(response.body)) // nolint: errcheck
 }

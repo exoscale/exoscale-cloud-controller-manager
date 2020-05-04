@@ -20,7 +20,7 @@ const (
 )
 
 func newMockInstanceAPI() (*instances, *testServer) {
-	ts := newTestServer(testHTTPResponse{200, "application/json", fmt.Sprintf(`
+	ts := newTestServer(testHTTPResponse{200, fmt.Sprintf(`
 {"listvirtualmachinesresponse": {
 	"count": 1,
 	"virtualmachine": [
