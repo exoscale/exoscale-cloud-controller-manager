@@ -5,10 +5,6 @@ import (
 	"net/http/httptest"
 )
 
-const (
-	jsonContentType = "application/json"
-)
-
 type testHTTPResponse struct {
 	code        int
 	contentType string
@@ -38,7 +34,7 @@ func newTestServer(responses ...testHTTPResponse) *testServer {
 func (ts *testServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	i := ts.lastResponse
 	if i >= len(ts.responses) {
-		w.Header().Set("Content-Type", jsonContentType)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
 		w.Write([]byte("{}")) // nolint: errcheck
 		return
