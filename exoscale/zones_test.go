@@ -19,7 +19,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, zone)
 
-	expectedZone := cloudprovider.Zone{Region: "ch-dk-2"}
+	expectedZone := cloudprovider.Zone{Region: testInstanceZone}
 
 	require.Equal(t, expectedZone, zone)
 }
@@ -30,12 +30,12 @@ func TestGetZoneByNodeName(t *testing.T) {
 	zones := &zones{p: p}
 	defer ts.Close()
 
-	zone, err := zones.GetZoneByNodeName(ctx, "k8s-master")
+	zone, err := zones.GetZoneByNodeName(ctx, testInstanceName)
 
 	require.NoError(t, err)
 	require.NotNil(t, zone)
 
-	expectedZone := cloudprovider.Zone{Region: "ch-dk-2"}
+	expectedZone := cloudprovider.Zone{Region: testInstanceZone}
 
 	require.Equal(t, expectedZone, zone)
 }

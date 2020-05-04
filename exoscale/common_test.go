@@ -12,6 +12,7 @@ const (
 	testInstanceName            = "k8s-master"
 	testInstanceIP              = "159.100.251.253"
 	testInstanceServiceOffering = "Medium"
+	testInstanceZone            = "ch-dk-2"
 )
 
 func newMockInstanceAPINotFound() (*cloudProvider, *testServer) {
@@ -62,10 +63,10 @@ func newMockInstanceAPI() (*cloudProvider, *testServer) {
 			"templateid": "2dc5d673-46df-4151-9b91-bc966f5b819b",
 			"templatename": "Linux Ubuntu 18.04 LTS 64-bit",
 			"zoneid": "381d0a95-ed4a-4ad9-b41c-b97073c1a433",
-			"zonename": "ch-dk-2"
+			"zonename": "%s"
 		}
 	]
-}}`, testInstanceID, testInstanceName, testInstanceIP, testInstanceServiceOffering)})
+}}`, testInstanceID, testInstanceName, testInstanceIP, testInstanceServiceOffering, testInstanceZone)})
 
 	return &cloudProvider{
 		client: egoscale.NewClient(ts.URL, "KEY", "SECRET"),
