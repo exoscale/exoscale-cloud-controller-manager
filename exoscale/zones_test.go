@@ -19,7 +19,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, zone)
 
-	expectedZone := cloudprovider.Zone{Region: testInstanceZone}
+	expectedZone := cloudprovider.Zone{Region: testInstanceZoneName}
 
 	require.Equal(t, expectedZone, zone)
 }
@@ -35,7 +35,7 @@ func TestGetZoneByNodeName(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, zone)
 
-	expectedZone := cloudprovider.Zone{Region: testInstanceZone}
+	expectedZone := cloudprovider.Zone{Region: testInstanceZoneName}
 
 	require.Equal(t, expectedZone, zone)
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/exoscale/egoscale"
@@ -11,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const metadataServer = "http://metadata.exoscale.com/1.0/meta-data/"
+const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
 
 func (c *cloudProvider) computeInstanceByName(ctx context.Context, name types.NodeName) (*egoscale.VirtualMachine, error) {
 	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{Name: string(name)})
@@ -64,4 +66,19 @@ func formatProviderID(providerID string) (string, error) {
 	}
 
 	return strings.TrimPrefix(providerID, prefix), nil
+}
+
+func queryInstanceMetadata(key string) (string, error) {
+	resp, err := http.Get(metadataEndpoint + key)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	value, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(value), nil
 }

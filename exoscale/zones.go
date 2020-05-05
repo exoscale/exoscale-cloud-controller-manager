@@ -2,8 +2,6 @@ package exoscale
 
 import (
 	"context"
-	"io/ioutil"
-	"net/http"
 
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -24,18 +22,12 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
-	resp, err := http.Get(metadataServer + "availability-zone")
-	if err != nil {
-		return cloudprovider.Zone{}, err
-	}
-	defer resp.Body.Close()
-
-	zone, err := ioutil.ReadAll(resp.Body)
+	zone, err := queryInstanceMetadata("availability-zone")
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
 
-	return cloudprovider.Zone{Region: string(zone)}, nil
+	return cloudprovider.Zone{Region: zone}, nil
 }
 
 // GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerID
