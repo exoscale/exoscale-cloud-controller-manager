@@ -22,19 +22,34 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	zone, err := queryInstanceMetadata("availability-zone")
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: zone}, nil
 }
 
 // GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerID
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	instance, err := z.p.computeInstanceByProviderID(ctx, providerID)
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: instance.ZoneName}, nil
 }
 
 // GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node name
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	return cloudprovider.Zone{}, cloudprovider.NotImplemented
+	instance, err := z.p.computeInstanceByName(ctx, nodeName)
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	return cloudprovider.Zone{Region: instance.ZoneName}, nil
 }

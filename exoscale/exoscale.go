@@ -61,7 +61,7 @@ func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 // LoadBalancer returns a balancer interface.
 // Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return c.loadBalancer, true
+	return c.loadBalancer, false
 }
 
 // Instances returns an instances interface.
@@ -73,7 +73,7 @@ func (c *cloudProvider) Instances() (cloudprovider.Instances, bool) {
 // Zones returns a zones interface.
 // Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) Zones() (cloudprovider.Zones, bool) {
-	return c.zones, false
+	return c.zones, true
 }
 
 // Clusters is not implemented.
