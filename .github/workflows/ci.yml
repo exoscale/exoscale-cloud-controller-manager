@@ -13,7 +13,7 @@ jobs:
       uses: golangci/golangci-lint-action@v1
       with:
         version: v1.27
-        optional: --timeout 2m
+        args: --timeout 2m
     - name: Run tests
       run: make test-verbose
   build:
