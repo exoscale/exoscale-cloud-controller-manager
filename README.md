@@ -1,5 +1,7 @@
 # Exoscale Cloud Controller Manager
 
+[![Actions Status](https://github.com/exoscale/exoscale-cloud-controller-manager/workflows/CI/badge.svg)](https://github.com/exoscale/exoscale-cloud-controller-manager/actions?query=workflow%3ACI)
+
 `exoscale-cloud-controller-manager` is the Kubernetes cloud controller manager implementation for Exoscale.
 Read more about cloud controller managers [here](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 Running `exoscale-cloud-controller-manager` allows you to leverage many of the cloud provider features offered by Exoscale on your kubernetes clusters.
