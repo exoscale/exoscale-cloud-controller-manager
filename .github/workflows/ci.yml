@@ -10,7 +10,9 @@ jobs:
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
     - name: Run golangci-lint
-      run: make lint
+      uses: golangci/golangci-lint-action@v1
+      with:
+        version: v1.27
     - name: Run tests
       run: make test-verbose
   build:
