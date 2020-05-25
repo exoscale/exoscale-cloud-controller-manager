@@ -3,7 +3,7 @@ name: CI
 on: [push]
 
 jobs:
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -32,3 +32,26 @@ jobs:
       run: git submodule update --init --recursive go.mk
     - name: Build Docker image
       run: make docker
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+    - uses: actions/checkout@v2
+    - name: Init go.mk submodule
+      run: git submodule update --init --recursive go.mk
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: v1.18.2
+      id: install
+    - name: Install Exoscale CLI
+      run: |
+        wget -O cli.deb https://github.com/exoscale/cli/releases/download/v1.12.0/exoscale-cli_1.12.0_linux_amd64.deb
+        sudo dpkg -i cli.deb
+
+        echo "::set-env name=EXOSCALE_API_KEY::${{ secrets.EXOSCALE_API_KEY }}"
+        echo "::set-env name=EXOSCALE_API_SECRET::${{ secrets.EXOSCALE_API_SECRET }}"
+        echo "::set-env name=EXOSCALE_API_ENDPOINT::https://api.exoscale.com/v1"
+    - name: Integration Test
+      run: |
+        make integtest
+
