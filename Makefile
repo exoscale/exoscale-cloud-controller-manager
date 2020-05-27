@@ -21,3 +21,10 @@ docker:
 
 docker-push:
 	docker push exoscale/cloud-controller-manager:latest && docker push exoscale/cloud-controller-manager:${VERSION}
+
+INCLUDE_PATH := $(PWD)
+export INCLUDE_PATH
+
+.PHONY: integtest
+integtest:
+	@$(INCLUDE_PATH)/integtest/run.bash
