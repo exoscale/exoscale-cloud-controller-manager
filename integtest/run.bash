@@ -30,6 +30,7 @@ exo -Q vm create "$EXOSCALE_INSTANCE_NAME" \
            -k "$EXOSCALE_INSTANCE_NAME" \
            -t ci-k8s-node-1.18.3 \
            --template-filter mine \
+           -s k8s \
            -z de-fra-1
 
 EXOSCALE_INSTANCE_IP=$(exo vm show "$EXOSCALE_INSTANCE_NAME" -O json | jq -r '.ip_address')
