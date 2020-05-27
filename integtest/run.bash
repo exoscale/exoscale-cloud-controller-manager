@@ -8,7 +8,7 @@ INTEGTEST_DIR="$INCLUDE_PATH/integtest"
 [[ -n "$EXOSCALE_API_SECRET" ]]
 [[ -n "$EXOSCALE_API_ENDPOINT" ]]
 
-EXOSCALE_INSTANCE_NAME=ci-ccm-$(uuidgen)
+EXOSCALE_INSTANCE_NAME=ci-ccm-$(uuidgen | tr '[:upper:]' '[:lower:]')
 export EXOSCALE_INSTANCE_NAME
 
 cleanup() {
