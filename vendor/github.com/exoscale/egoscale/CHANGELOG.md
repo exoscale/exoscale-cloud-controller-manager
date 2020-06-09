@@ -1,6 +1,48 @@
 Changelog
 =========
 
+0.25.0
+------
+
+- feature: Add support for `listBucketsUsage` (#431) 
+- change: Switch CI to Github Actions (#430)
+
+0.24.0
+------
+
+- feature: Add export snapshot implementation (#427)
+- feature: Add support for public API V2 (#425)
+- change: Switch module to Go 1.14 (#429)
+- change: Travis CI: set minimum Go version to 1.13
+- doc: Annotate API doc regarding use of tags (#423)
+- tests: fix request client timeout handling (#422)
+
+0.23.0
+------
+
+- change: Add `Resources` field to `APIKey` (#420)
+
+0.22.0
+------
+
+- change: Remove all references to Network Offerings (#418)
+
+0.21.0
+------
+
+- feature: add const `NotFound` 404 on type `ErrorCode` (#417)
+
+0.20.1
+------
+
+- fix: update the `ListAPIKeysResponse` field (#415)
+
+0.20.0
+------
+
+- feature: Add Instance pool implementation (#410)
+- feature: Add IAM implementation (#411)
+
 0.19.0
 ------
 
