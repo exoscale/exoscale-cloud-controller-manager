@@ -13,22 +13,52 @@ import (
 )
 
 const (
-	annotationLoadBalanceID                     = "service.beta.kubernetes.io/exo-lb-id"
-	annotationLoadBalancerName                  = "service.beta.kubernetes.io/exo-lb-name"
-	annotationLoadBalanceDescription            = "service.beta.kubernetes.io/exo-lb-description"
-	annotationLoadBalanceZone                   = "service.beta.kubernetes.io/exo-lb-zone"
-	serviceAnnotationLoadBalancerID             = "service.beta.kubernetes.io/exo-lb-service-id"
-	serviceAnnotationLoadBalancerName           = "service.beta.kubernetes.io/exo-lb-service-name"
-	serviceAnnotationLoadBalancerDescription    = "service.beta.kubernetes.io/exo-lb-service-description"
-	serviceAnnotationLoadBalancerInstancePoolID = "service.beta.kubernetes.io/exo-lb-service-instancepoolid"
-	// serviceAnnotationLoadBalancerProtocol            = "service.beta.kubernetes.io/exo-lb-service-protocol"
-	serviceAnnotationLoadBalancerStrategy            = "service.beta.kubernetes.io/exo-lb-service-strategy"
-	serviceAnnotationLoadBalancerHealthCheckPort     = "service.beta.kubernetes.io/exo-lb-service-health-check-port"
-	serviceAnnotationLoadBalancerHealthCheckMode     = "service.beta.kubernetes.io/exo-lb-service-health-check-mode"
-	serviceAnnotationLoadBalancerHealthCheckInterval = "service.beta.kubernetes.io/exo-lb-service-health-check-interval"
-	serviceAnnotationLoadBalancerHealthCheckTimeout  = "service.beta.kubernetes.io/exo-lb-service-health-check-timeout"
-	serviceAnnotationLoadBalancerHealthCheckRetries  = "service.beta.kubernetes.io/exo-lb-service-health-check-retries"
-	serviceAnnotationLoadBalancerHealthCheckHTTPURI  = "service.beta.kubernetes.io/exo-lb-service-http-health-check-uri"
+	// annotationLoadBalancerID is the ID of the loadbalancer
+	annotationLoadBalanceID = "service.beta.kubernetes.io/exo-lb-id"
+
+	// annotationLoadBalancerName is the name of the loadbalancer
+	annotationLoadBalancerName = "service.beta.kubernetes.io/exo-lb-name"
+
+	// annotationLoadBalanceDescription is the description of the loadbalancer
+	annotationLoadBalanceDescription = "service.beta.kubernetes.io/exo-lb-description"
+
+	// annotationLoadBalanceZone is the zone of the loadbalancer
+	// the possible values are "bg-sof-1", "ch-dk-2", "ch-gva-2", "de-fra-1", "de-muc-1"
+	annotationLoadBalanceZone = "service.beta.kubernetes.io/exo-lb-zone"
+
+	// annotationLoadBalancerServiceID is the ID of the service associated to a loadbalancer
+	annotationLoadBalancerServiceID = "service.beta.kubernetes.io/exo-lb-service-id"
+
+	// annotationLoadBalancerServiceName is the name of the service associated to a loadbalancer
+	annotationLoadBalancerServiceName = "service.beta.kubernetes.io/exo-lb-service-name"
+
+	// annotationLoadBalancerServiceDescription is the description of the service associated to a loadbalancer
+	annotationLoadBalancerServiceDescription = "service.beta.kubernetes.io/exo-lb-service-description"
+
+	// annotationLoadBalancerServiceInstancePoolID is the ID of the instance pool associated to a service
+	annotationLoadBalancerServiceInstancePoolID = "service.beta.kubernetes.io/exo-lb-service-instancepoolid"
+
+	// annotationLoadBalancerServiceStrategy is the strategy of the service associated to a loadbalancer
+	// the possible values are "round-robin" or "source-hash"
+	annotationLoadBalancerServiceStrategy = "service.beta.kubernetes.io/exo-lb-service-strategy"
+
+	// annotationLoadBalancerServiceHealthCheckPort is the health check port
+	annotationLoadBalancerServiceHealthCheckPort = "service.beta.kubernetes.io/exo-lb-service-health-check-port"
+
+	// annotationLoadBalancerServiceHealthCheckMode is the mode of health check
+	annotationLoadBalancerServiceHealthCheckMode = "service.beta.kubernetes.io/exo-lb-service-health-check-mode"
+
+	// annotationLoadBalancerServiceHealthCheckInterval is the interval between two consecutive health checks
+	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exo-lb-service-health-check-interval"
+
+	// annotationLoadBalancerServiceHealthCheckTimeout is the health check timeout
+	annotationLoadBalancerServiceHealthCheckTimeout = "service.beta.kubernetes.io/exo-lb-service-health-check-timeout"
+
+	// annotationLoadBalancerServiceHealthCheckRetries is number of retries before considering a service failed
+	annotationLoadBalancerServiceHealthCheckRetries = "service.beta.kubernetes.io/exo-lb-service-health-check-retries"
+
+	// annotationLoadBalancerServiceHealthCheckHTTPURI is the URI that is used by the "http" health check
+	annotationLoadBalancerServiceHealthCheckHTTPURI = "service.beta.kubernetes.io/exo-lb-service-http-health-check-uri"
 )
 
 var (
@@ -353,8 +383,8 @@ func buildLoadBalancerService(service *v1.Service) (*egoscale.NetworkLoadBalance
 		Description:    getLoadBalancerDescription(service),
 		InstancePoolID: getLoadBalancerServiceInstancePoolID(service),
 		Protocol:       serviceProtocol,
-		Port:           int64(servicePort),
-		TargetPort:     int64(serviceTargetPort),
+		Port:           servicePort,
+		TargetPort:     serviceTargetPort,
 		Strategy:       getLoadBalancerServiceStrategy(service),
 		Healthcheck:    hc,
 	}, nil
@@ -381,7 +411,7 @@ func getLoadBalancerServiceByName(lb *egoscale.NetworkLoadBalancer, service *v1.
 }
 
 func getLoadBalancerServiceID(service *v1.Service) string {
-	serviceID, ok := service.Annotations[serviceAnnotationLoadBalancerID]
+	serviceID, ok := service.Annotations[annotationLoadBalancerServiceID]
 	if !ok {
 		return ""
 	}
@@ -390,7 +420,7 @@ func getLoadBalancerServiceID(service *v1.Service) string {
 }
 
 func getLoadBalancerServiceName(service *v1.Service) string {
-	serviceName, ok := service.Annotations[serviceAnnotationLoadBalancerName]
+	serviceName, ok := service.Annotations[annotationLoadBalancerServiceName]
 	kubeName := string(service.UID)
 
 	if !ok {
@@ -401,7 +431,7 @@ func getLoadBalancerServiceName(service *v1.Service) string {
 }
 
 func getLoadBalancerServiceDescription(service *v1.Service) string {
-	serviceDescription, ok := service.Annotations[serviceAnnotationLoadBalancerDescription]
+	serviceDescription, ok := service.Annotations[annotationLoadBalancerServiceDescription]
 	if !ok {
 		return "kubernetes load balancer service " + service.Name
 	}
@@ -410,7 +440,7 @@ func getLoadBalancerServiceDescription(service *v1.Service) string {
 }
 
 func getLoadBalancerServiceInstancePoolID(service *v1.Service) string {
-	serviceID, ok := service.Annotations[serviceAnnotationLoadBalancerInstancePoolID]
+	serviceID, ok := service.Annotations[annotationLoadBalancerServiceInstancePoolID]
 	if !ok {
 		return ""
 	}
@@ -430,7 +460,7 @@ func getLoadBalancerServiceProtocol(service *v1.Service) (string, error) {
 }
 
 func getLoadBalancerServiceStrategy(service *v1.Service) string {
-	return service.Annotations[serviceAnnotationLoadBalancerStrategy]
+	return service.Annotations[annotationLoadBalancerServiceStrategy]
 }
 
 func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkLoadBalancerServiceHealthcheck, error) {
@@ -456,7 +486,7 @@ func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkL
 
 	return egoscale.NetworkLoadBalancerServiceHealthcheck{
 		Mode:     getLoadBalancerHealthCheckMode(service),
-		Port:     int64(hcPort),
+		Port:     hcPort,
 		URI:      getLoadBalancerHealthCheckURI(service),
 		Interval: hcInterval,
 		Timeout:  hcTimeout,
@@ -465,11 +495,11 @@ func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkL
 }
 
 func getLoadBalancerHealthCheckMode(service *v1.Service) string {
-	return service.Annotations[serviceAnnotationLoadBalancerHealthCheckMode]
+	return service.Annotations[annotationLoadBalancerServiceHealthCheckMode]
 }
 
 func getLoadBalancerHealthCheckInterval(service *v1.Service) (time.Duration, error) {
-	hcInterval, ok := service.Annotations[serviceAnnotationLoadBalancerHealthCheckInterval]
+	hcInterval, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckInterval]
 	if !ok {
 		return time.ParseDuration("10s")
 	}
@@ -483,7 +513,7 @@ func getLoadBalancerHealthCheckInterval(service *v1.Service) (time.Duration, err
 }
 
 func getLoadBalancerHealthCheckTimeout(service *v1.Service) (time.Duration, error) {
-	hcTimeout, ok := service.Annotations[serviceAnnotationLoadBalancerHealthCheckTimeout]
+	hcTimeout, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckTimeout]
 	if !ok {
 		return time.ParseDuration("2s")
 	}
@@ -497,7 +527,7 @@ func getLoadBalancerHealthCheckTimeout(service *v1.Service) (time.Duration, erro
 }
 
 func getLoadBalancerHealthCheckRetries(service *v1.Service) (int64, error) {
-	hcRetries, ok := service.Annotations[serviceAnnotationLoadBalancerHealthCheckRetries]
+	hcRetries, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckRetries]
 	if !ok {
 		return 1, nil
 	}
@@ -511,7 +541,7 @@ func getLoadBalancerHealthCheckRetries(service *v1.Service) (int64, error) {
 }
 
 func getLoadBalancerHealthCheckURI(service *v1.Service) string {
-	hcHTTPURI, ok := service.Annotations[serviceAnnotationLoadBalancerHealthCheckHTTPURI]
+	hcHTTPURI, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckHTTPURI]
 	if !ok {
 		return "/"
 	}
@@ -519,7 +549,7 @@ func getLoadBalancerHealthCheckURI(service *v1.Service) string {
 }
 
 func getLoadBalancerHealthCheckPort(service *v1.Service) (uint16, error) {
-	hcPort, ok := service.Annotations[serviceAnnotationLoadBalancerHealthCheckPort]
+	hcPort, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckPort]
 	if !ok {
 		return uint16(service.Spec.HealthCheckNodePort), nil
 	}

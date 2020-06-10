@@ -28,7 +28,7 @@ func nlbServerStatusFromAPI(st *v2.LoadBalancerServerStatus) *NetworkLoadBalance
 // NetworkLoadBalancerServiceHealthcheck represents a Network Load Balancer service healthcheck.
 type NetworkLoadBalancerServiceHealthcheck struct {
 	Mode     string
-	Port     int64
+	Port     uint16
 	Interval time.Duration
 	Timeout  time.Duration
 	Retries  int64
@@ -42,8 +42,8 @@ type NetworkLoadBalancerService struct {
 	Description       string
 	InstancePoolID    string
 	Protocol          string
-	Port              int64
-	TargetPort        int64
+	Port              uint16
+	TargetPort        uint16
 	Strategy          string
 	Healthcheck       NetworkLoadBalancerServiceHealthcheck
 	State             string
@@ -57,12 +57,12 @@ func nlbServiceFromAPI(svc *v2.LoadBalancerService) *NetworkLoadBalancerService 
 		Description:    optionalString(svc.Description),
 		InstancePoolID: optionalString(svc.InstancePool.Id),
 		Protocol:       optionalString(svc.Protocol),
-		Port:           optionalInt64(svc.Port),
-		TargetPort:     optionalInt64(svc.TargetPort),
+		Port:           uint16(optionalInt64(svc.Port)),
+		TargetPort:     uint16(optionalInt64(svc.TargetPort)),
 		Strategy:       optionalString(svc.Strategy),
 		Healthcheck: NetworkLoadBalancerServiceHealthcheck{
 			Mode:     optionalString(svc.Healthcheck.Mode),
-			Port:     optionalInt64(svc.Healthcheck.Port),
+			Port:     uint16(optionalInt64(svc.Healthcheck.Port)),
 			Interval: time.Duration(optionalInt64(svc.Healthcheck.Interval)) * time.Second,
 			Timeout:  time.Duration(optionalInt64(svc.Healthcheck.Timeout)) * time.Second,
 			Retries:  optionalInt64(svc.Healthcheck.Retries),
@@ -128,6 +128,9 @@ func nlbFromAPI(nlb *v2.LoadBalancer) *NetworkLoadBalancer {
 func (nlb *NetworkLoadBalancer) AddService(ctx context.Context,
 	svc *NetworkLoadBalancerService) (*NetworkLoadBalancerService, error) {
 	var (
+		port                = int64(svc.Port)
+		targetPort          = int64(svc.TargetPort)
+		healthcheckPort     = int64(svc.Healthcheck.Port)
 		healthcheckInterval = int64(svc.Healthcheck.Interval.Seconds())
 		healthcheckTimeout  = int64(svc.Healthcheck.Timeout.Seconds())
 	)
@@ -155,7 +158,7 @@ func (nlb *NetworkLoadBalancer) AddService(ctx context.Context,
 			Description: &svc.Description,
 			Healthcheck: &v2.Healthcheck{
 				Mode:     &svc.Healthcheck.Mode,
-				Port:     &svc.Healthcheck.Port,
+				Port:     &healthcheckPort,
 				Interval: &healthcheckInterval,
 				Timeout:  &healthcheckTimeout,
 				Retries:  &svc.Healthcheck.Retries,
@@ -167,8 +170,8 @@ func (nlb *NetworkLoadBalancer) AddService(ctx context.Context,
 				}(),
 			},
 			InstancePool: &v2.Resource{Id: &svc.InstancePoolID},
-			Port:         &svc.Port,
-			TargetPort:   &svc.TargetPort,
+			Port:         &port,
+			TargetPort:   &targetPort,
 			Protocol:     &svc.Protocol,
 			Strategy:     &svc.Strategy,
 		})
@@ -204,6 +207,9 @@ func (nlb *NetworkLoadBalancer) AddService(ctx context.Context,
 // UpdateService updates the specified Network Load Balancer service.
 func (nlb *NetworkLoadBalancer) UpdateService(ctx context.Context, svc *NetworkLoadBalancerService) error {
 	var (
+		port                = int64(svc.Port)
+		targetPort          = int64(svc.TargetPort)
+		healthcheckPort     = int64(svc.Healthcheck.Port)
 		healthcheckInterval = int64(svc.Healthcheck.Interval.Seconds())
 		healthcheckTimeout  = int64(svc.Healthcheck.Timeout.Seconds())
 	)
@@ -215,13 +221,13 @@ func (nlb *NetworkLoadBalancer) UpdateService(ctx context.Context, svc *NetworkL
 		v2.UpdateLoadBalancerServiceJSONRequestBody{
 			Name:        &svc.Name,
 			Description: &svc.Description,
-			Port:        &svc.Port,
-			TargetPort:  &svc.TargetPort,
+			Port:        &port,
+			TargetPort:  &targetPort,
 			Protocol:    &svc.Protocol,
 			Strategy:    &svc.Strategy,
 			Healthcheck: &v2.Healthcheck{
 				Mode:     &svc.Healthcheck.Mode,
-				Port:     &svc.Healthcheck.Port,
+				Port:     &healthcheckPort,
 				Interval: &healthcheckInterval,
 				Timeout:  &healthcheckTimeout,
 				Retries:  &svc.Healthcheck.Retries,
