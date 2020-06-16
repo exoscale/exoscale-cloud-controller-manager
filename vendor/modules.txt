@@ -32,7 +32,7 @@ github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/evanphx/json-patch v4.2.0+incompatible
 github.com/evanphx/json-patch
-# github.com/exoscale/egoscale v0.25.1-0.20200610090233-ae82ffe29123
+# github.com/exoscale/egoscale v0.26.0
 github.com/exoscale/egoscale
 github.com/exoscale/egoscale/api/v2
 github.com/exoscale/egoscale/internal/v2

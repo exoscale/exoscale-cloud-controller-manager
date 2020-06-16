@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/deepmap/oapi-codegen v1.3.8 // indirect
-	github.com/exoscale/egoscale v0.25.1-0.20200610090233-ae82ffe29123
+	github.com/exoscale/egoscale v0.26.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/crypto v0.0.0-20200602180216-279210d13fed // indirect
