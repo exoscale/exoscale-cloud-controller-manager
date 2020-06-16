@@ -43,9 +43,6 @@ const (
 
 	annotationLoadBalancerServiceProtocol = "service.beta.kubernetes.io/exo-lb-service-protocol"
 
-	// annotationLoadBalancerServiceHealthCheckPort is the health check port
-	annotationLoadBalancerServiceHealthCheckPort = "service.beta.kubernetes.io/exo-lb-service-health-check-port"
-
 	// annotationLoadBalancerServiceHealthCheckMode is the mode of health check
 	// the default value is "tcp" and the value can be "http"
 	annotationLoadBalancerServiceHealthCheckMode = "service.beta.kubernetes.io/exo-lb-service-health-check-mode"
@@ -368,7 +365,7 @@ func buildLoadBalancerService(service *v1.Service) (*egoscale.NetworkLoadBalance
 
 	return &egoscale.NetworkLoadBalancerService{
 		Name:           getLoadBalancerServiceName(service),
-		Description:    getLoadBalancerDescription(service),
+		Description:    getLoadBalancerServiceDescription(service),
 		InstancePoolID: getLoadBalancerServiceInstancePoolID(service),
 		Protocol:       getLoadBalancerServiceProtocol(service),
 		Port:           uint16(servicePort),
