@@ -1,0 +1,39 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx-service
+  annotations:
+    service.beta.kubernetes.io/exo-lb-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "abcdefgh-1234-ijkl-5678-mnopqrstuvwx"
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: health-check
+    protocol: TCP
+    port: 55
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginxdemos/hello:latest
+        ports:
+        - containerPort: 80
