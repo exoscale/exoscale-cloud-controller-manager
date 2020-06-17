@@ -41,6 +41,8 @@ const (
 	// the possible values are "round-robin" or "source-hash"
 	annotationLoadBalancerServiceStrategy = "service.beta.kubernetes.io/exo-lb-service-strategy"
 
+	// annotationLoadBalancerServiceProtocol is the protocol of the service associated to a loadbalancer
+	// the possible values are "tcp" or "http"
 	annotationLoadBalancerServiceProtocol = "service.beta.kubernetes.io/exo-lb-service-protocol"
 
 	// annotationLoadBalancerServiceHealthCheckMode is the mode of health check
@@ -457,7 +459,12 @@ func getLoadBalancerServiceProtocol(service *v1.Service) string {
 }
 
 func getLoadBalancerServiceStrategy(service *v1.Service) string {
-	return service.Annotations[annotationLoadBalancerServiceStrategy]
+	strategy, ok := service.Annotations[annotationLoadBalancerServiceStrategy]
+	if !ok {
+		return "round-robin"
+	}
+
+	return strategy
 }
 
 func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkLoadBalancerServiceHealthcheck, error) {
@@ -536,7 +543,7 @@ func getLoadBalancerHealthCheckRetries(service *v1.Service) (int64, error) {
 func getLoadBalancerHealthCkeckMode(service *v1.Service) string {
 	protocol, ok := service.Annotations[annotationLoadBalancerServiceHealthCheckMode]
 	if !ok {
-		return "http"
+		return "tcp"
 	}
 
 	return protocol
