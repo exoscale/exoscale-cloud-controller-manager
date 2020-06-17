@@ -60,7 +60,7 @@ execute this command:
 kubectl create -f demo-lb.yaml
 ```
 
-Pour acceder a votre service vous devrez attendre que votre loadbalancer soit bien deployé:
+To access your service you will have to wait for your loadbalancer to be correctly deployed:
 
 ```
 kubectl get service
