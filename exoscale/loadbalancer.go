@@ -329,15 +329,18 @@ func (l *loadBalancer) addLoadBalancerService(ctx context.Context, lb *egoscale.
 }
 
 func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
-	if serviceID := getLoadBalancerServiceID(service); serviceID != "" {
-		for _, service := range lb.Services {
-			if service.ID == serviceID {
-				return service, nil
-			}
+	serviceID := getLoadBalancerServiceID(service)
+	if serviceID == "" {
+		getLoadBalancerServiceByName(lb, service)
+	}
+
+	for _, service := range lb.Services {
+		if service.ID == serviceID {
+			return service, nil
 		}
 	}
 
-	return getLoadBalancerServiceByName(lb, service)
+	return nil, errLoadBalanceServiceNotFound
 }
 
 func (l *loadBalancer) updateLoadBalancerService(ctx context.Context, lb *egoscale.NetworkLoadBalancer, serviceID string, service *v1.Service) error {
