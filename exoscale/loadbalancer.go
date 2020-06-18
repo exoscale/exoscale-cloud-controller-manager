@@ -214,20 +214,21 @@ func (l *loadBalancer) createLoadBalancer(ctx context.Context, zone string, serv
 }
 
 func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, zone string, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	if lbID := getLoadBalancerID(service); lbID != "" {
-		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
-		if err != nil {
-			if err == egoscale.ErrNotFound {
-				return nil, errLoadBalancerNotFound
-			}
-
-			return nil, err
-		}
-
-		return nlb, nil
+	lbID := getLoadBalancerID(service)
+	if lbID == "" {
+		return l.getLoadBalancerByName(ctx, zone, service)
 	}
 
-	return l.getLoadBalancerByName(ctx, zone, service)
+	nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
+	if err != nil {
+		if err == egoscale.ErrNotFound {
+			return nil, errLoadBalancerNotFound
+		}
+
+		return nil, err
+	}
+
+	return nlb, nil
 }
 
 func (l *loadBalancer) updateLoadBalancer(ctx context.Context, zone string, lb *egoscale.NetworkLoadBalancer, service *v1.Service) error {
