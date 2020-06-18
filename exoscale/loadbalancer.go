@@ -190,6 +190,28 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterNam
 	return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, lb.ID)
 }
 
+func (l *loadBalancer) annotationLoadbalancerPatch(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
+	patcher := newServicePatcher(l.p.kclient, service)
+
+	if service.ObjectMeta.Annotations == nil {
+		service.ObjectMeta.Annotations = map[string]string{}
+	}
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = lb.ID
+
+	return patcher.Patch()
+}
+
+func (l *loadBalancer) annotationLoadbalancerServicePatch(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
+	patcher := newServicePatcher(l.p.kclient, service)
+
+	if service.ObjectMeta.Annotations == nil {
+		service.ObjectMeta.Annotations = map[string]string{}
+	}
+	service.ObjectMeta.Annotations[annotationLoadBalancerServiceID] = lbService.ID
+
+	return patcher.Patch()
+}
+
 func (l *loadBalancer) createLoadBalancer(ctx context.Context, zone string, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
 	lbName := getLoadBalancerName(service)
 
@@ -203,6 +225,10 @@ func (l *loadBalancer) createLoadBalancer(ctx context.Context, zone string, serv
 			Description: lbDescription,
 		})
 	if err != nil {
+		return nil, err
+	}
+
+	if err := l.annotationLoadbalancerPatch(service, lb); err != nil {
 		return nil, err
 	}
 
@@ -273,6 +299,10 @@ func (l *loadBalancer) getLoadBalancerByName(ctx context.Context, zone string, s
 		return nil, errors.New("more than one element found")
 	}
 
+	if err := l.annotationLoadbalancerPatch(service, loadbalancer[0]); err != nil {
+		return nil, err
+	}
+
 	return loadbalancer[0], nil
 }
 
@@ -320,8 +350,12 @@ func (l *loadBalancer) addLoadBalancerService(ctx context.Context, lb *egoscale.
 		return err
 	}
 
-	_, err = lb.AddService(ctx, lbService)
+	lbService, err = lb.AddService(ctx, lbService)
 	if err != nil {
+		return err
+	}
+
+	if err := l.annotationLoadbalancerServicePatch(service, lbService); err != nil {
 		return err
 	}
 
@@ -331,7 +365,7 @@ func (l *loadBalancer) addLoadBalancerService(ctx context.Context, lb *egoscale.
 func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
 	serviceID := getLoadBalancerServiceID(service)
 	if serviceID == "" {
-		return getLoadBalancerServiceByName(lb, service)
+		return l.getLoadBalancerServiceByName(lb, service)
 	}
 
 	for _, service := range lb.Services {
@@ -381,7 +415,7 @@ func buildLoadBalancerService(service *v1.Service) (*egoscale.NetworkLoadBalance
 	}, nil
 }
 
-func getLoadBalancerServiceByName(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
+func (l *loadBalancer) getLoadBalancerServiceByName(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
 	name := getLoadBalancerServiceName(service)
 
 	var lbService []*egoscale.NetworkLoadBalancerService
@@ -396,6 +430,10 @@ func getLoadBalancerServiceByName(lb *egoscale.NetworkLoadBalancer, service *v1.
 		return nil, errLoadBalanceServiceNotFound
 	case count > 1:
 		return nil, errors.New("more than one element found")
+	}
+
+	if err := l.annotationLoadbalancerServicePatch(service, lbService[0]); err != nil {
+		return nil, err
 	}
 
 	return lbService[0], nil
