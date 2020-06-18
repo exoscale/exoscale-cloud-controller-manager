@@ -13,17 +13,17 @@ import (
 
 const (
 	// annotationLoadBalancerID is the ID of the loadbalancer
-	annotationLoadBalanceID = "service.beta.kubernetes.io/exo-lb-id"
+	annotationLoadBalancerID = "service.beta.kubernetes.io/exo-lb-id"
 
 	// annotationLoadBalancerName is the name of the loadbalancer
 	annotationLoadBalancerName = "service.beta.kubernetes.io/exo-lb-name"
 
 	// annotationLoadBalanceDescription is the description of the loadbalancer
-	annotationLoadBalanceDescription = "service.beta.kubernetes.io/exo-lb-description"
+	annotationLoadBalancerDescription = "service.beta.kubernetes.io/exo-lb-description"
 
 	// annotationLoadBalanceZone is the zone of the loadbalancer
 	// the possible values are "bg-sof-1", "ch-dk-2", "ch-gva-2", "de-fra-1", "de-muc-1"
-	annotationLoadBalanceZone = "service.beta.kubernetes.io/exo-lb-zone"
+	annotationLoadBalancerZone = "service.beta.kubernetes.io/exo-lb-zone"
 
 	// annotationLoadBalancerServiceID is the ID of the service associated to a loadbalancer
 	annotationLoadBalancerServiceID = "service.beta.kubernetes.io/exo-lb-service-id"
@@ -276,16 +276,16 @@ func (l *loadBalancer) getLoadBalancerByName(ctx context.Context, zone string, s
 }
 
 func getLoadBalancerZone(service *v1.Service) (string, error) {
-	zone, ok := service.Annotations[annotationLoadBalanceZone]
+	zone, ok := service.Annotations[annotationLoadBalancerZone]
 	if !ok {
-		return "", errors.New("annotation " + annotationLoadBalanceZone + " is missing")
+		return "", errors.New("annotation " + annotationLoadBalancerZone + " is missing")
 	}
 
 	return zone, nil
 }
 
 func getLoadBalancerID(service *v1.Service) string {
-	lbID, ok := service.Annotations[annotationLoadBalanceID]
+	lbID, ok := service.Annotations[annotationLoadBalancerID]
 	if !ok {
 		return ""
 	}
@@ -305,7 +305,7 @@ func getLoadBalancerName(service *v1.Service) string {
 }
 
 func getLoadBalancerDescription(service *v1.Service) string {
-	description, ok := service.Annotations[annotationLoadBalanceDescription]
+	description, ok := service.Annotations[annotationLoadBalancerDescription]
 	if !ok {
 		return "kubernetes load balancer " + service.Name
 	}
