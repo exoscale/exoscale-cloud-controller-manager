@@ -331,7 +331,7 @@ func (l *loadBalancer) addLoadBalancerService(ctx context.Context, lb *egoscale.
 func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
 	serviceID := getLoadBalancerServiceID(service)
 	if serviceID == "" {
-		getLoadBalancerServiceByName(lb, service)
+		return getLoadBalancerServiceByName(lb, service)
 	}
 
 	for _, service := range lb.Services {
