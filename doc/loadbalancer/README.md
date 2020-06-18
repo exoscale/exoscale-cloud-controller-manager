@@ -75,7 +75,7 @@ exo nlb list
 ┼──────────────────────────────────────┼──────────────────────────────────────────┼──────────┼─────────────────┼
 ```
 
-Now, you can now access your service
+You can now access your service
 
 ```
 curl -i http://EXTERNAL_IP

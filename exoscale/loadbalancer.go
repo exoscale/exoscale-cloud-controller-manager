@@ -18,10 +18,10 @@ const (
 	// annotationLoadBalancerName is the name of the loadbalancer
 	annotationLoadBalancerName = "service.beta.kubernetes.io/exo-lb-name"
 
-	// annotationLoadBalanceDescription is the description of the loadbalancer
+	// annotationLoadBalancerDescription is the description of the loadbalancer
 	annotationLoadBalancerDescription = "service.beta.kubernetes.io/exo-lb-description"
 
-	// annotationLoadBalanceZone is the zone of the loadbalancer
+	// annotationLoadBalancerZone is the zone of the loadbalancer
 	// the possible values are "bg-sof-1", "ch-dk-2", "ch-gva-2", "de-fra-1", "de-muc-1"
 	annotationLoadBalancerZone = "service.beta.kubernetes.io/exo-lb-zone"
 
