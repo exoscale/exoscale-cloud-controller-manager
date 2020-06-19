@@ -187,7 +187,16 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterNam
 		return err
 	}
 
-	return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, lb.ID)
+	if len(lb.Services) == 1 {
+		return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, lb.ID)
+	}
+
+	lbService, err := l.fetchLoadBalancerService(lb, service)
+	if err != nil {
+		return err
+	}
+
+	return lb.DeleteService(ctx, lbService)
 }
 
 func (l *loadBalancer) annotationLoadbalancerPatch(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
