@@ -1,0 +1,21 @@
+#cloud-config
+write_files:
+  - path: /kubeadm-config.yml
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta2
+      caCertPath: /etc/kubernetes/pki/ca.crt
+      discovery:
+        bootstrapToken:
+          apiServerEndpoint: $EXOSCALE_INSTANCE_IP:6443
+          token: $KUBE_TOKEN
+          unsafeSkipCAVerification: true
+        timeout: 5m0s
+        tlsBootstrapToken: $KUBE_TOKEN
+      kind: JoinConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: "external"
+
+runcmd:
+- kubeadm join --config /kubeadm-config.yml
+
