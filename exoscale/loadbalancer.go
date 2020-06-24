@@ -112,12 +112,14 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, clusterName string
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
+	var lb *egoscale.NetworkLoadBalancer
+
 	kubelb, err := buildLoadBalancerWithAnnotations(service)
 	if err != nil {
 		return nil, err
 	}
 
-	lb, zone, err := l.fetchLoadBalancer(ctx, service)
+	_, zone, err := l.fetchLoadBalancer(ctx, service)
 	switch err {
 	case nil:
 		lb, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, kubelb)
