@@ -3,6 +3,7 @@ package exoscale
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -64,8 +65,8 @@ const (
 )
 
 var (
-	errLoadBalancerNotFound       = errors.New("loadbalancer not found")
-	errLoadBalanceServiceNotFound = errors.New("loadbalancer service not found")
+	errLoadBalancerNotFound        = errors.New("loadbalancer not found")
+	errLoadBalancerServiceNotFound = errors.New("loadbalancer service not found")
 )
 
 type loadBalancer struct {
@@ -83,12 +84,7 @@ func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) GetLoadBalancer(ctx context.Context, clusterName string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
-	zone, err := getLoadBalancerZone(service)
-	if err != nil {
-		return nil, false, err
-	}
-
-	lb, err := l.fetchLoadBalancer(ctx, zone, service)
+	lb, _, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
 			return nil, false, nil
@@ -116,21 +112,44 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, clusterName string
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	zone, err := getLoadBalancerZone(service)
+	kubelb, err := buildLoadBalancerWithAnnotations(service)
 	if err != nil {
 		return nil, err
 	}
 
-	lb, err := l.fetchLoadBalancer(ctx, zone, service)
+	lb, zone, err := l.fetchLoadBalancer(ctx, service)
 	switch err {
 	case nil:
-		if err := l.updateLoadBalancer(ctx, zone, lb, service); err != nil {
+		lb, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, kubelb)
+		if err != nil {
+			return nil, err
+		}
+	case errLoadBalancerNotFound:
+		lb, err = l.p.client.CreateNetworkLoadBalancer(ctx, zone, kubelb)
+		if err != nil {
 			return nil, err
 		}
 
-	case errLoadBalancerNotFound:
-		lb, err = l.createLoadBalancer(ctx, zone, service)
+		if err := l.annotationLoadbalancerPatch(service, lb); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, err
+	}
+
+	_, err = l.fetchLoadBalancerService(lb, service)
+	switch err {
+	case nil:
+		if err := lb.UpdateService(ctx, kubelb.Services[0]); err != nil {
+			return nil, err
+		}
+	case errLoadBalancerServiceNotFound:
+		lbService, err := lb.AddService(ctx, kubelb.Services[0])
 		if err != nil {
+			return nil, err
+		}
+
+		if err := l.annotationLoadbalancerServicePatch(service, lbService); err != nil {
 			return nil, err
 		}
 	default:
@@ -156,12 +175,20 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, clusterName strin
 		return err
 	}
 
-	lb, err := l.fetchLoadBalancer(ctx, zone, service)
+	kubelb, err := buildLoadBalancerWithAnnotations(service)
 	if err != nil {
 		return err
 	}
 
-	return l.updateLoadBalancer(ctx, zone, lb, service)
+	lb, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, kubelb)
+	if err != nil {
+		return err
+	}
+	if err := lb.UpdateService(ctx, kubelb.Services[0]); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // EnsureLoadBalancerDeleted deletes the specified load balancer if it
@@ -173,12 +200,8 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, clusterName strin
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
-	zone, err := getLoadBalancerZone(service)
-	if err != nil {
-		return err
-	}
 
-	lb, err := l.fetchLoadBalancer(ctx, zone, service)
+	lb, zone, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
 			return nil
@@ -221,98 +244,141 @@ func (l *loadBalancer) annotationLoadbalancerServicePatch(service *v1.Service, l
 	return patcher.Patch()
 }
 
-func (l *loadBalancer) createLoadBalancer(ctx context.Context, zone string, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	lbName := getLoadBalancerName(service)
-
-	lbDescription := getLoadBalancerDescription(service)
-
-	lb, err := l.p.client.CreateNetworkLoadBalancer(
-		ctx,
-		zone,
-		&egoscale.NetworkLoadBalancer{
-			Name:        lbName,
-			Description: lbDescription,
-		})
+func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service) (*egoscale.NetworkLoadBalancer, string, error) {
+	zone, err := getLoadBalancerZone(service)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	if err := l.annotationLoadbalancerPatch(service, lb); err != nil {
-		return nil, err
-	}
-
-	if err := l.addLoadBalancerService(ctx, lb, service); err != nil {
-		return nil, err
-	}
-
-	return lb, nil
-}
-
-func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, zone string, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	lbID := getLoadBalancerID(service)
-	if lbID == "" {
-		return l.getLoadBalancerByName(ctx, zone, service)
-	}
-
-	nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
-	if err != nil {
-		if err == egoscale.ErrNotFound {
-			return nil, errLoadBalancerNotFound
+	if lbID := getLoadBalancerID(service); lbID != "" {
+		lb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
+		if err != nil {
+			return nil, "", err
 		}
 
-		return nil, err
+		return lb, zone, nil
 	}
-
-	return nlb, nil
-}
-
-func (l *loadBalancer) updateLoadBalancer(ctx context.Context, zone string, lb *egoscale.NetworkLoadBalancer, service *v1.Service) error {
-	lb.Name = getLoadBalancerName(service)
-	lb.Description = getLoadBalancerDescription(service)
-
-	_, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, lb)
-	if err != nil {
-		return err
-	}
-
-	lbService, err := l.fetchLoadBalancerService(lb, service)
-	if err != nil {
-		if err == errLoadBalanceServiceNotFound {
-			return l.addLoadBalancerService(ctx, lb, service)
-		}
-		return err
-	}
-
-	return l.updateLoadBalancerService(ctx, lb, lbService.ID, service)
-}
-
-func (l *loadBalancer) getLoadBalancerByName(ctx context.Context, zone string, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	name := getLoadBalancerName(service)
 
 	resp, err := l.p.client.ListNetworkLoadBalancers(ctx, zone)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	var loadbalancer []*egoscale.NetworkLoadBalancer
-	for _, nlb := range resp {
-		if nlb.Name == name {
-			loadbalancer = append(loadbalancer, nlb)
+	var loadbalancers []*egoscale.NetworkLoadBalancer
+	for _, lb := range resp {
+		if lb.Name == getLoadBalancerName(service) {
+			loadbalancers = append(loadbalancers, lb)
 		}
 	}
 
-	switch count := len(loadbalancer); {
+	switch count := len(loadbalancers); {
 	case count == 0:
-		return nil, errLoadBalancerNotFound
+		return nil, zone, errLoadBalancerNotFound
+	case count > 1:
+		return nil, "", errors.New("more than one element found")
+	}
+
+	if err := l.annotationLoadbalancerPatch(service, loadbalancers[0]); err != nil {
+		return nil, "", err
+	}
+
+	return loadbalancers[0], zone, nil
+}
+
+func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
+	var lbService []*egoscale.NetworkLoadBalancerService
+
+	for _, svc := range lb.Services {
+		if svc.ID == getLoadBalancerServiceID(service) {
+			return svc, nil
+		}
+		if svc.Name == getLoadBalancerServiceName(service) {
+			lbService = append(lbService, svc)
+		}
+	}
+
+	switch count := len(lbService); {
+	case count == 0:
+		return nil, errLoadBalancerServiceNotFound
 	case count > 1:
 		return nil, errors.New("more than one element found")
 	}
 
-	if err := l.annotationLoadbalancerPatch(service, loadbalancer[0]); err != nil {
+	if err := l.annotationLoadbalancerServicePatch(service, lbService[0]); err != nil {
 		return nil, err
 	}
 
-	return loadbalancer[0], nil
+	return lbService[0], nil
+}
+
+func buildLoadBalancerWithAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
+	instancepoolID, err := getLoadBalancerServiceInstancePoolID(service)
+	if err != nil {
+		return nil, err
+	}
+
+	servicePort, serviceTargetPort, err := getLoadBalancerServicePorts(service)
+	if err != nil {
+		return nil, err
+	}
+
+	hc, err := buildLoadBalancerServiceHealthCheck(service)
+	if err != nil {
+		return nil, err
+	}
+
+	return &egoscale.NetworkLoadBalancer{
+		ID:          getLoadBalancerID(service),
+		Name:        getLoadBalancerName(service),
+		Description: getLoadBalancerDescription(service),
+		Services: func() []*egoscale.NetworkLoadBalancerService {
+			services := make([]*egoscale.NetworkLoadBalancerService, 0)
+			services = append(services, &egoscale.NetworkLoadBalancerService{
+				ID:             getLoadBalancerServiceID(service),
+				Name:           getLoadBalancerServiceName(service),
+				Description:    getLoadBalancerServiceDescription(service),
+				InstancePoolID: instancepoolID,
+				Protocol:       getLoadBalancerServiceProtocol(service),
+				Port:           uint16(servicePort),
+				TargetPort:     uint16(serviceTargetPort),
+				Strategy:       getLoadBalancerServiceStrategy(service),
+				Healthcheck:    hc,
+			})
+
+			return services
+		}(),
+	}, nil
+}
+
+func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkLoadBalancerServiceHealthcheck, error) {
+	hcInterval, err := getLoadBalancerHealthCheckInterval(service)
+	if err != nil {
+		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
+	}
+
+	hcTimeout, err := getLoadBalancerHealthCheckTimeout(service)
+	if err != nil {
+		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
+	}
+
+	hcRetries, err := getLoadBalancerHealthCheckRetries(service)
+	if err != nil {
+		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
+	}
+
+	hcPort, err := getLoadBalancerHealthCheckPort(service)
+	if err != nil {
+		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
+	}
+
+	return egoscale.NetworkLoadBalancerServiceHealthcheck{
+		Mode:     getLoadBalancerHealthCkeckMode(service),
+		Port:     uint16(hcPort),
+		URI:      getLoadBalancerHealthCheckURI(service),
+		Interval: hcInterval,
+		Timeout:  hcTimeout,
+		Retries:  hcRetries,
+	}, nil
 }
 
 func getLoadBalancerZone(service *v1.Service) (string, error) {
@@ -353,101 +419,6 @@ func getLoadBalancerDescription(service *v1.Service) string {
 	return description
 }
 
-func (l *loadBalancer) addLoadBalancerService(ctx context.Context, lb *egoscale.NetworkLoadBalancer, service *v1.Service) error {
-	lbService, err := buildLoadBalancerService(service)
-	if err != nil {
-		return err
-	}
-
-	lbService, err = lb.AddService(ctx, lbService)
-	if err != nil {
-		return err
-	}
-
-	if err := l.annotationLoadbalancerServicePatch(service, lbService); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
-	serviceID := getLoadBalancerServiceID(service)
-	if serviceID == "" {
-		return l.getLoadBalancerServiceByName(lb, service)
-	}
-
-	for _, service := range lb.Services {
-		if service.ID == serviceID {
-			return service, nil
-		}
-	}
-
-	return nil, errLoadBalanceServiceNotFound
-}
-
-func (l *loadBalancer) updateLoadBalancerService(ctx context.Context, lb *egoscale.NetworkLoadBalancer, serviceID string, service *v1.Service) error {
-	lbService, err := buildLoadBalancerService(service)
-	if err != nil {
-		return err
-	}
-
-	lbService.ID = serviceID
-
-	if err := lb.UpdateService(ctx, lbService); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func buildLoadBalancerService(service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
-	servicePort, serviceTargetPort, err := getLoadBalancerServicePorts(service)
-	if err != nil {
-		return nil, err
-	}
-
-	hc, err := buildLoadBalancerServiceHealthCheck(service)
-	if err != nil {
-		return nil, err
-	}
-
-	return &egoscale.NetworkLoadBalancerService{
-		Name:           getLoadBalancerServiceName(service),
-		Description:    getLoadBalancerServiceDescription(service),
-		InstancePoolID: getLoadBalancerServiceInstancePoolID(service),
-		Protocol:       getLoadBalancerServiceProtocol(service),
-		Port:           uint16(servicePort),
-		TargetPort:     uint16(serviceTargetPort),
-		Strategy:       getLoadBalancerServiceStrategy(service),
-		Healthcheck:    hc,
-	}, nil
-}
-
-func (l *loadBalancer) getLoadBalancerServiceByName(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
-	name := getLoadBalancerServiceName(service)
-
-	var lbService []*egoscale.NetworkLoadBalancerService
-	for _, service := range lb.Services {
-		if service.Name == name {
-			lbService = append(lbService, service)
-		}
-	}
-
-	switch count := len(lbService); {
-	case count == 0:
-		return nil, errLoadBalanceServiceNotFound
-	case count > 1:
-		return nil, errors.New("more than one element found")
-	}
-
-	if err := l.annotationLoadbalancerServicePatch(service, lbService[0]); err != nil {
-		return nil, err
-	}
-
-	return lbService[0], nil
-}
-
 func getLoadBalancerServiceID(service *v1.Service) string {
 	serviceID, ok := service.Annotations[annotationLoadBalancerServiceID]
 	if !ok {
@@ -477,13 +448,13 @@ func getLoadBalancerServiceDescription(service *v1.Service) string {
 	return serviceDescription
 }
 
-func getLoadBalancerServiceInstancePoolID(service *v1.Service) string {
-	serviceID, ok := service.Annotations[annotationLoadBalancerServiceInstancePoolID]
+func getLoadBalancerServiceInstancePoolID(service *v1.Service) (string, error) {
+	instancepoolID, ok := service.Annotations[annotationLoadBalancerServiceInstancePoolID]
 	if !ok {
-		return ""
+		return "", fmt.Errorf("annotation %s is missing", annotationLoadBalancerServiceInstancePoolID)
 	}
 
-	return serviceID
+	return instancepoolID, nil
 }
 
 func getLoadBalancerServicePorts(service *v1.Service) (int32, int32, error) {
@@ -516,37 +487,6 @@ func getLoadBalancerServiceStrategy(service *v1.Service) string {
 	}
 
 	return strategy
-}
-
-func buildLoadBalancerServiceHealthCheck(service *v1.Service) (egoscale.NetworkLoadBalancerServiceHealthcheck, error) {
-	hcInterval, err := getLoadBalancerHealthCheckInterval(service)
-	if err != nil {
-		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
-	}
-
-	hcTimeout, err := getLoadBalancerHealthCheckTimeout(service)
-	if err != nil {
-		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
-	}
-
-	hcRetries, err := getLoadBalancerHealthCheckRetries(service)
-	if err != nil {
-		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
-	}
-
-	hcPort, err := getLoadBalancerHealthCheckPort(service)
-	if err != nil {
-		return egoscale.NetworkLoadBalancerServiceHealthcheck{}, err
-	}
-
-	return egoscale.NetworkLoadBalancerServiceHealthcheck{
-		Mode:     getLoadBalancerHealthCkeckMode(service),
-		Port:     uint16(hcPort),
-		URI:      getLoadBalancerHealthCheckURI(service),
-		Interval: hcInterval,
-		Timeout:  hcTimeout,
-		Retries:  hcRetries,
-	}, nil
 }
 
 func getLoadBalancerHealthCheckInterval(service *v1.Service) (time.Duration, error) {
