@@ -24,6 +24,8 @@ func newServicePatcher(kclient kubernetes.Interface, service *v1.Service) kubeSe
 	}
 }
 
+//Patch will submit a patch request for the Service to add some annotations
+//unless the updated service reference contains the same set of annotations
 func (ksp *kubeServicePatcher) Patch() error {
 	currentJSON, err := json.Marshal(ksp.current)
 	if err != nil {

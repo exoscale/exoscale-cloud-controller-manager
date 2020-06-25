@@ -189,28 +189,6 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	return lb.DeleteService(ctx, lbService)
 }
 
-func (l *loadBalancer) patchLoadbalancerAnnotations(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
-	patcher := newServicePatcher(l.p.kclient, service)
-
-	if service.ObjectMeta.Annotations == nil {
-		service.ObjectMeta.Annotations = map[string]string{}
-	}
-	service.ObjectMeta.Annotations[annotationLoadBalancerID] = lb.ID
-
-	return patcher.Patch()
-}
-
-func (l *loadBalancer) patchLoadbalancerServiceAnnotations(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
-	patcher := newServicePatcher(l.p.kclient, service)
-
-	if service.ObjectMeta.Annotations == nil {
-		service.ObjectMeta.Annotations = map[string]string{}
-	}
-	service.ObjectMeta.Annotations[annotationLoadBalancerServiceID] = lbService.ID
-
-	return patcher.Patch()
-}
-
 func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service) (*egoscale.NetworkLoadBalancer, string, error) {
 	zone, err := getLoadBalancerZone(service)
 	if err != nil {
@@ -276,6 +254,28 @@ func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer
 	}
 
 	return lbService[0], nil
+}
+
+func (l *loadBalancer) patchLoadbalancerAnnotations(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
+	patcher := newServicePatcher(l.p.kclient, service)
+
+	if service.ObjectMeta.Annotations == nil {
+		service.ObjectMeta.Annotations = map[string]string{}
+	}
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = lb.ID
+
+	return patcher.Patch()
+}
+
+func (l *loadBalancer) patchLoadbalancerServiceAnnotations(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
+	patcher := newServicePatcher(l.p.kclient, service)
+
+	if service.ObjectMeta.Annotations == nil {
+		service.ObjectMeta.Annotations = map[string]string{}
+	}
+	service.ObjectMeta.Annotations[annotationLoadBalancerServiceID] = lbService.ID
+
+	return patcher.Patch()
 }
 
 func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
@@ -372,10 +372,14 @@ func getLoadBalancerServicePorts(service *v1.Service) (int32, int32, error) {
 }
 
 func getLoadBalancerHealthCheckPort(service *v1.Service) (uint16, error) {
+	// if the externalTrafficPolicy is specified at local
+	// we use the user-specified or k8s-generated healthcheck NodePort
 	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
 		return uint16(service.Spec.HealthCheckNodePort), nil
 	}
 
+	// if only the service port is specified
+	// we use the same service NodePort for the healthcheck
 	if len(service.Spec.Ports) == 1 {
 		return uint16(service.Spec.Ports[0].NodePort), nil
 	}
