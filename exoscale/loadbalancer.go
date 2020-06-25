@@ -13,25 +13,17 @@ import (
 )
 
 const (
-
-	// the possible values are "bg-sof-1", "ch-dk-2", "ch-gva-2", "de-fra-1", "de-muc-1"
-	annotationLoadBalancerZone        = "service.beta.kubernetes.io/exoscale-loadbalancer-zone"
-	annotationLoadBalancerID          = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
-	annotationLoadBalancerName        = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
-	annotationLoadBalancerDescription = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
-
-	// the possible values are "round-robin" or "source-hash"
-	annotationLoadBalancerServiceStrategy = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
-	// the possible values are "tcp" or "http"
-	annotationLoadBalancerServiceProtocol       = "service.beta.kubernetes.io/exoscale-loadbalancer-service-protocol"
-	annotationLoadBalancerServiceID             = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
-	annotationLoadBalancerServiceName           = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
-	annotationLoadBalancerServiceDescription    = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
-	annotationLoadBalancerServiceInstancePoolID = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
-
-	// the default value is "tcp" and the value can be "http"
-	annotationLoadBalancerServiceHealthCheckMode = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
-	// the default value is "/"
+	annotationLoadBalancerZone                       = "service.beta.kubernetes.io/exoscale-loadbalancer-zone"
+	annotationLoadBalancerID                         = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
+	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
+	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
+	annotationLoadBalancerServiceStrategy            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
+	annotationLoadBalancerServiceProtocol            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-protocol"
+	annotationLoadBalancerServiceID                  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
+	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
+	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
+	annotationLoadBalancerServiceInstancePoolID      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
+	annotationLoadBalancerServiceHealthCheckMode     = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
 	annotationLoadBalancerServiceHealthCheckHTTPURI  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
 	annotationLoadBalancerServiceHealthCheckTimeout  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout"
@@ -57,7 +49,7 @@ func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 // if so, what its status is.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) GetLoadBalancer(ctx context.Context, clusterName string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
+func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
 	lb, _, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
@@ -77,7 +69,7 @@ func (l *loadBalancer) GetLoadBalancer(ctx context.Context, clusterName string, 
 
 // GetLoadBalancerName returns the name of the load balancer. Implementations must treat the
 // *v1.Service parameter as read-only and not modify it.
-func (l *loadBalancer) GetLoadBalancerName(_ context.Context, clusterName string, service *v1.Service) string {
+func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service *v1.Service) string {
 	return getAnnotation(service, annotationLoadBalancerName, "nlb-"+string(service.UID))
 }
 
@@ -85,10 +77,10 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, clusterName string
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
+func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	var lb *egoscale.NetworkLoadBalancer
 
-	kubelb, err := buildLoadBalancerWithAnnotations(service)
+	kubelb, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +98,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName strin
 			return nil, err
 		}
 
-		if err := l.annotationLoadbalancerPatch(service, lb); err != nil {
+		if err := l.patchLoadbalancerAnnotations(service, lb); err != nil {
 			return nil, err
 		}
 	default:
@@ -125,7 +117,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName strin
 			return nil, err
 		}
 
-		if err := l.annotationLoadbalancerServicePatch(service, lbService); err != nil {
+		if err := l.patchLoadbalancerServiceAnnotations(service, lbService); err != nil {
 			return nil, err
 		}
 	default:
@@ -145,13 +137,13 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, clusterName strin
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, _ []*v1.Node) error {
+func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service *v1.Service, _ []*v1.Node) error {
 	zone, err := getLoadBalancerZone(service)
 	if err != nil {
 		return err
 	}
 
-	kubelb, err := buildLoadBalancerWithAnnotations(service)
+	kubelb, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return err
 	}
@@ -175,7 +167,7 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, clusterName strin
 // doesn't exist even if some part of it is still laying around.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
+func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *v1.Service) error {
 	lb, zone, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
@@ -197,7 +189,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, clusterNam
 	return lb.DeleteService(ctx, lbService)
 }
 
-func (l *loadBalancer) annotationLoadbalancerPatch(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
+func (l *loadBalancer) patchLoadbalancerAnnotations(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
 	patcher := newServicePatcher(l.p.kclient, service)
 
 	if service.ObjectMeta.Annotations == nil {
@@ -208,7 +200,7 @@ func (l *loadBalancer) annotationLoadbalancerPatch(service *v1.Service, lb *egos
 	return patcher.Patch()
 }
 
-func (l *loadBalancer) annotationLoadbalancerServicePatch(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
+func (l *loadBalancer) patchLoadbalancerServiceAnnotations(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
 	patcher := newServicePatcher(l.p.kclient, service)
 
 	if service.ObjectMeta.Annotations == nil {
@@ -253,7 +245,7 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 		return nil, "", errors.New("more than one element found")
 	}
 
-	if err := l.annotationLoadbalancerPatch(service, loadbalancers[0]); err != nil {
+	if err := l.patchLoadbalancerAnnotations(service, loadbalancers[0]); err != nil {
 		return nil, "", err
 	}
 
@@ -279,14 +271,14 @@ func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer
 		return nil, errors.New("more than one element found")
 	}
 
-	if err := l.annotationLoadbalancerServicePatch(service, lbService[0]); err != nil {
+	if err := l.patchLoadbalancerServiceAnnotations(service, lbService[0]); err != nil {
 		return nil, err
 	}
 
 	return lbService[0], nil
 }
 
-func buildLoadBalancerWithAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
+func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
 	instancepoolID := getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "")
 	if instancepoolID == "" {
 		return nil, fmt.Errorf("annotation %s is missing", annotationLoadBalancerServiceInstancePoolID)
@@ -376,7 +368,7 @@ func getLoadBalancerServicePorts(service *v1.Service) (int32, int32, error) {
 		}
 	}
 
-	return 0, 0, errors.New("specified service port does not exist")
+	return 0, 0, errors.New("no service port specified")
 }
 
 func getLoadBalancerHealthCheckPort(service *v1.Service) (uint16, error) {
@@ -394,5 +386,5 @@ func getLoadBalancerHealthCheckPort(service *v1.Service) (uint16, error) {
 		}
 	}
 
-	return 0, errors.New("specified health-check port does not exist or is not a TCP protocol")
+	return 0, errors.New("no health-check port specified or is not a TCP protocol")
 }
