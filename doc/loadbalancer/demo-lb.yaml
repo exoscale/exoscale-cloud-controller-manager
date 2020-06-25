@@ -4,7 +4,7 @@ metadata:
   name: nginx-service
   annotations:
     service.beta.kubernetes.io/exo-lb-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "abcdefgh-1234-ijkl-5678-mnopqrstuvwx"
+    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "06e82099-50db-4a09-b473-c231314842ff"
 spec:
   selector:
     app: nginx

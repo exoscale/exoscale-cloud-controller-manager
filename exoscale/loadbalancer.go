@@ -80,7 +80,7 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service 
 func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	var lb *egoscale.NetworkLoadBalancer
 
-	kubelb, err := buildLoadBalancerFromAnnotations(service)
+	annotationlb, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +88,12 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	_, zone, err := l.fetchLoadBalancer(ctx, service)
 	switch err {
 	case nil:
-		lb, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, kubelb)
+		lb, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, annotationlb)
 		if err != nil {
 			return nil, err
 		}
 	case errLoadBalancerNotFound:
-		lb, err = l.p.client.CreateNetworkLoadBalancer(ctx, zone, kubelb)
+		lb, err = l.p.client.CreateNetworkLoadBalancer(ctx, zone, annotationlb)
 		if err != nil {
 			return nil, err
 		}
@@ -108,11 +108,11 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	_, err = l.fetchLoadBalancerService(lb, service)
 	switch err {
 	case nil:
-		if err := lb.UpdateService(ctx, kubelb.Services[0]); err != nil {
+		if err := lb.UpdateService(ctx, annotationlb.Services[0]); err != nil {
 			return nil, err
 		}
 	case errLoadBalancerServiceNotFound:
-		lbService, err := lb.AddService(ctx, kubelb.Services[0])
+		lbService, err := lb.AddService(ctx, annotationlb.Services[0])
 		if err != nil {
 			return nil, err
 		}
@@ -143,16 +143,16 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 		return err
 	}
 
-	kubelb, err := buildLoadBalancerFromAnnotations(service)
+	annotationlb, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return err
 	}
 
-	lb, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, kubelb)
+	lb, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, annotationlb)
 	if err != nil {
 		return err
 	}
-	if err := lb.UpdateService(ctx, kubelb.Services[0]); err != nil {
+	if err := lb.UpdateService(ctx, annotationlb.Services[0]); err != nil {
 		return err
 	}
 
@@ -209,25 +209,22 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 		return nil, "", err
 	}
 
-	var loadbalancers []*egoscale.NetworkLoadBalancer
+	var loadbalancer *egoscale.NetworkLoadBalancer
 	for _, lb := range resp {
 		if lb.Name == getAnnotation(service, annotationLoadBalancerName, "nlb-"+string(service.UID)) {
-			loadbalancers = append(loadbalancers, lb)
+			loadbalancer = lb
 		}
 	}
 
-	switch count := len(loadbalancers); {
-	case count == 0:
+	if loadbalancer == nil {
 		return nil, zone, errLoadBalancerNotFound
-	case count > 1:
-		return nil, "", errors.New("more than one element found")
 	}
 
-	if err := l.patchLoadbalancerAnnotations(service, loadbalancers[0]); err != nil {
+	if err := l.patchLoadbalancerAnnotations(service, loadbalancer); err != nil {
 		return nil, "", err
 	}
 
-	return loadbalancers[0], zone, nil
+	return loadbalancer, zone, nil
 }
 
 func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
@@ -299,7 +296,7 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 		return nil, err
 	}
 
-	hcTimeout, err := time.ParseDuration(getAnnotation(service, annotationLoadBalancerServiceHealthCheckTimeout, "2s"))
+	hcTimeout, err := time.ParseDuration(getAnnotation(service, annotationLoadBalancerServiceHealthCheckTimeout, "5s"))
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +315,7 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 			services = append(services, &egoscale.NetworkLoadBalancerService{
 				ID:             getAnnotation(service, annotationLoadBalancerServiceID, ""),
 				Name:           getAnnotation(service, annotationLoadBalancerServiceName, "nlb-service-"+string(service.UID)),
-				Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, "kubernetes load balancer "+service.Name),
+				Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, "kubernetes load balancer service "+service.Name),
 				InstancePoolID: instancepoolID,
 				Protocol:       getAnnotation(service, annotationLoadBalancerServiceProtocol, "tcp"),
 				Port:           uint16(servicePort),
