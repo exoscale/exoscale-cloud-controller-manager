@@ -13,40 +13,29 @@ import (
 )
 
 const (
-	annotationLoadBalancerID = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
-
-	annotationLoadBalancerName = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
-
-	annotationLoadBalancerDescription = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
 
 	// the possible values are "bg-sof-1", "ch-dk-2", "ch-gva-2", "de-fra-1", "de-muc-1"
-	annotationLoadBalancerZone = "service.beta.kubernetes.io/exoscale-loadbalancer-zone"
-
-	annotationLoadBalancerServiceID = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
-
-	annotationLoadBalancerServiceName = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
-
-	annotationLoadBalancerServiceDescription = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
-
-	annotationLoadBalancerServiceInstancePoolID = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
+	annotationLoadBalancerZone        = "service.beta.kubernetes.io/exoscale-loadbalancer-zone"
+	annotationLoadBalancerID          = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
+	annotationLoadBalancerName        = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
+	annotationLoadBalancerDescription = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
 
 	// the possible values are "round-robin" or "source-hash"
 	annotationLoadBalancerServiceStrategy = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
-
 	// the possible values are "tcp" or "http"
-	annotationLoadBalancerServiceProtocol = "service.beta.kubernetes.io/exoscale-loadbalancer-service-protocol"
+	annotationLoadBalancerServiceProtocol       = "service.beta.kubernetes.io/exoscale-loadbalancer-service-protocol"
+	annotationLoadBalancerServiceID             = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
+	annotationLoadBalancerServiceName           = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
+	annotationLoadBalancerServiceDescription    = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
+	annotationLoadBalancerServiceInstancePoolID = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
 
 	// the default value is "tcp" and the value can be "http"
-	annotationLoadBalancerServiceHealthCheckMode = "service.beta.kubernetes.ioexoscale-loadbalancer-service-healthcheck-mode"
-
-	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
-
-	annotationLoadBalancerServiceHealthCheckTimeout = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout"
-
-	annotationLoadBalancerServiceHealthCheckRetries = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries"
-
+	annotationLoadBalancerServiceHealthCheckMode = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
 	// the default value is "/"
-	annotationLoadBalancerServiceHealthCheckHTTPURI = "service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri"
+	annotationLoadBalancerServiceHealthCheckHTTPURI  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri"
+	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
+	annotationLoadBalancerServiceHealthCheckTimeout  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout"
+	annotationLoadBalancerServiceHealthCheckRetries  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries"
 )
 
 var (
