@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/exoscale/egoscale"
+	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -26,6 +27,7 @@ type cloudProvider struct {
 	instances    cloudprovider.Instances
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
+	kclient      *kubernetes.Clientset
 }
 
 func init() {
@@ -56,12 +58,14 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 // to perform housekeeping or run custom controllers specific to the cloud provider.
 // Any tasks started here should be cleaned up when the stop channel closes.
 func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+	restConfig := clientBuilder.ConfigOrDie("exoscale-cloud-controller-manager")
+	c.kclient = kubernetes.NewForConfigOrDie(restConfig)
 }
 
 // LoadBalancer returns a balancer interface.
 // Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return c.loadBalancer, false
+	return c.loadBalancer, true
 }
 
 // Instances returns an instances interface.
