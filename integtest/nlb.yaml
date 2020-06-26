@@ -3,9 +3,10 @@ apiVersion: v1
 metadata:
   name: nginx-service
   annotations:
-    service.beta.kubernetes.io/exo-lb-zone: "de-fra-1"
-    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "$INSTANCEPOOL_ID"
-    service.beta.kubernetes.io/exo-lb-name: "test-ccm-lb"
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "de-fra-1"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "$INSTANCEPOOL_ID"
+    service.beta.kubernetes.io/exoscale-loadbalancer-name: "lb-ccm"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "lb-ccm-service"
 spec:
   selector:
     app: nginx
@@ -14,10 +15,6 @@ spec:
   - name: service
     protocol: TCP
     port: 80
-    targetPort: 80
-  - name: health-check
-    protocol: TCP
-    port: 55
     targetPort: 80
 ---
 apiVersion: apps/v1

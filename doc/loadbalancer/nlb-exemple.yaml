@@ -3,8 +3,8 @@ apiVersion: v1
 metadata:
   name: nginx-service
   annotations:
-    service.beta.kubernetes.io/exo-lb-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "06e82099-50db-4a09-b473-c231314842ff"
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "06e82099-50db-4a09-b473-c231314842ff"
 spec:
   selector:
     app: nginx
@@ -13,10 +13,6 @@ spec:
   - name: service
     protocol: TCP
     port: 80
-    targetPort: 80
-  - name: health-check
-    protocol: TCP
-    port: 55
     targetPort: 80
 ---
 apiVersion: apps/v1

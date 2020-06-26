@@ -38,8 +38,8 @@ apiVersion: v1
 metadata:
   name: nginx-service
   annotations:
-    service.beta.kubernetes.io/exo-lb-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exo-lb-service-instancepoolid: "abcdefgh-1234-ijkl-5678-mnopqrstuvwx"
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "06e82099-50db-4a09-b473-c231314842ff"
 spec:
   selector:
     app: nginx
@@ -48,10 +48,6 @@ spec:
   - name: service
     protocol: TCP
     port: 80
-    targetPort: 80
-  - name: health-check
-    protocol: TCP
-    port: 55
     targetPort: 80
 ```
 
@@ -65,7 +61,7 @@ To access your service you will have to wait for your loadbalancer to be correct
 ```
 kubectl get service
 NAME            TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
-nginx-service   LoadBalancer   10.105.252.146   x.x.x.x       80:30432/TCP   127m
+nginx-service   LoadBalancer   10.105.252.146   x.x.x.x       80:30432/TCP    1m
 
 exo nlb list
 ┼──────────────────────────────────────┼──────────────────────────────────────────┼──────────┼─────────────────┼
@@ -78,5 +74,5 @@ exo nlb list
 You can now access your service
 
 ```
-curl -i http://EXTERNAL_IP
+curl -i http://EXTERNAL-IP
 ```
