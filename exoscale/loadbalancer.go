@@ -366,12 +366,21 @@ func getLoadBalancerServicePorts(service *v1.Service) ([3]int32, error) {
 			case servicePortNLBSvcPort:
 				servicePort = port.Port
 				targetPort = port.NodePort
+
 			case servicePortNLBSvcHealthcheckPort:
 				if port.Protocol != v1.ProtocolTCP {
 					return [3]int32{}, errors.New("only TCP is supported as healthcheck port protocol")
 				}
 				healthcheckPort = port.NodePort
 			}
+		}
+
+		switch {
+		case servicePort == 0:
+			return [3]int32{}, errors.New("service port not specified")
+
+		case healthcheckPort == 0:
+			return [3]int32{}, errors.New("service healthcheck port not specified")
 		}
 	}
 
