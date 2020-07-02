@@ -235,11 +235,11 @@ func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer
 	if err != nil {
 		return nil, err
 	}
-	defaultServicePort := fmt.Sprintf("%s-%d", service.UID, ports[0])
+	defaultServiceName := fmt.Sprintf("%s-%d", service.UID, ports[0])
 
 	for _, svc := range lb.Services {
 		if svc.ID == getAnnotation(service, annotationLoadBalancerServiceID, "") ||
-			svc.Name == getAnnotation(service, annotationLoadBalancerServiceName, defaultServicePort) {
+			svc.Name == getAnnotation(service, annotationLoadBalancerServiceName, defaultServiceName) {
 			return svc, nil
 		}
 	}
