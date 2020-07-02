@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/exoscale/egoscale"
@@ -18,16 +19,18 @@ const (
 	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
 	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
 	annotationLoadBalancerServiceStrategy            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
-	annotationLoadBalancerServiceProtocol            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-protocol"
 	annotationLoadBalancerServiceID                  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
 	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
 	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
 	annotationLoadBalancerServiceInstancePoolID      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
 	annotationLoadBalancerServiceHealthCheckMode     = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
-	annotationLoadBalancerServiceHealthCheckHTTPURI  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri"
+	annotationLoadBalancerServiceHealthCheckURI      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
 	annotationLoadBalancerServiceHealthCheckTimeout  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout"
 	annotationLoadBalancerServiceHealthCheckRetries  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries"
+
+	servicePortNLBSvcPort            = "service"
+	servicePortNLBSvcHealthcheckPort = "healthcheck"
 )
 
 var (
@@ -67,7 +70,7 @@ func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v
 // GetLoadBalancerName returns the name of the load balancer. Implementations must treat the
 // *v1.Service parameter as read-only and not modify it.
 func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service *v1.Service) string {
-	return getAnnotation(service, annotationLoadBalancerName, "nlb-"+string(service.UID))
+	return getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID))
 }
 
 // EnsureLoadBalancer creates a new load balancer 'name', or updates the existing one. Returns the status of the balancer
@@ -211,7 +214,7 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 
 	var loadbalancer *egoscale.NetworkLoadBalancer
 	for _, lb := range resp {
-		if lb.Name == getAnnotation(service, annotationLoadBalancerName, "nlb-"+string(service.UID)) {
+		if lb.Name == getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID)) {
 			loadbalancer = lb
 		}
 	}
@@ -228,29 +231,20 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 }
 
 func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer, service *v1.Service) (*egoscale.NetworkLoadBalancerService, error) {
-	var lbService []*egoscale.NetworkLoadBalancerService
-
-	for _, svc := range lb.Services {
-		if svc.ID == getAnnotation(service, annotationLoadBalancerServiceID, "") {
-			return svc, nil
-		}
-		if svc.Name == getAnnotation(service, annotationLoadBalancerServiceName, "nlb-service-"+string(service.UID)) {
-			lbService = append(lbService, svc)
-		}
-	}
-
-	switch count := len(lbService); {
-	case count == 0:
-		return nil, errLoadBalancerServiceNotFound
-	case count > 1:
-		return nil, errors.New("more than one element found")
-	}
-
-	if err := l.patchLoadBalancerServiceAnnotations(service, lbService[0]); err != nil {
+	ports, err := getLoadBalancerServicePorts(service)
+	if err != nil {
 		return nil, err
 	}
+	defaultServiceName := fmt.Sprintf("%s-%d", service.UID, ports[0])
 
-	return lbService[0], nil
+	for _, svc := range lb.Services {
+		if svc.ID == getAnnotation(service, annotationLoadBalancerServiceID, "") ||
+			svc.Name == getAnnotation(service, annotationLoadBalancerServiceName, defaultServiceName) {
+			return svc, nil
+		}
+	}
+
+	return nil, errLoadBalancerServiceNotFound
 }
 
 func (l *loadBalancer) patchLoadBalancerAnnotations(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
@@ -281,15 +275,16 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 		return nil, fmt.Errorf("annotation %s is missing", annotationLoadBalancerServiceInstancePoolID)
 	}
 
-	servicePort, serviceTargetPort, err := getLoadBalancerServicePorts(service)
+	serviceProtocol, err := getLoadBalancerServiceProtocol(service)
 	if err != nil {
 		return nil, err
 	}
 
-	hcPort, err := getLoadBalancerHealthCheckPort(service)
+	ports, err := getLoadBalancerServicePorts(service)
 	if err != nil {
 		return nil, err
 	}
+	servicePort, serviceTargetPort, hcPort := ports[0], ports[1], ports[2]
 
 	hcInterval, err := time.ParseDuration(getAnnotation(service, annotationLoadBalancerServiceHealthCheckInterval, "10s"))
 	if err != nil {
@@ -308,24 +303,25 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 
 	return &egoscale.NetworkLoadBalancer{
 		ID:          getAnnotation(service, annotationLoadBalancerID, ""),
-		Name:        getAnnotation(service, annotationLoadBalancerName, "nlb-"+string(service.UID)),
-		Description: getAnnotation(service, annotationLoadBalancerDescription, "kubernetes load balancer "+service.Name),
+		Name:        getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID)),
+		Description: getAnnotation(service, annotationLoadBalancerDescription, ""),
 		Services: []*egoscale.NetworkLoadBalancerService{{
-			ID:             getAnnotation(service, annotationLoadBalancerServiceID, ""),
-			Name:           getAnnotation(service, annotationLoadBalancerServiceName, "nlb-service-"+string(service.UID)),
-			Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, "kubernetes load balancer service "+service.Name),
+			ID: getAnnotation(service, annotationLoadBalancerServiceID, ""),
+			Name: getAnnotation(service, annotationLoadBalancerServiceName,
+				fmt.Sprintf("%s-%d", service.UID, servicePort)),
+			Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, ""),
 			InstancePoolID: instancepoolID,
-			Protocol:       getAnnotation(service, annotationLoadBalancerServiceProtocol, "tcp"),
+			Protocol:       serviceProtocol,
 			Port:           uint16(servicePort),
 			TargetPort:     uint16(serviceTargetPort),
 			Strategy:       getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
 			Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
 				Mode:     getAnnotation(service, annotationLoadBalancerServiceHealthCheckMode, "tcp"),
-				Port:     hcPort,
+				Port:     uint16(hcPort),
 				Interval: hcInterval,
 				Timeout:  hcTimeout,
 				Retries:  int64(hcRetries),
-				URI:      getAnnotation(service, annotationLoadBalancerServiceHealthCheckHTTPURI, "/"),
+				URI:      getAnnotation(service, annotationLoadBalancerServiceHealthCheckURI, "/"),
 			},
 		}},
 	}, nil
@@ -349,37 +345,75 @@ func getLoadBalancerZone(service *v1.Service) (string, error) {
 	return zone, nil
 }
 
-func getLoadBalancerServicePorts(service *v1.Service) (int32, int32, error) {
-	if len(service.Spec.Ports) == 1 {
-		return service.Spec.Ports[0].Port, service.Spec.Ports[0].NodePort, nil
-	}
+// getLoadBalancerServicePorts returns the NLB service ports as a 3-tuple (service port/target port/healthcheck port)
+// from a Kubernetes Service's specs.
+func getLoadBalancerServicePorts(service *v1.Service) ([3]int32, error) {
+	var servicePort, targetPort, healthcheckPort int32
 
-	for _, port := range service.Spec.Ports {
-		if port.Name == "service" {
-			return port.Port, port.NodePort, nil
+	if len(service.Spec.Ports) == 1 {
+		// If the service spec defines only one ServicePort, we infer the
+		// NLB service healthcheck port from the ServicePort.NodePort.
+		servicePort = service.Spec.Ports[0].Port
+		targetPort = service.Spec.Ports[0].NodePort
+		healthcheckPort = targetPort
+	} else {
+		// If the service spec defines more than one ServicePort, we look for
+		// 2 named ServicePort:
+		//   * "service" for the NLB service port and target port
+		//   * "healthcheck" for the NLB healthcheck port
+		for _, port := range service.Spec.Ports {
+			switch port.Name {
+			case servicePortNLBSvcPort:
+				servicePort = port.Port
+				targetPort = port.NodePort
+
+			case servicePortNLBSvcHealthcheckPort:
+				if port.Protocol != v1.ProtocolTCP {
+					return [3]int32{}, errors.New("only TCP is supported as healthcheck port protocol")
+				}
+				healthcheckPort = port.NodePort
+			}
+		}
+
+		switch {
+		case servicePort == 0:
+			return [3]int32{}, errors.New("service port not specified")
+
+		case healthcheckPort == 0:
+			return [3]int32{}, errors.New("service healthcheck port not specified")
 		}
 	}
 
-	return 0, 0, errors.New("no service port specified")
+	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
+		healthcheckPort = service.Spec.HealthCheckNodePort
+	}
+
+	return [3]int32{servicePort, targetPort, healthcheckPort}, nil
 }
 
-func getLoadBalancerHealthCheckPort(service *v1.Service) (uint16, error) {
-	// If the externalTrafficPolicy is specified at local
-	// we use the user-specified or k8s-generated health check NodePort.
-	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
-		return uint16(service.Spec.HealthCheckNodePort), nil
-	}
+func getLoadBalancerServiceProtocol(service *v1.Service) (string, error) {
+	var protocol v1.Protocol
 
-	// If only the service port is specified we reuse the service NodePort for the health check port.
 	if len(service.Spec.Ports) == 1 {
-		return uint16(service.Spec.Ports[0].NodePort), nil
-	}
-
-	for _, port := range service.Spec.Ports {
-		if port.Name == "health-check" && port.Protocol == v1.ProtocolTCP {
-			return uint16(port.NodePort), nil
+		protocol = service.Spec.Ports[0].Protocol
+	} else {
+		for _, port := range service.Spec.Ports {
+			if port.Name == servicePortNLBSvcPort {
+				protocol = port.Protocol
+				break
+			}
 		}
+
 	}
 
-	return 0, errors.New("no health-check port specified or is not a TCP protocol")
+	// Exoscale NLB services can forward both TCP and UDP protocol, however the only supported
+	// healthcheck protocol is TCP (plain TCP or HTTP).
+	// Due to a technical limitation in Kubernetes preventing declaration of mixed protocols in a
+	// service of type LoadBalancer (https://github.com/kubernetes/kubernetes/issues/23880) we only
+	// allow TCP for service ports.
+	if protocol != v1.ProtocolTCP {
+		return "", errors.New("only TCP is supported as service port protocol")
+	}
+
+	return strings.ToLower(string(protocol)), nil
 }
