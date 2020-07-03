@@ -185,12 +185,18 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 		return err
 	}
 
+	// We delete the NLB instance only if there is only one NLB service left (i.e. the one we're asked to delete).
 	if len(lb.Services) == 1 {
 		return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, lb.ID)
 	}
 
+	// Otherwise, we only delete the NLB service and keep the NLB instance as it holds other services.
 	lbService, err := l.fetchLoadBalancerService(lb, service)
 	if err != nil {
+		if err == errLoadBalancerServiceNotFound {
+			return nil
+		}
+
 		return err
 	}
 
@@ -200,11 +206,16 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service, zone string) (*egoscale.NetworkLoadBalancer, error) {
 	if lbID := getAnnotation(service, annotationLoadBalancerID, ""); lbID != "" {
 		lb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
-		if err != nil {
+		switch err {
+		case nil:
+			return lb, nil
+
+		case egoscale.ErrNotFound:
+			return nil, errLoadBalancerNotFound
+
+		default:
 			return nil, err
 		}
-
-		return lb, nil
 	}
 
 	resp, err := l.p.client.ListNetworkLoadBalancers(ctx, zone)
