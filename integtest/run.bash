@@ -87,7 +87,7 @@ kubectl wait -n kube-system deployment.apps/exoscale-cloud-controller-manager --
 KUBE_TOKEN=$(remote_run "sudo kubeadm token create")
 export KUBE_TOKEN
 
-envsubst < integtest/node-join-cloud-init.yaml > integtest/node-join-cloud-init.yml
+envsubst < "$INTEGTEST_DIR/node-join-cloud-init.yaml" > "$INTEGTEST_DIR/node-join-cloud-init.yml"
 EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "$EXOSCALE_INSTANCEPOOL_NAME" \
                         -k "$EXOSCALE_SSHKEY_NAME" \
                         -t ci-k8s-node-1.18.3 \
@@ -98,7 +98,6 @@ EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "$EXOSCALE_INSTANCEPOOL_NAME"
                         -z de-fra-1 \
                         -c "$INTEGTEST_DIR"/node-join-cloud-init.yml --output-template "{{.ID}}" | tail -n 1)
 export EXOSCALE_INSTANCEPOOL_ID
-
 
 EXOSCALE_NODE_NAME=$(exo instancepool show "$EXOSCALE_INSTANCEPOOL_ID" -z de-fra-1 -O json | jq -r '.instances[0]')
 export EXOSCALE_NODE_NAME
@@ -118,13 +117,11 @@ kubectl wait deployment.apps/nginx --for=condition=Available --timeout=180s
 
 echo "Create k8s External LoadBalancer"
 
-envsubst < integtest/create-nlb.yaml > integtest/create-nlb.yml
+envsubst < "$INTEGTEST_DIR/create-nlb.yaml" > "$INTEGTEST_DIR/create-nlb.yml"
 kubectl create -f "$INTEGTEST_DIR/create-nlb.yml"
 
-sleep 30
-
-EXOSCALE_LB_IP=$(kubectl get service/nginx-service -o=jsonpath="{.status.loadBalancer.ingress[*].ip}")
-export EXOSCALE_LB_IP
+until_success "exo nlb show \"$EXOSCALE_LB_NAME\" -z de-fra-1"
+until_success "exo nlb service show \"$EXOSCALE_LB_NAME\" \"$EXOSCALE_LB_SERVICE_NAME\" -z de-fra-1"
 
 echo "Test k8s External LoadBalancer"
 
