@@ -1,0 +1,26 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx-service
+  annotations:
+  service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+  service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "$EXOSCALE_INSTANCEPOOL_ID"
+  service.beta.kubernetes.io/exoscale-loadbalancer-name: "$EXOSCALE_LB_NAME"
+  service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "$EXOSCALE_LB_SERVICE_NAME"
+	service.beta.kubernetes.io/exoscale-loadbalancer-description: "description nlb"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy: "source-hash"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-description: "description nlb service"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode: "http"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri: "/"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval: "11s"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout: "6s"
+	service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries: "2"
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+  - name: service
+    protocol: TCP
+    port: 8080
+    targetPort: 80

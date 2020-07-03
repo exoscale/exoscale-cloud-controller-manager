@@ -6,7 +6,7 @@ write_files:
       caCertPath: /etc/kubernetes/pki/ca.crt
       discovery:
         bootstrapToken:
-          apiServerEndpoint: $EXOSCALE_INSTANCE_IP:6443
+          apiServerEndpoint: $EXOSCALE_MASTER_IP:6443
           token: $KUBE_TOKEN
           unsafeSkipCAVerification: true
         timeout: 5m0s

@@ -29,7 +29,7 @@ spec:
           effect: NoSchedule
       containers:
       - image: exoscale/cloud-controller-manager:ci-dev
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         name: exoscale-cloud-controller-manager
         args:
           - --cloud-provider=exoscale
