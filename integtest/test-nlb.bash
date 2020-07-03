@@ -3,7 +3,7 @@
 set -e
 
 nlb_assert_equal() {
-    VALUE=$(exo nlb show "$EXOSCALE_LB_NAME" -z ch-gva-2 --output-template "{{$1}}")
+    VALUE=$(exo nlb show "$EXOSCALE_LB_NAME" -z de-fra-1 --output-template "{{$1}}")
     EXPECTED="$2"
     if [ "$VALUE" != "$EXPECTED" ]
     then
@@ -15,7 +15,7 @@ nlb_assert_equal() {
 }
 
 nlb_service_assert_equal() {
-    VALUE=$(exo nlb service show "$EXOSCALE_LB_NAME" "$EXOSCALE_LB_SERVICE_NAME" -z ch-gva-2 --output-template "{{$1}}")
+    VALUE=$(exo nlb service show "$EXOSCALE_LB_NAME" "$EXOSCALE_LB_SERVICE_NAME" -z de-fra-1 --output-template "{{$1}}")
     EXPECTED="$2"
     if [ "$VALUE" != "$EXPECTED" ]
     then
@@ -28,7 +28,7 @@ nlb_service_assert_equal() {
 
 sleep 45
 
-nlb_assert_equal ".Zone" "ch-gva-2"
+nlb_assert_equal ".Zone" "de-fra-1"
 nlb_assert_equal ".Description" ""
 nlb_service_assert_equal ".Strategy" "round-robin"
 nlb_service_assert_equal ".Protocol" "tcp"
@@ -48,7 +48,7 @@ kubectl apply -f "$INTEGTEST_DIR/update-nlb.yml"
 
 sleep 45
 
-nlb_assert_equal ".Zone" "ch-gva-2"
+nlb_assert_equal ".Zone" "de-fra-1"
 nlb_assert_equal ".Description" "description nlb"
 nlb_service_assert_equal ".Strategy" "source-hash"
 nlb_service_assert_equal ".Protocol" "tcp"

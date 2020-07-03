@@ -3,7 +3,7 @@ apiVersion: v1
 metadata:
   name: nginx-service
   annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "de-fra-1"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "$EXOSCALE_INSTANCEPOOL_ID"
     service.beta.kubernetes.io/exoscale-loadbalancer-name: "$EXOSCALE_LB_NAME"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "$EXOSCALE_LB_SERVICE_NAME"

@@ -31,8 +31,8 @@ cleanup() {
     rm -rf "$INTEGTEST_DIR/update-nlb.yml"
     rm -rf "$INTEGTEST_DIR/node-join-cloud-init.yml"
     exo -Q vm delete -f "$EXOSCALE_MASTER_NAME"
-    exo -Q nlb delete -f "$EXOSCALE_LB_NAME" -z ch-gva-2 &>/dev/null || true
-    until_success "exo -Q instancepool delete -f \"$EXOSCALE_INSTANCEPOOL_NAME\" -z ch-gva-2"
+    exo -Q nlb delete -f "$EXOSCALE_LB_NAME" -z de-fra-1 &>/dev/null || true
+    until_success "exo -Q instancepool delete -f \"$EXOSCALE_INSTANCEPOOL_NAME\" -z de-fra-1"
     until_success "exo -Q sshkey delete -f \"$EXOSCALE_SSHKEY_NAME\""
 }
 trap cleanup EXIT
@@ -49,7 +49,7 @@ exo -Q vm create "$EXOSCALE_MASTER_NAME" \
            -t ci-k8s-node-1.18.3 \
            --template-filter mine \
            -s k8s \
-           -z ch-gva-2
+           -z de-fra-1
 
 EXOSCALE_MASTER_IP=$(exo vm show "$EXOSCALE_MASTER_NAME" -O json | jq -r '.ip_address')
 export EXOSCALE_MASTER_IP
@@ -95,12 +95,12 @@ EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "$EXOSCALE_INSTANCEPOOL_NAME"
                         --size 1 \
                         -s k8s \
                         -o medium \
-                        -z ch-gva-2 \
+                        -z de-fra-1 \
                         -c "$INTEGTEST_DIR"/node-join-cloud-init.yml --output-template "{{.ID}}" | tail -n 1)
 export EXOSCALE_INSTANCEPOOL_ID
 
 
-EXOSCALE_NODE_NAME=$(exo instancepool show "$EXOSCALE_INSTANCEPOOL_ID" -z ch-gva-2 -O json | jq -r '.instances[0]')
+EXOSCALE_NODE_NAME=$(exo instancepool show "$EXOSCALE_INSTANCEPOOL_ID" -z de-fra-1 -O json | jq -r '.instances[0]')
 export EXOSCALE_NODE_NAME
 
 until_success "kubectl get node \"$EXOSCALE_NODE_NAME\""
