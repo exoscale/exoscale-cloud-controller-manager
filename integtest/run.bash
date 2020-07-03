@@ -16,8 +16,10 @@ EXOSCALE_SSHKEY_NAME=k8s-ccm-sshkey-$(uuidgen | tr '[:upper:]' '[:lower:]')
 export EXOSCALE_SSHKEY_NAME
 EXOSCALE_LB_NAME=k8s-ccm-lb-$(uuidgen | tr '[:upper:]' '[:lower:]')
 export EXOSCALE_LB_NAME
-EXOSCALE_LB_SERVICE_NAME=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_LB_SERVICE_NAME
+EXOSCALE_LB_SERVICE_NAME1=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
+export EXOSCALE_LB_SERVICE_NAME1
+EXOSCALE_LB_SERVICE_NAME2=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
+export EXOSCALE_LB_SERVICE_NAME2
 
 until_success() {
     COMMAND=$1
@@ -28,7 +30,7 @@ cleanup() {
     rm -rf "$INTEGTEST_DIR/.ssh"
     rm -rf "$INTEGTEST_DIR/.kube"
     rm -rf "$INTEGTEST_DIR/create-nlb.yml"
-    rm -rf "$INTEGTEST_DIR/update-nlb.yml"
+    rm -rf "$INTEGTEST_DIR/add-nlb-service.yml"
     rm -rf "$INTEGTEST_DIR/node-join-cloud-init.yml"
     exo -Q vm delete -f "$EXOSCALE_MASTER_NAME"
     exo -Q nlb delete -f "$EXOSCALE_LB_NAME" -z de-fra-1 &>/dev/null || true
@@ -80,14 +82,14 @@ kubectl wait node/"$EXOSCALE_MASTER_NAME" --for=condition=Ready --timeout=180s
 remote_run "git tag ci-dev && make docker"
 
 "$INCLUDE_PATH/deployment/secret.sh"
-kubectl apply -f "$INTEGTEST_DIR/deployment.yml"
+kubectl apply -f "$INTEGTEST_DIR/manifests/deployment.yml"
 
 kubectl wait -n kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=available --timeout=180s
 
 KUBE_TOKEN=$(remote_run "sudo kubeadm token create")
 export KUBE_TOKEN
 
-envsubst < "$INTEGTEST_DIR/node-join-cloud-init.yaml" > "$INTEGTEST_DIR/node-join-cloud-init.yml"
+envsubst < "$INTEGTEST_DIR/manifests/node-join-cloud-init.yaml" > "$INTEGTEST_DIR/node-join-cloud-init.yml"
 EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "$EXOSCALE_INSTANCEPOOL_NAME" \
                         -k "$EXOSCALE_SSHKEY_NAME" \
                         -t ci-k8s-node-1.18.3 \
@@ -111,17 +113,26 @@ echo "Test k8s Nodes Labels"
 
 echo "Deploy nginx app"
 
-kubectl apply -f "$INTEGTEST_DIR/app.yml"
+kubectl apply -f "$INTEGTEST_DIR/manifests/app.yml"
 
 kubectl wait deployment.apps/nginx --for=condition=Available --timeout=180s
 
 echo "Create k8s External LoadBalancer"
 
-envsubst < "$INTEGTEST_DIR/create-nlb.yaml" > "$INTEGTEST_DIR/create-nlb.yml"
+envsubst < "$INTEGTEST_DIR/manifests/create-nlb.yaml" > "$INTEGTEST_DIR/create-nlb.yml"
 kubectl create -f "$INTEGTEST_DIR/create-nlb.yml"
 
 until_success "exo nlb show \"$EXOSCALE_LB_NAME\" -z de-fra-1"
-until_success "exo nlb service show \"$EXOSCALE_LB_NAME\" \"$EXOSCALE_LB_SERVICE_NAME\" -z de-fra-1"
+until_success "exo nlb service show \"$EXOSCALE_LB_NAME\" \"$EXOSCALE_LB_SERVICE_NAME1\" -z de-fra-1"
+
+sleep 10
+
+envsubst < "$INTEGTEST_DIR/manifests/add-nlb-service.yaml" > "$INTEGTEST_DIR/add-nlb-service.yml"
+kubectl create -f "$INTEGTEST_DIR/add-nlb-service.yml"
+
+until_success "exo nlb service show \"$EXOSCALE_LB_NAME\" \"$EXOSCALE_LB_SERVICE_NAME2\" -z de-fra-1"
+
+sleep 10
 
 echo "Test k8s External LoadBalancer"
 

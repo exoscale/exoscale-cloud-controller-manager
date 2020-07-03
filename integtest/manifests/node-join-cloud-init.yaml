@@ -18,4 +18,3 @@ write_files:
 
 runcmd:
 - kubeadm join --config /kubeadm-config.yml
-
