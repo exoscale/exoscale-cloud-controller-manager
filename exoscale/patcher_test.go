@@ -59,5 +59,4 @@ func TestPatch(t *testing.T) {
 
 	svcID = serviceFinal.ObjectMeta.Annotations[annotationLoadBalancerID]
 	require.Equal(t, svcID, testServiceID)
-
 }
