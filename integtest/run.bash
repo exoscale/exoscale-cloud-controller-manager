@@ -65,7 +65,7 @@ remote_run() {
 rsync -a "$INCLUDE_PATH/" "ubuntu@$EXOSCALE_MASTER_IP:/home/ubuntu" \
       -e "ssh -o StrictHostKeyChecking=no -i $INTEGTEST_DIR/.ssh/id_rsa"
 
-remote_run "sudo kubeadm init --config=$INTEGTEST_DIR/manifests/kubeadm-config-master.yml"
+remote_run "sudo kubeadm init --config=./integtest/manifests/kubeadm-config-master.yml"
 remote_run "sudo cp -f /etc/kubernetes/admin.conf admin.conf && sudo chown ubuntu:ubuntu admin.conf"
 
 mkdir -p "$INTEGTEST_DIR/.kube"
