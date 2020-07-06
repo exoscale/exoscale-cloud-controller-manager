@@ -65,7 +65,7 @@ remote_run() {
 rsync -a "$INCLUDE_PATH/" "ubuntu@$EXOSCALE_MASTER_IP:/home/ubuntu" \
       -e "ssh -o StrictHostKeyChecking=no -i $INTEGTEST_DIR/.ssh/id_rsa"
 
-remote_run "sudo kubeadm init --config=./docs/kubeadm/kubeadm-config-master.yml"
+remote_run "sudo kubeadm init --config=$INTEGTEST_DIR/manifests/kubeadm-config-master.yml"
 remote_run "sudo cp -f /etc/kubernetes/admin.conf admin.conf && sudo chown ubuntu:ubuntu admin.conf"
 
 mkdir -p "$INTEGTEST_DIR/.kube"
@@ -77,7 +77,7 @@ export KUBECONFIG="$INTEGTEST_DIR/.kube/config"
 
 kubectl apply -f https://docs.projectcalico.org/v3.14/manifests/calico.yaml
 
-kubectl wait node/"$EXOSCALE_MASTER_NAME" --for=condition=Ready --timeout=180s
+kubectl wait "node/$EXOSCALE_MASTER_NAME" --for=condition=Ready --timeout=180s
 
 remote_run "git tag ci-dev && make docker"
 
@@ -98,14 +98,14 @@ EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "$EXOSCALE_INSTANCEPOOL_NAME"
                         -s k8s \
                         -o medium \
                         -z de-fra-1 \
-                        -c "$INTEGTEST_DIR"/node-join-cloud-init.yml --output-template "{{.ID}}" | tail -n 1)
+                        -c "$INTEGTEST_DIR/node-join-cloud-init.yml" --output-template "{{.ID}}" | tail -n 1)
 export EXOSCALE_INSTANCEPOOL_ID
 
 EXOSCALE_NODE_NAME=$(exo instancepool show "$EXOSCALE_INSTANCEPOOL_ID" -z de-fra-1 -O json | jq -r '.instances[0]')
 export EXOSCALE_NODE_NAME
 
 until_success "kubectl get node \"$EXOSCALE_NODE_NAME\""
-kubectl wait node/"$EXOSCALE_NODE_NAME" --for=condition=Ready --timeout=180s
+kubectl wait "node/$EXOSCALE_NODE_NAME" --for=condition=Ready --timeout=180s
 
 echo "Test k8s Nodes Labels"
 
