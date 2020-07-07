@@ -125,7 +125,7 @@ deploy_nginx_app() {
     kubectl wait deployment.apps/nginx --for=condition=Available --timeout=180s
 }
 
-create_external_loadBalancer() {
+create_external_loadbalancer() {
     envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_DIR}/create-nlb.yml"
     kubectl create -f "${INTEGTEST_DIR}/create-nlb.yml"
 
@@ -140,11 +140,11 @@ create_external_loadBalancer() {
     sleep 10
 }
 
-test_k8s_node_label() {
+test_k8s_node_labels() {
     "${INTEGTEST_DIR}/test-labels.bash"
 }
 
-test_k8s_external_loafbalancer() {
+test_k8s_external_loadbalancer() {
     "${INTEGTEST_DIR}/test-nlb.bash"
 }
 
@@ -155,9 +155,9 @@ main() {
     deploy_exoscale_ccm
     instancepool_join_k8s
     deploy_nginx_app
-    create_external_loadBalancer
-    test_k8s_node_label
-    test_k8s_external_loafbalancer
+    create_external_loadbalancer
+    test_k8s_node_labels
+    test_k8s_external_loadbalancer
 }
 
 main
