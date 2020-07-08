@@ -2,7 +2,6 @@
 
 set -e
 set -u
-# set -x
 
 export INTEGTEST_DIR="${INCLUDE_PATH}/integtest"
 
