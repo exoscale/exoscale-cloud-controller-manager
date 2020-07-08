@@ -4,6 +4,7 @@ set -e
 set -u
 
 export INTEGTEST_DIR="${INCLUDE_PATH}/integtest"
+export INTEGTEST_TMP_DIR="${INTEGTEST_DIR}/tmp"
 
 [[ -n "$EXOSCALE_API_KEY" ]]
 [[ -n "$EXOSCALE_API_SECRET" ]]
@@ -23,11 +24,7 @@ EXOSCALE_LB_SERVICE_NAME2=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower
 export EXOSCALE_LB_SERVICE_NAME2
 
 cleanup() {
-    rm -rf "${INTEGTEST_DIR}/.ssh"
-    rm -rf "${INTEGTEST_DIR}/.kube"
-    rm -rf "${INTEGTEST_DIR}/create-nlb.yml"
-    rm -rf "${INTEGTEST_DIR}/add-nlb-service.yml"
-    rm -rf "${INTEGTEST_DIR}/node-join-cloud-init.yml"
+    rm -rf "${INTEGTEST_TMP_DIR}"
     exo --quiet vm delete --force "$EXOSCALE_MASTER_NAME"
     exo --quiet nlb delete --force "$EXOSCALE_LB_NAME" -z de-fra-1 &>/dev/null || true
     until_success "exo --quiet instancepool delete --force \"${EXOSCALE_INSTANCEPOOL_NAME}\" -z de-fra-1" || true
@@ -44,13 +41,13 @@ remote_run() {
     declare ip_address="$1"
     declare command="$2"
 
-    ssh -i "${INTEGTEST_DIR}/.ssh/id_rsa" "ubuntu@${ip_address}" "$command"
+    ssh -i "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" "ubuntu@${ip_address}" "$command"
 } 
 
 upload_integtest_sshkey() {
-    mkdir -p "${INTEGTEST_DIR}/.ssh"
-    ssh-keygen -t rsa -f "${INTEGTEST_DIR}/.ssh/id_rsa" -N ""
-    exo --quiet sshkey upload "${EXOSCALE_SSHKEY_NAME}" "${INTEGTEST_DIR}/.ssh/id_rsa.pub"
+    mkdir -p "${INTEGTEST_TMP_DIR}/.ssh"
+    ssh-keygen -t rsa -f "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" -N ""
+    exo --quiet sshkey upload "${EXOSCALE_SSHKEY_NAME}" "${INTEGTEST_TMP_DIR}/.ssh/id_rsa.pub"
 }
 
 create_exoscale_vm() {
@@ -69,17 +66,17 @@ create_exoscale_vm() {
 
 initialize_k8s_master() {
     rsync -a "${INCLUDE_PATH}/" "ubuntu@${EXOSCALE_MASTER_IP}:/home/ubuntu" \
-          -e "ssh -o StrictHostKeyChecking=no -i ${INTEGTEST_DIR}/.ssh/id_rsa"
+          -e "ssh -o StrictHostKeyChecking=no -i ${INTEGTEST_TMP_DIR}/.ssh/id_rsa"
 
     remote_run "$EXOSCALE_MASTER_IP" "sudo kubeadm init --config=./integtest/manifests/kubeadm-config-master.yml"
     remote_run "$EXOSCALE_MASTER_IP" "sudo cp --force /etc/kubernetes/admin.conf admin.conf && sudo chown ubuntu:ubuntu admin.conf"
 
-    mkdir -p "${INTEGTEST_DIR}/.kube"
-    scp -i "${INTEGTEST_DIR}/.ssh/id_rsa" \
+    mkdir -p "${INTEGTEST_TMP_DIR}/.kube"
+    scp -i "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" \
            "ubuntu@${EXOSCALE_MASTER_IP}:/home/ubuntu/admin.conf" \
-           "${INTEGTEST_DIR}/.kube/config"
+           "${INTEGTEST_TMP_DIR}/.kube/config"
 
-    export KUBECONFIG="${INTEGTEST_DIR}/.kube/config"
+    export KUBECONFIG="${INTEGTEST_TMP_DIR}/.kube/config"
 
     kubectl create --filename https://docs.projectcalico.org/manifests/tigera-operator.yaml
     kubectl create --filename https://docs.projectcalico.org/manifests/custom-resources.yaml
@@ -100,7 +97,7 @@ instancepool_join_k8s() {
     KUBE_TOKEN=$(remote_run "$EXOSCALE_MASTER_IP" "sudo kubeadm token create")
     export KUBE_TOKEN
 
-    envsubst < "${INTEGTEST_DIR}/manifests/node-join-cloud-init.yaml" > "${INTEGTEST_DIR}/node-join-cloud-init.yml"
+    envsubst < "${INTEGTEST_DIR}/manifests/node-join-cloud-init.yaml" > "${INTEGTEST_TMP_DIR}/node-join-cloud-init.yml"
     EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "${EXOSCALE_INSTANCEPOOL_NAME}" \
                         --keypair "${EXOSCALE_SSHKEY_NAME}" \
                         --template ci-k8s-node-1.18.3 \
@@ -109,7 +106,7 @@ instancepool_join_k8s() {
                         --security-group k8s \
                         --service-offering medium \
                         --zone de-fra-1 \
-                        --cloud-init "${INTEGTEST_DIR}/node-join-cloud-init.yml" \
+                        --cloud-init "${INTEGTEST_TMP_DIR}/node-join-cloud-init.yml" \
                         --output-template "{{.ID}}" | tail -n 1)
     export EXOSCALE_INSTANCEPOOL_ID
 
@@ -128,15 +125,15 @@ deploy_nginx_app() {
 }
 
 create_external_loadbalancer() {
-    envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_DIR}/create-nlb.yml"
-    kubectl create --filename "${INTEGTEST_DIR}/create-nlb.yml"
+    envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_TMP_DIR}/create-nlb.yml"
+    kubectl create --filename "${INTEGTEST_TMP_DIR}/create-nlb.yml"
 
     until_success "exo nlb show \"${EXOSCALE_LB_NAME}\" --zone de-fra-1"
     until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME1}\" --zone de-fra-1"
     sleep 10
 
-    envsubst < "${INTEGTEST_DIR}/manifests/add-nlb-service.yaml" > "${INTEGTEST_DIR}/add-nlb-service.yml"
-    kubectl create --filename "${INTEGTEST_DIR}/add-nlb-service.yml"
+    envsubst < "${INTEGTEST_DIR}/manifests/add-nlb-service.yaml" > "${INTEGTEST_TMP_DIR}/add-nlb-service.yml"
+    kubectl create --filename "${INTEGTEST_TMP_DIR}/add-nlb-service.yml"
 
     until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME2}\" --zone de-fra-1"
     sleep 10
