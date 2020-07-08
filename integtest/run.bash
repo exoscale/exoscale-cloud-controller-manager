@@ -31,14 +31,14 @@ cleanup() {
     rm -rf "${INTEGTEST_DIR}/node-join-cloud-init.yml"
     exo --quiet vm delete --force "$EXOSCALE_MASTER_NAME"
     exo --quiet nlb delete --force "$EXOSCALE_LB_NAME" -z de-fra-1 &>/dev/null || true
-    until_success "exo --quiet instancepool delete --force \"${EXOSCALE_INSTANCEPOOL_NAME}\" -z de-fra-1"
+    until_success "exo --quiet instancepool delete --force \"${EXOSCALE_INSTANCEPOOL_NAME}\" -z de-fra-1" || true
     until_success "exo --quiet sshkey delete --force \"$EXOSCALE_SSHKEY_NAME\""
 }
 trap cleanup EXIT
 
 until_success() {
     declare command="$1"
-    timeout 3m bash -c "until $command &>/dev/null; do sleep 5; done"
+    timeout 1m bash -c "until $command &>/dev/null; do sleep 5; done"
 }
 
 remote_run() {
@@ -82,8 +82,8 @@ initialize_k8s_master() {
 
     export KUBECONFIG="${INTEGTEST_DIR}/.kube/config"
 
-    kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
-    kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+    kubectl create --filename https://docs.projectcalico.org/manifests/tigera-operator.yaml
+    kubectl create --filename https://docs.projectcalico.org/manifests/custom-resources.yaml
 
     kubectl wait "node/${EXOSCALE_MASTER_NAME}" --for=condition=Ready --timeout=180s
 }
@@ -92,9 +92,9 @@ deploy_exoscale_ccm() {
     remote_run "$EXOSCALE_MASTER_IP" "git tag ci-dev && make docker"
 
     "${INCLUDE_PATH}/docs/scripts/generate-secret.sh"
-    kubectl apply -f "${INTEGTEST_DIR}/manifests/deployment.yml"
+    kubectl apply --filename "${INTEGTEST_DIR}/manifests/deployment.yml"
 
-    kubectl wait -n kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=available --timeout=180s
+    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=available --timeout=180s
 }
 
 instancepool_join_k8s() {
@@ -123,21 +123,21 @@ instancepool_join_k8s() {
 }
 
 deploy_nginx_app() {
-    kubectl apply -f "${INTEGTEST_DIR}/manifests/app.yml"
+    kubectl apply --filename "${INTEGTEST_DIR}/manifests/app.yml"
 
     kubectl wait deployment.apps/nginx --for=condition=Available --timeout=180s
 }
 
 create_external_loadbalancer() {
     envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_DIR}/create-nlb.yml"
-    kubectl create -f "${INTEGTEST_DIR}/create-nlb.yml"
+    kubectl create --filename "${INTEGTEST_DIR}/create-nlb.yml"
 
     until_success "exo nlb show \"${EXOSCALE_LB_NAME}\" --zone de-fra-1"
     until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME1}\" --zone de-fra-1"
     sleep 10
 
     envsubst < "${INTEGTEST_DIR}/manifests/add-nlb-service.yaml" > "${INTEGTEST_DIR}/add-nlb-service.yml"
-    kubectl create -f "${INTEGTEST_DIR}/add-nlb-service.yml"
+    kubectl create --filename "${INTEGTEST_DIR}/add-nlb-service.yml"
 
     until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME2}\" --zone de-fra-1"
     sleep 10
