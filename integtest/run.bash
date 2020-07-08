@@ -38,7 +38,7 @@ trap cleanup EXIT
 
 until_success() {
     declare command="$1"
-    timeout 1m bash -c "until $command &>/dev/null; do sleep 5; done"
+    timeout 2m bash -c "until $command &>/dev/null; do sleep 5; done"
 }
 
 remote_run() {
