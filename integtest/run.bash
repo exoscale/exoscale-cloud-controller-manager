@@ -82,7 +82,8 @@ initialize_k8s_master() {
 
     export KUBECONFIG="${INTEGTEST_DIR}/.kube/config"
 
-    kubectl apply -f https://docs.projectcalico.org/v3.14/manifests/calico.yaml
+    kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+    kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
 
     kubectl wait "node/${EXOSCALE_MASTER_NAME}" --for=condition=Ready --timeout=180s
 }
@@ -102,17 +103,19 @@ instancepool_join_k8s() {
 
     envsubst < "${INTEGTEST_DIR}/manifests/node-join-cloud-init.yaml" > "${INTEGTEST_DIR}/node-join-cloud-init.yml"
     EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "${EXOSCALE_INSTANCEPOOL_NAME}" \
-                        -k "${EXOSCALE_SSHKEY_NAME}" \
-                        -t ci-k8s-node-1.18.3 \
+                        --keypair "${EXOSCALE_SSHKEY_NAME}" \
+                        --template ci-k8s-node-1.18.3 \
                         --template-filter mine \
                         --size 1 \
-                        -s k8s \
-                        -o medium \
-                        -z de-fra-1 \
-                        -c "${INTEGTEST_DIR}/node-join-cloud-init.yml" --output-template "{{.ID}}" | tail -n 1)
+                        --security-group k8s \
+                        --service-offering medium \
+                        --zone de-fra-1 \
+                        --cloud-init "${INTEGTEST_DIR}/node-join-cloud-init.yml" \
+                        --output-template "{{.ID}}" | tail -n 1)
     export EXOSCALE_INSTANCEPOOL_ID
 
-    EXOSCALE_NODE_NAME=$(exo instancepool show "${EXOSCALE_INSTANCEPOOL_ID}" -z de-fra-1 -O json | jq -r '.instances[0]')
+    EXOSCALE_NODE_NAME=$(exo instancepool show "${EXOSCALE_INSTANCEPOOL_ID}" \
+                --zone de-fra-1 --output-format json | jq -r '.instances[0]')
     export EXOSCALE_NODE_NAME
 
     until_success "kubectl get node \"${EXOSCALE_NODE_NAME}\""
@@ -129,14 +132,14 @@ create_external_loadbalancer() {
     envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_DIR}/create-nlb.yml"
     kubectl create -f "${INTEGTEST_DIR}/create-nlb.yml"
 
-    until_success "exo nlb show \"${EXOSCALE_LB_NAME}\" -z de-fra-1"
-    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME1}\" -z de-fra-1"
+    until_success "exo nlb show \"${EXOSCALE_LB_NAME}\" --zone de-fra-1"
+    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME1}\" --zone de-fra-1"
     sleep 10
 
     envsubst < "${INTEGTEST_DIR}/manifests/add-nlb-service.yaml" > "${INTEGTEST_DIR}/add-nlb-service.yml"
     kubectl create -f "${INTEGTEST_DIR}/add-nlb-service.yml"
 
-    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME2}\" -z de-fra-1"
+    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME2}\" --zone de-fra-1"
     sleep 10
 }
 

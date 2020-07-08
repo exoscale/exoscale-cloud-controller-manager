@@ -1,9 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
+set -u
+# set -x
 
 nlb_service_assert_equal() {
-    VALUE=$(exo nlb service show "$EXOSCALE_LB_NAME" "$1" -z de-fra-1 --output-template "{{$2}}")
+    VALUE=$(exo nlb service show "$EXOSCALE_LB_NAME" "$1" --zone de-fra-1 --output-template "{{$2}}")
     EXPECTED="$3"
     if [ "$VALUE" != "$EXPECTED" ]
     then

@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
+set -u
+# set -x
 
 k8s_assert_equal() {
     VALUE=$(kubectl get node "$1" -o=jsonpath="{.metadata.labels.$2}")
