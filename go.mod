@@ -1,6 +1,6 @@
 module github.com/exoscale/exoscale-cloud-controller-manager
 
-go 1.13
+go 1.14
 
 require (
 	github.com/deepmap/oapi-codegen v1.3.8 // indirect
