@@ -59,7 +59,7 @@ The Exoscale CCM will create an Exoscale NLB instance containing a service forwa
 
 ### Annotations 
 
-In addition of the standard Kubernetes [`Service`][k8s-service-spec] object specifications, the behavior of the Exoscale CCM's service node is configurable by adding annotations in the Kubernetes `Service` object's `annotations` map. The following annotations are supported (annotations marked by a __*__ are required):
+In addition to the standard Kubernetes [`Service`][k8s-service-spec] object specifications, the behavior of the Exoscale CCM service node is configurable by adding annotations in the Kubernetes `Service` object's `annotations` map. The following annotations are supported (annotations marked by a __*__ are required):
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-zone`*
@@ -267,7 +267,7 @@ k8s-svc-nginx-https
 
 ## ⚠️ Important Notes
 
-* Currently the Exoscale CCM doesn't support UDP service load balancing due to a [technical limitation in Kubernetes][k8s-issue-no-proto-mix].
+* Currently, the Exoscale CCM doesn't support UDP service load balancing due to a [technical limitation in Kubernetes][k8s-issue-no-proto-mix].
 * As `NodePort` created by k8s *Services* are picked randomly [within a defined range][k8s-service-nodeport] (by default `30000-32767`), don't forget to configure [Security Groups][exo-sg] used by your Compute Instance Pools to accept ingress traffic in this range, otherwise the Exoscale Network Load Balancers won't be able to forward traffic to your *Pods*.
 
 

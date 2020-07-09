@@ -34,7 +34,7 @@ In order to interact with the Exoscale API, the Exoscale CCM must be configured 
 
 We provide a convenience script that generates and applies a k8s manifest declaring Exoscale API credentials as a k8s *Secret* in your cluster from your local shell environment variables: once created, this *Secret* can be used in the CCM *Deployment*.
 
-First, start by exporting the Exoscale API credentials[^We recommend that you create dedicated API credentials using the [Exoscale IAM][exo-iam] service.] to provide to the CCM in your shell:
+First, start by exporting the Exoscale API credentials (we recommend that you create dedicated API credentials using the [Exoscale IAM][exo-iam] service) to provide to the CCM in your shell:
 
 ```Shell
 export EXOSCALE_API_KEY="EXOxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -50,7 +50,7 @@ Next, run the following command from the same shell:
 Finally, ensure that the `exoscale-secret` *Secret* has been created successfully by running the following command:
 
 ```
-kubectl get secret -n kube-system exoscale-credentials
+kubectl get secret --namespace kube-system exoscale-credentials
 ```
 
 
@@ -68,8 +68,8 @@ To ensure the CCM deployment is successful, run the following command and check 
 
 ```
 kubectl get pods \
-    -n kube-system \
-    -l app=exoscale-cloud-controller-manager
+    --namespace kube-system \
+    --selector app=exoscale-cloud-controller-manager
 ```
 
 
