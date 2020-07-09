@@ -13,9 +13,7 @@ var (
 	version string
 	commit  string
 
-	versionString = fmt.Sprintf(
-		"%s/%s", version, commit,
-	)
+	versionString = fmt.Sprintf("%s/%s", version, commit)
 )
 
 const (
@@ -39,7 +37,7 @@ func init() {
 func newExoscaleCloud() (cloudprovider.Interface, error) {
 	client, err := newExoscaleClient()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create Exoscale client: %v", err)
+		return nil, fmt.Errorf("could not create Exoscale client: %v", err)
 	}
 
 	provider := &cloudProvider{

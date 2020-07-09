@@ -1,0 +1,48 @@
+builds:
+- id: exoscale-cloud-controller-manager
+  binary: exoscale-cloud-controller-manager
+  main: ./cmd/exoscale-cloud-controller-manager
+  env:
+  - CGO_ENABLED=0
+  - GO_PKG=github.com/exoscale/exoscale-cloud-controller-manager
+  flags:
+  - -mod=vendor
+  ldflags:
+  - -s -w -X {{.Env.GO_PKG}}/exoscale.version={{.Version}} -X {{.Env.GO_PKG}}/exoscale.commit={{.ShortCommit}}
+  goos:
+  - linux
+  goarch:
+  - amd64
+
+dockers:
+- builds: [exoscale-cloud-controller-manager]
+  goos: linux
+  goarch: amd64
+  image_templates:
+  - "exoscale/cloud-controller-manager:latest"
+  - "exoscale/cloud-controller-manager:{{ .Major }}"
+  - "exoscale/cloud-controller-manager:{{ .Major }}.{{ .Minor }}"
+  - "exoscale/cloud-controller-manager:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+  dockerfile: Dockerfile.goreleaser
+  build_flag_templates:
+  - --pull
+  - --build-arg="VERSION={{.Version}}"
+  - --build-arg="VCS_REF={{.FullCommit}}"
+  - --build-arg="BUILD_DATE={{.Date}}"
+  skip_push: auto
+
+signs:
+- cmd: gpg
+  args: ["-u", "ops@exoscale.ch", "--detach-sign", "${artifact}"]
+  artifacts: all
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-snapshot"
+
+release:
+  github:
+    owner: exoscale
+    name: exoscale-cloud-controller-manager
