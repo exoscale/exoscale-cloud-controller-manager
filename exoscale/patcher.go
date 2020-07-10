@@ -1,23 +1,27 @@
 package exoscale
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 )
 
 type kubeServicePatcher struct {
+	ctx      context.Context
 	kclient  kubernetes.Interface
 	current  *v1.Service
 	modified *v1.Service
 }
 
-func newServicePatcher(kclient kubernetes.Interface, service *v1.Service) kubeServicePatcher {
+func newServicePatcher(ctx context.Context, kclient kubernetes.Interface, service *v1.Service) kubeServicePatcher {
 	return kubeServicePatcher{
+		ctx:      ctx,
 		kclient:  kclient,
 		current:  service.DeepCopy(),
 		modified: service,
@@ -46,7 +50,7 @@ func (ksp *kubeServicePatcher) Patch() error {
 		return nil
 	}
 
-	_, err = ksp.kclient.CoreV1().Services(ksp.current.Namespace).Patch(ksp.current.Name, types.StrategicMergePatchType, patch, "")
+	_, err = ksp.kclient.CoreV1().Services(ksp.current.Namespace).Patch(ksp.ctx, ksp.current.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to patch service object %s/%s: %s", ksp.current.Namespace, ksp.current.Name, err)
 	}
