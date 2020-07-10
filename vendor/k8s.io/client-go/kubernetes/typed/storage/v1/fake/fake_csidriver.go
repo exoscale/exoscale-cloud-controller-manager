@@ -21,7 +21,7 @@ package fake
 import (
 	"context"
 
-	v1beta1 "k8s.io/api/storage/v1beta1"
+	storagev1 "k8s.io/api/storage/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,27 +32,27 @@ import (
 
 // FakeCSIDrivers implements CSIDriverInterface
 type FakeCSIDrivers struct {
-	Fake *FakeStorageV1beta1
+	Fake *FakeStorageV1
 }
 
-var csidriversResource = schema.GroupVersionResource{Group: "storage.k8s.io", Version: "v1beta1", Resource: "csidrivers"}
+var csidriversResource = schema.GroupVersionResource{Group: "storage.k8s.io", Version: "v1", Resource: "csidrivers"}
 
-var csidriversKind = schema.GroupVersionKind{Group: "storage.k8s.io", Version: "v1beta1", Kind: "CSIDriver"}
+var csidriversKind = schema.GroupVersionKind{Group: "storage.k8s.io", Version: "v1", Kind: "CSIDriver"}
 
 // Get takes name of the cSIDriver, and returns the corresponding cSIDriver object, and an error if there is any.
-func (c *FakeCSIDrivers) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.CSIDriver, err error) {
+func (c *FakeCSIDrivers) Get(ctx context.Context, name string, options v1.GetOptions) (result *storagev1.CSIDriver, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(csidriversResource, name), &v1beta1.CSIDriver{})
+		Invokes(testing.NewRootGetAction(csidriversResource, name), &storagev1.CSIDriver{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1beta1.CSIDriver), err
+	return obj.(*storagev1.CSIDriver), err
 }
 
 // List takes label and field selectors, and returns the list of CSIDrivers that match those selectors.
-func (c *FakeCSIDrivers) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.CSIDriverList, err error) {
+func (c *FakeCSIDrivers) List(ctx context.Context, opts v1.ListOptions) (result *storagev1.CSIDriverList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(csidriversResource, csidriversKind, opts), &v1beta1.CSIDriverList{})
+		Invokes(testing.NewRootListAction(csidriversResource, csidriversKind, opts), &storagev1.CSIDriverList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -61,8 +61,8 @@ func (c *FakeCSIDrivers) List(ctx context.Context, opts v1.ListOptions) (result 
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1beta1.CSIDriverList{ListMeta: obj.(*v1beta1.CSIDriverList).ListMeta}
-	for _, item := range obj.(*v1beta1.CSIDriverList).Items {
+	list := &storagev1.CSIDriverList{ListMeta: obj.(*storagev1.CSIDriverList).ListMeta}
+	for _, item := range obj.(*storagev1.CSIDriverList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -77,29 +77,29 @@ func (c *FakeCSIDrivers) Watch(ctx context.Context, opts v1.ListOptions) (watch.
 }
 
 // Create takes the representation of a cSIDriver and creates it.  Returns the server's representation of the cSIDriver, and an error, if there is any.
-func (c *FakeCSIDrivers) Create(ctx context.Context, cSIDriver *v1beta1.CSIDriver, opts v1.CreateOptions) (result *v1beta1.CSIDriver, err error) {
+func (c *FakeCSIDrivers) Create(ctx context.Context, cSIDriver *storagev1.CSIDriver, opts v1.CreateOptions) (result *storagev1.CSIDriver, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(csidriversResource, cSIDriver), &v1beta1.CSIDriver{})
+		Invokes(testing.NewRootCreateAction(csidriversResource, cSIDriver), &storagev1.CSIDriver{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1beta1.CSIDriver), err
+	return obj.(*storagev1.CSIDriver), err
 }
 
 // Update takes the representation of a cSIDriver and updates it. Returns the server's representation of the cSIDriver, and an error, if there is any.
-func (c *FakeCSIDrivers) Update(ctx context.Context, cSIDriver *v1beta1.CSIDriver, opts v1.UpdateOptions) (result *v1beta1.CSIDriver, err error) {
+func (c *FakeCSIDrivers) Update(ctx context.Context, cSIDriver *storagev1.CSIDriver, opts v1.UpdateOptions) (result *storagev1.CSIDriver, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(csidriversResource, cSIDriver), &v1beta1.CSIDriver{})
+		Invokes(testing.NewRootUpdateAction(csidriversResource, cSIDriver), &storagev1.CSIDriver{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1beta1.CSIDriver), err
+	return obj.(*storagev1.CSIDriver), err
 }
 
 // Delete takes name of the cSIDriver and deletes it. Returns an error if one occurs.
 func (c *FakeCSIDrivers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(csidriversResource, name), &v1beta1.CSIDriver{})
+		Invokes(testing.NewRootDeleteAction(csidriversResource, name), &storagev1.CSIDriver{})
 	return err
 }
 
@@ -107,16 +107,16 @@ func (c *FakeCSIDrivers) Delete(ctx context.Context, name string, opts v1.Delete
 func (c *FakeCSIDrivers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(csidriversResource, listOpts)
 
-	_, err := c.Fake.Invokes(action, &v1beta1.CSIDriverList{})
+	_, err := c.Fake.Invokes(action, &storagev1.CSIDriverList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched cSIDriver.
-func (c *FakeCSIDrivers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.CSIDriver, err error) {
+func (c *FakeCSIDrivers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *storagev1.CSIDriver, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(csidriversResource, name, pt, data, subresources...), &v1beta1.CSIDriver{})
+		Invokes(testing.NewRootPatchSubresourceAction(csidriversResource, name, pt, data, subresources...), &storagev1.CSIDriver{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1beta1.CSIDriver), err
+	return obj.(*storagev1.CSIDriver), err
 }

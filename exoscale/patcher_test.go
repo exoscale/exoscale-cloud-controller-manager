@@ -1,6 +1,7 @@
 package exoscale
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -23,10 +24,11 @@ func newFakeService() *v1.Service {
 }
 
 func TestNewServicePatcher(t *testing.T) {
+	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
 
 	service := newFakeService()
-	patcher := newServicePatcher(clientset, service)
+	patcher := newServicePatcher(ctx, clientset, service)
 
 	if !reflect.DeepEqual(patcher.current, patcher.modified) {
 		t.Errorf("patcher.current and patcher.modified must be equal")
@@ -40,21 +42,22 @@ func TestNewServicePatcher(t *testing.T) {
 }
 
 func TestPatch(t *testing.T) {
+	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
 
 	service := newFakeService()
-	serviceAdded, err := clientset.CoreV1().Services(metav1.NamespaceDefault).Create(service)
+	serviceAdded, err := clientset.CoreV1().Services(metav1.NamespaceDefault).Create(ctx, service, metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	svcID := serviceAdded.ObjectMeta.Annotations[annotationLoadBalancerID]
 	require.Empty(t, svcID)
 
-	patcher := newServicePatcher(clientset, service)
+	patcher := newServicePatcher(ctx, clientset, service)
 	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testServiceID
 	err = patcher.Patch()
 	require.NoError(t, err)
 
-	serviceFinal, err := clientset.CoreV1().Services(metav1.NamespaceDefault).Get(service.Name, metav1.GetOptions{})
+	serviceFinal, err := clientset.CoreV1().Services(metav1.NamespaceDefault).Get(ctx, service.Name, metav1.GetOptions{})
 	require.NoError(t, err)
 
 	svcID = serviceFinal.ObjectMeta.Annotations[annotationLoadBalancerID]
