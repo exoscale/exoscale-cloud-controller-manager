@@ -104,7 +104,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 			return nil, err
 		}
 
-		if err := l.patchLoadBalancerAnnotations(service, lb); err != nil {
+		if err := l.patchLoadBalancerAnnotations(ctx, service, lb); err != nil {
 			return nil, err
 		}
 
@@ -125,7 +125,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 			return nil, err
 		}
 
-		if err := l.patchLoadBalancerServiceAnnotations(service, lbService); err != nil {
+		if err := l.patchLoadBalancerServiceAnnotations(ctx, service, lbService); err != nil {
 			return nil, err
 		}
 
@@ -234,7 +234,7 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 		return nil, errLoadBalancerNotFound
 	}
 
-	if err := l.patchLoadBalancerAnnotations(service, loadbalancer); err != nil {
+	if err := l.patchLoadBalancerAnnotations(ctx, service, loadbalancer); err != nil {
 		return nil, err
 	}
 
@@ -258,8 +258,8 @@ func (l *loadBalancer) fetchLoadBalancerService(lb *egoscale.NetworkLoadBalancer
 	return nil, errLoadBalancerServiceNotFound
 }
 
-func (l *loadBalancer) patchLoadBalancerAnnotations(service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
-	patcher := newServicePatcher(l.p.kclient, service)
+func (l *loadBalancer) patchLoadBalancerAnnotations(ctx context.Context, service *v1.Service, lb *egoscale.NetworkLoadBalancer) error {
+	patcher := newServicePatcher(ctx, l.p.kclient, service)
 
 	if service.ObjectMeta.Annotations == nil {
 		service.ObjectMeta.Annotations = map[string]string{}
@@ -269,8 +269,8 @@ func (l *loadBalancer) patchLoadBalancerAnnotations(service *v1.Service, lb *ego
 	return patcher.Patch()
 }
 
-func (l *loadBalancer) patchLoadBalancerServiceAnnotations(service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
-	patcher := newServicePatcher(l.p.kclient, service)
+func (l *loadBalancer) patchLoadBalancerServiceAnnotations(ctx context.Context, service *v1.Service, lbService *egoscale.NetworkLoadBalancerService) error {
+	patcher := newServicePatcher(ctx, l.p.kclient, service)
 
 	if service.ObjectMeta.Annotations == nil {
 		service.ObjectMeta.Annotations = map[string]string{}
