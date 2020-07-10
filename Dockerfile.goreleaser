@@ -1,0 +1,22 @@
+# This Dockerfile variant is for usage with GoReleaser, which reuses the binaries
+# compiled in configured builds instead of re-compiling it in a container.
+
+FROM alpine:3.12 as ca-certificates
+RUN apk update && apk add --no-cache ca-certificates && update-ca-certificates
+COPY exoscale-cloud-controller-manager /
+
+FROM scratch
+ARG VERSION
+ARG VCS_REF
+ARG BUILD_DATE
+LABEL org.label-schema.build-date=${BUILD_DATE} \
+      org.label-schema.vcs-ref=${VCS_REF} \
+      org.label-schema.vcs-url="https://github.com/exoscale/exoscale-cloud-controller-manager" \
+      org.label-schema.version=${VERSION} \
+      org.label-schema.name="exoscale-cloud-controller-manager" \
+      org.label-schema.vendor="Exoscale" \
+      org.label-schema.description="Exoscale Cloud Controller Manager" \
+      org.label-schema.schema-version="1.0"
+COPY --from=ca-certificates /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=ca-certificates /exoscale-cloud-controller-manager /
+ENTRYPOINT ["/exoscale-cloud-controller-manager"]

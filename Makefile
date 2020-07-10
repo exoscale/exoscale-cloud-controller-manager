@@ -1,13 +1,9 @@
 include go.mk/init.mk
+include go.mk/public.mk
 
-VERSION := $(shell git describe --tags --always 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo 0)
-export VERSION
+PROJECT_URL = https://github.com/exoscale/exoscale-cloud-controller-manager
 
 GO_MAIN_PKG_PATH := "./cmd/exoscale-cloud-controller-manager"
-
-.PHONY: version
-version:
-	@echo $(VERSION)
 
 .PHONY: docker
 docker:
@@ -19,12 +15,10 @@ docker:
 		.
 	docker tag exoscale/cloud-controller-manager:latest exoscale/cloud-controller-manager:${VERSION}
 
+.PHONY: docker-push
 docker-push:
 	docker push exoscale/cloud-controller-manager:latest && docker push exoscale/cloud-controller-manager:${VERSION}
 
-INCLUDE_PATH := $(PWD)
-export INCLUDE_PATH
-
 .PHONY: integtest
 integtest:
-	@$(INCLUDE_PATH)/integtest/run.bash
+	@INCLUDE_PATH=$(PWD) ./integtest/run.bash
