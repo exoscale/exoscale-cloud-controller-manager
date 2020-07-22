@@ -27,7 +27,7 @@ dockers:
   build_flag_templates:
   - --pull
   - --build-arg="VERSION={{.Version}}"
-  - --build-arg="VCS_REF={{.FullCommit}}"
+  - --build-arg="VCS_REF={{.ShortCommit}}"
   - --build-arg="BUILD_DATE={{.Date}}"
   skip_push: auto
 
