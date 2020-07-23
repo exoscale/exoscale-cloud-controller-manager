@@ -22,7 +22,6 @@ const (
 	annotationLoadBalancerServiceID                  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
 	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
 	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
-	annotationLoadBalancerServiceInstancePoolID      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
 	annotationLoadBalancerServiceHealthCheckMode     = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
 	annotationLoadBalancerServiceHealthCheckURI      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
@@ -77,7 +76,7 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service 
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, _ []*v1.Node) (*v1.LoadBalancerStatus, error) {
+func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	var lb *egoscale.NetworkLoadBalancer
 
 	zone, err := getLoadBalancerZone(service)
@@ -88,6 +87,22 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	lbDef, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return nil, err
+	}
+
+	// Inferring the Instance Pool ID from the cluster Nodes that run the service.
+	// All Nodes are expected to be members of the same Instance Pool, so we only need to look the first one up.
+	for _, node := range nodes {
+		instance, err := l.fetchComputeInstanceFromNode(ctx, node)
+		if err != nil {
+			return nil, err
+		}
+
+		if instance.Manager != "instancepool" {
+			return nil, fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
+		}
+
+		lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
+		break // nolint:staticcheck
 	}
 
 	_, err = l.fetchLoadBalancer(ctx, service, zone)
@@ -140,7 +155,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service *v1.Service, _ []*v1.Node) error {
+func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) error {
 	zone, err := getLoadBalancerZone(service)
 	if err != nil {
 		return err
@@ -149,6 +164,22 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 	lbDef, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return err
+	}
+
+	// Inferring the Instance Pool ID from the cluster Nodes that run the service.
+	// All Nodes are expected to be members of the same Instance Pool, so we only need to look the first one up.
+	for _, node := range nodes {
+		instance, err := l.fetchComputeInstanceFromNode(ctx, node)
+		if err != nil {
+			return err
+		}
+
+		if instance.Manager != "instancepool" {
+			return fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
+		}
+
+		lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
+		break // nolint:staticcheck
 	}
 
 	lb, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, lbDef)
@@ -281,11 +312,6 @@ func (l *loadBalancer) patchLoadBalancerServiceAnnotations(ctx context.Context, 
 }
 
 func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	instancepoolID := getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "")
-	if instancepoolID == "" {
-		return nil, fmt.Errorf("annotation %s is missing", annotationLoadBalancerServiceInstancePoolID)
-	}
-
 	serviceProtocol, err := getLoadBalancerServiceProtocol(service)
 	if err != nil {
 		return nil, err
@@ -320,12 +346,11 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 			ID: getAnnotation(service, annotationLoadBalancerServiceID, ""),
 			Name: getAnnotation(service, annotationLoadBalancerServiceName,
 				fmt.Sprintf("%s-%d", service.UID, servicePort)),
-			Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, ""),
-			InstancePoolID: instancepoolID,
-			Protocol:       serviceProtocol,
-			Port:           uint16(servicePort),
-			TargetPort:     uint16(serviceTargetPort),
-			Strategy:       getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
+			Description: getAnnotation(service, annotationLoadBalancerServiceDescription, ""),
+			Protocol:    serviceProtocol,
+			Port:        uint16(servicePort),
+			TargetPort:  uint16(serviceTargetPort),
+			Strategy:    getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
 			Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
 				Mode:     getAnnotation(service, annotationLoadBalancerServiceHealthCheckMode, "tcp"),
 				Port:     uint16(hcPort),
@@ -427,4 +452,16 @@ func getLoadBalancerServiceProtocol(service *v1.Service) (string, error) {
 	}
 
 	return strings.ToLower(string(protocol)), nil
+}
+
+// fetchComputeInstanceFromNode retrieves the Exoscale Compute instance underlying a cluster Node.
+func (l *loadBalancer) fetchComputeInstanceFromNode(ctx context.Context, node *v1.Node) (*egoscale.VirtualMachine, error) {
+	resp, err := l.p.client.GetWithContext(ctx, &egoscale.ListVirtualMachines{
+		ID: egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving Compute instance information: %s", err)
+	}
+
+	return resp.(*egoscale.VirtualMachine), nil
 }

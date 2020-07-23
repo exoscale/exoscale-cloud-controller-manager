@@ -8,7 +8,6 @@ metadata:
     service.beta.kubernetes.io/exoscale-loadbalancer-description: "This load balancer exposes Kubernetes Services"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "k8s-svc-nginx"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-description: "This service exposes a demo Nginx web server page"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy: "round-robin"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode: "http"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri: "/"
