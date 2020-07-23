@@ -16,6 +16,7 @@ jobs:
         args: --timeout 2m
     - name: Run tests
       run: make test-verbose
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +25,7 @@ jobs:
       run: git submodule update --init --recursive go.mk
     - name: Build
       run: make build
+
   docker-build:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +34,7 @@ jobs:
       run: git submodule update --init --recursive go.mk
     - name: Build Docker image
       run: make docker
+
   integration-test:
     runs-on: ubuntu-latest
     needs: docker-build
@@ -45,7 +48,7 @@ jobs:
       id: install
     - name: Install Exoscale CLI
       run: |
-        wget -O cli.deb https://github.com/exoscale/cli/releases/download/v1.14.0/exoscale-cli_1.14.0_linux_amd64.deb
+        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/v1.14.0/exoscale-cli_1.14.0_linux_amd64.deb
         sudo dpkg -i cli.deb
 
         echo "::set-env name=EXOSCALE_API_KEY::${{ secrets.EXOSCALE_API_KEY }}"
