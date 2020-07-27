@@ -23,6 +23,12 @@ func newFakeService() *v1.Service {
 	}
 }
 
+// newFakeService takes a service and returns a copy of the service called "current"
+// and a pointer to the service called "modified".
+// TestNewServicePatcher test firstly when the Service was not modified
+// if the current service and the modified service are equal.
+// And secondly when the Service was modified
+// if the current service and the modified service are unequal.
 func TestNewServicePatcher(t *testing.T) {
 	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
