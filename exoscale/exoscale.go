@@ -25,7 +25,7 @@ type cloudProvider struct {
 	instances    cloudprovider.Instances
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
-	kclient      *kubernetes.Clientset
+	kclient      kubernetes.Interface
 }
 
 func init() {
