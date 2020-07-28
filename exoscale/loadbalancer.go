@@ -22,6 +22,7 @@ const (
 	annotationLoadBalancerServiceID                  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-id"
 	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
 	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
+	annotationLoadBalancerServiceInstancePoolID      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
 	annotationLoadBalancerServiceHealthCheckMode     = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
 	annotationLoadBalancerServiceHealthCheckURI      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
@@ -89,20 +90,28 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 		return nil, err
 	}
 
-	// Inferring the Instance Pool ID from the cluster Nodes that run the service.
+	// Inferring the Instance Pool ID from the cluster Nodes that run the service in case no Instance Pool has
+	// been specified in the annotations.
+	//
+	// IMPORTANT: this use case is not compatible with services referencing pods using node selectors
+	// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
+	// The list of nodes passed as argument to this method contains *ALL* the nodes in the cluster, not only the
+	// ones that actually host the containers targeted by the Service.
 	// All Nodes are expected to be members of the same Instance Pool, so we only need to look the first one up.
-	for _, node := range nodes {
-		instance, err := l.fetchComputeInstanceFromNode(ctx, node)
-		if err != nil {
-			return nil, err
-		}
+	if lbDef.Services[0].InstancePoolID == "" {
+		for _, node := range nodes {
+			instance, err := l.fetchComputeInstanceFromNode(ctx, node)
+			if err != nil {
+				return nil, err
+			}
 
-		if instance.Manager != "instancepool" {
-			return nil, fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
-		}
+			if instance.Manager != "instancepool" {
+				return nil, fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
+			}
 
-		lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
-		break // nolint:staticcheck
+			lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
+			break // nolint:staticcheck
+		}
 	}
 
 	_, err = l.fetchLoadBalancer(ctx, service, zone)
@@ -166,20 +175,28 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 		return err
 	}
 
-	// Inferring the Instance Pool ID from the cluster Nodes that run the service.
+	// Inferring the Instance Pool ID from the cluster Nodes that run the service in case no Instance Pool has
+	// been specified in the annotations.
+	//
+	// IMPORTANT: this use case is not compatible with services referencing pods using node selectors
+	// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
+	// The list of nodes passed as argument to this method contains *ALL* the nodes in the cluster, not only the
+	// ones that actually host the containers targeted by the Service.
 	// All Nodes are expected to be members of the same Instance Pool, so we only need to look the first one up.
-	for _, node := range nodes {
-		instance, err := l.fetchComputeInstanceFromNode(ctx, node)
-		if err != nil {
-			return err
-		}
+	if lbDef.Services[0].InstancePoolID == "" {
+		for _, node := range nodes {
+			instance, err := l.fetchComputeInstanceFromNode(ctx, node)
+			if err != nil {
+				return err
+			}
 
-		if instance.Manager != "instancepool" {
-			return fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
-		}
+			if instance.Manager != "instancepool" {
+				return fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
+			}
 
-		lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
-		break // nolint:staticcheck
+			lbDef.Services[0].InstancePoolID = instance.ManagerID.String()
+			break // nolint:staticcheck
+		}
 	}
 
 	lb, err := l.p.client.UpdateNetworkLoadBalancer(ctx, zone, lbDef)
@@ -346,11 +363,12 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 			ID: getAnnotation(service, annotationLoadBalancerServiceID, ""),
 			Name: getAnnotation(service, annotationLoadBalancerServiceName,
 				fmt.Sprintf("%s-%d", service.UID, servicePort)),
-			Description: getAnnotation(service, annotationLoadBalancerServiceDescription, ""),
-			Protocol:    serviceProtocol,
-			Port:        uint16(servicePort),
-			TargetPort:  uint16(serviceTargetPort),
-			Strategy:    getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
+			Description:    getAnnotation(service, annotationLoadBalancerServiceDescription, ""),
+			InstancePoolID: getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, ""),
+			Protocol:       serviceProtocol,
+			Port:           uint16(servicePort),
+			TargetPort:     uint16(serviceTargetPort),
+			Strategy:       getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
 			Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
 				Mode:     getAnnotation(service, annotationLoadBalancerServiceHealthCheckMode, "tcp"),
 				Port:     uint16(hcPort),

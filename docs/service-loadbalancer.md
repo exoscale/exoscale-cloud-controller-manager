@@ -98,6 +98,13 @@ The name of Exoscale NLB service corresponding to the Kubernetes *Service* port.
 The description of the Exoscale NLB service corresponding to the Kubernetes *Service*.
 
 
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id`
+
+The ID of the Exoscale Instance Pool to forward ingress traffic to. Defaults to the Instance Pool ID of the cluster *Nodes* ; this information must be specified in case your *Service* is targeting *Pods* that are subject to [custom *Node* scheduling][k8s-assign-pod-node].
+
+> Notes: the Instance Pool cannot be changed after NLB service creation – the k8s Service will have to be deleted and re-created with the annotation updated.
+
+
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy`
 
 The Exoscale NLB Service strategy to use.
@@ -271,3 +278,4 @@ k8s-svc-nginx-https
 [k8s-service-kube-proxy]: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 [k8s-service-nodeport]: https://kubernetes.io/docs/concepts/services-networking/service/#nodeport
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
+[k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
