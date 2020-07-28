@@ -2,7 +2,6 @@ package exoscale
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,12 +22,8 @@ func newFakeService() *v1.Service {
 	}
 }
 
-// newFakeService takes a service and returns a copy of the service called "current"
-// and a pointer to the service called "modified".
-// TestNewServicePatcher test firstly when the Service was not modified
-// if the current service and the modified service are equal.
-// And secondly when the Service was modified
-// if the current service and the modified service are unequal.
+// TestNewServicePatcher tests that the kubeServicePatcher object returned correctly snapshots the v1.Service object
+// internally.
 func TestNewServicePatcher(t *testing.T) {
 	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
@@ -36,18 +31,14 @@ func TestNewServicePatcher(t *testing.T) {
 	service := newFakeService()
 	patcher := newServicePatcher(ctx, clientset, service)
 
-	if !reflect.DeepEqual(patcher.current, patcher.modified) {
-		t.Errorf("patcher.current and patcher.modified must be equal")
-	}
-
+	require.Equal(t, patcher.current, patcher.modified, "service values should not differ")
 	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testServiceID
-
-	if reflect.DeepEqual(patcher.current, patcher.modified) {
-		t.Errorf("patcher.current and patcher.modified must be unequal")
-	}
+	require.NotEqual(t, patcher.current, patcher.modified, "service values should differ")
 }
 
-func TestPatch(t *testing.T) {
+// TestKubeServicePatcherPatch tests that the kubeServicePatcher correctly patches the Service if annotations are
+// added internally.
+func TestKubeServicePatcherPatch(t *testing.T) {
 	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
 
