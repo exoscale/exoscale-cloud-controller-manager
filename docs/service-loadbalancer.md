@@ -25,7 +25,6 @@ metadata:
   name: nginx
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 spec:
   selector:
     app: nginx
@@ -99,11 +98,11 @@ The name of Exoscale NLB service corresponding to the Kubernetes *Service* port.
 The description of the Exoscale NLB service corresponding to the Kubernetes *Service*.
 
 
-#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id`*
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id`
 
-The ID of the Exoscale Instance Pool to forward ingress traffic to.
+The ID of the Exoscale Instance Pool to forward ingress traffic to. Defaults to the Instance Pool ID of the cluster *Nodes* ; this information must be specified in case your *Service* is targeting *Pods* that are subject to [custom *Node* scheduling][k8s-assign-pod-node].
 
-> Note: the Instance Pool cannot be changed after NLB service creation – the k8s Service will have to be deleted and re-created with the annotation updated.
+> Notes: the Instance Pool cannot be changed after NLB service creation – the k8s Service will have to be deleted and re-created with the annotation updated.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy`
@@ -220,7 +219,6 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "3a202310-0bbe-6045-52ea-82506d3b9594"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "k8s-svc-nginx-http"
 spec:
   selector:
@@ -236,7 +234,6 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "3a202310-0bbe-6045-52ea-82506d3b9594"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "k8s-svc-nginx-https"
 spec:
   selector:
@@ -281,3 +278,4 @@ k8s-svc-nginx-https
 [k8s-service-kube-proxy]: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 [k8s-service-nodeport]: https://kubernetes.io/docs/concepts/services-networking/service/#nodeport
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
+[k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
