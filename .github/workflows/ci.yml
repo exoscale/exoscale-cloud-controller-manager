@@ -48,7 +48,7 @@ jobs:
       id: install
     - name: Install Exoscale CLI
       run: |
-        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/v1.14.0/exoscale-cli_1.14.0_linux_amd64.deb
+        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/v1.15.0/exoscale-cli_1.15.0_linux_amd64.deb
         sudo dpkg -i cli.deb
 
         echo "::set-env name=EXOSCALE_API_KEY::${{ secrets.EXOSCALE_API_KEY }}"
@@ -57,4 +57,3 @@ jobs:
     - name: Integration Test
       run: |
         make integtest
-
