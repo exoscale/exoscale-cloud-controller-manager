@@ -90,6 +90,8 @@ instance.
 > Note: a CCM-managed Network Load Balancer must be located in the same zone as
 > the Kubernetes Nodes it must forward network traffic to.
 
+If this annotation is not present, the default value will be taken from the `EXOSCALE_DEFAULT_ZONE` environment variable.
+
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-id`
 
