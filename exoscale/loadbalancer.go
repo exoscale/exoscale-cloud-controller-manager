@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -393,6 +394,9 @@ func getAnnotation(service *v1.Service, annotation, defaultValue string) string 
 func getLoadBalancerZone(service *v1.Service) (string, error) {
 	zone, ok := service.Annotations[annotationLoadBalancerZone]
 	if !ok {
+		if defaultZone := os.Getenv("EXOSCALE_DEFAULT_LOADBALANCER_ZONE"); defaultZone != "" {
+			return defaultZone, nil
+		}
 		return "", errors.New("annotation " + annotationLoadBalancerZone + " is missing")
 	}
 
