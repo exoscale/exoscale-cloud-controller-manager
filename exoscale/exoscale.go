@@ -3,6 +3,7 @@ package exoscale
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/exoscale/egoscale"
 	"k8s.io/client-go/kubernetes"
@@ -26,6 +27,7 @@ type cloudProvider struct {
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
 	kclient      kubernetes.Interface
+	defaultZone  string
 }
 
 func init() {
@@ -47,6 +49,7 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 	provider.instances = newInstances(provider)
 	provider.loadBalancer = newLoadBalancer(provider)
 	provider.zones = newZones(provider)
+	provider.defaultZone = os.Getenv("EXOSCALE_DEFAULT_ZONE")
 
 	return provider, nil
 

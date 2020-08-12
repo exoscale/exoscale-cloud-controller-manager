@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -52,7 +51,7 @@ func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v1.Service) (*v1.LoadBalancerStatus, bool, error) {
-	zone, err := getLoadBalancerZone(service)
+	zone, err := l.getLoadBalancerZone(service)
 	if err != nil {
 		return nil, false, err
 	}
@@ -81,7 +80,7 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service 
 func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	var lb *egoscale.NetworkLoadBalancer
 
-	zone, err := getLoadBalancerZone(service)
+	zone, err := l.getLoadBalancerZone(service)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +165,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) error {
-	zone, err := getLoadBalancerZone(service)
+	zone, err := l.getLoadBalancerZone(service)
 	if err != nil {
 		return err
 	}
@@ -220,7 +219,7 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *v1.Service) error {
-	zone, err := getLoadBalancerZone(service)
+	zone, err := l.getLoadBalancerZone(service)
 	if err != nil {
 		return err
 	}
@@ -391,15 +390,11 @@ func getAnnotation(service *v1.Service, annotation, defaultValue string) string 
 	return v
 }
 
-func getLoadBalancerZone(service *v1.Service) (string, error) {
-	zone, ok := service.Annotations[annotationLoadBalancerZone]
-	if !ok {
-		if defaultZone := os.Getenv("EXOSCALE_DEFAULT_LOADBALANCER_ZONE"); defaultZone != "" {
-			return defaultZone, nil
-		}
-		return "", errors.New("annotation " + annotationLoadBalancerZone + " is missing")
+func (l *loadBalancer) getLoadBalancerZone(service *v1.Service) (string, error) {
+	zone := getAnnotation(service, annotationLoadBalancerZone, l.p.defaultZone)
+	if zone == "" {
+		return "", errors.New("zone not specified either in annotations or in the controller default zone configuration")
 	}
-
 	return zone, nil
 }
 
