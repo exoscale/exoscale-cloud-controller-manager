@@ -52,6 +52,7 @@ provide to the CCM in your shell:
 ```Shell
 export EXOSCALE_API_KEY="EXOxxxxxxxxxxxxxxxxxxxxxxxx"
 export EXOSCALE_API_SECRET="xxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+export EXOSCALE_DEFAULT_ZONE="ch-gva-2"
 ```
 
 Next, run the following command from the same shell:
