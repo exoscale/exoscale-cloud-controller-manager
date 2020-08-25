@@ -18,7 +18,8 @@ var (
 )
 
 const (
-	providerName string = "exoscale"
+	providerName   = "exoscale"
+	providerPrefix = "exoscale://"
 )
 
 type cloudProvider struct {

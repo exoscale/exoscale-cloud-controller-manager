@@ -59,13 +59,7 @@ func formatProviderID(providerID string) (string, error) {
 		return "", errors.New("provider ID cannot be empty")
 	}
 
-	const prefix = "exoscale://"
-
-	if !strings.HasPrefix(providerID, prefix) {
-		return "", fmt.Errorf("provider ID %q is missing prefix %q", providerID, prefix)
-	}
-
-	return strings.TrimPrefix(providerID, prefix), nil
+	return strings.TrimPrefix(providerID, providerPrefix), nil
 }
 
 func queryInstanceMetadata(key string) (string, error) {
