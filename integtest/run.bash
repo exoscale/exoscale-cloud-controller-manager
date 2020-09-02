@@ -34,7 +34,7 @@ trap cleanup EXIT
 
 until_success() {
     declare command="$1"
-    timeout 2m bash -c "until $command &>/dev/null; do sleep 5; done" --preserve-status
+    timeout 10m bash -c "until $command &>/dev/null; do sleep 5; done" --preserve-status
 }
 
 remote_run() {
@@ -90,7 +90,7 @@ deploy_exoscale_ccm() {
     "${INCLUDE_PATH}/docs/scripts/generate-secret.sh"
     kubectl apply --filename "${INTEGTEST_DIR}/manifests/deployment.yml"
 
-    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=available --timeout=600s
+    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=Available --timeout=600s
 }
 
 instancepool_join_k8s() {
