@@ -35,7 +35,7 @@ cleanup() {
 
 until_success() {
     declare command="$1"
-    timeout 10m bash -c "until $command 2>/dev/null; do sleep 5; done" --preserve-status
+    timeout 10m bash -c "until $command > /dev/null 2>&1; do sleep 5; done" --preserve-status
 }
 
 remote_run() {
