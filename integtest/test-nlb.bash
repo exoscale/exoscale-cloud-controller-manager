@@ -26,7 +26,7 @@ nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME1" ".Healthcheck.Retries" "1"
 
 EXOSCALE_LB_IP=$(kubectl get service/nginx-service -o=jsonpath="{.status.loadBalancer.ingress[*].ip}")
 
-curl -i --silent --output /dev/null "http://$EXOSCALE_LB_IP"
+curl -i --retry 10 --silent --output /dev/null "http://$EXOSCALE_LB_IP"
 
 kubectl delete service/nginx-service --timeout=600s
 
@@ -40,6 +40,6 @@ nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Healthcheck.Interval" "1
 nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Healthcheck.Timeout" "6s"
 nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Healthcheck.Retries" "2"
 
-curl -i --silent --output /dev/null "http://$EXOSCALE_LB_IP:8080"
+curl -i --retry 10 --silent --output /dev/null "http://$EXOSCALE_LB_IP:8080"
 
 kubectl delete service/nginx-service-2 --timeout=600s
