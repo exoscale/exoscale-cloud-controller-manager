@@ -28,7 +28,7 @@ EXOSCALE_LB_IP=$(kubectl get service/nginx-service -o=jsonpath="{.status.loadBal
 
 curl -i --retry 10 --silent --output /dev/null "http://$EXOSCALE_LB_IP"
 
-kubectl delete service/nginx-service --timeout=600s
+kubectl delete service/nginx-service --timeout="${KUBE_TIMEOUT}"
 
 nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Strategy" "source-hash"
 nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Protocol" "tcp"
@@ -42,4 +42,4 @@ nlb_service_assert_equal "$EXOSCALE_LB_SERVICE_NAME2" ".Healthcheck.Retries" "2"
 
 curl -i --retry 10 --silent --output /dev/null "http://$EXOSCALE_LB_IP:8080"
 
-kubectl delete service/nginx-service-2 --timeout=600s
+kubectl delete service/nginx-service-2 --timeout="${KUBE_TIMEOUT}"

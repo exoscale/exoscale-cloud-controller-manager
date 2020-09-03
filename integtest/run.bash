@@ -23,6 +23,9 @@ export EXOSCALE_LB_SERVICE_NAME1
 EXOSCALE_LB_SERVICE_NAME2=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
 export EXOSCALE_LB_SERVICE_NAME2
 
+KUBE_TIMEOUT=600s
+export KUBE_TIMEOUT
+
 trap cleanup EXIT
 
 cleanup() {
@@ -82,7 +85,7 @@ initialize_k8s_master() {
     kubectl create --filename https://docs.projectcalico.org/manifests/tigera-operator.yaml
     kubectl create --filename https://docs.projectcalico.org/manifests/custom-resources.yaml
 
-    kubectl wait "node/${EXOSCALE_MASTER_NAME}" --for=condition=Ready --timeout=600s
+    kubectl wait "node/${EXOSCALE_MASTER_NAME}" --for=condition=Ready --timeout="${KUBE_TIMEOUT}"
 }
 
 deploy_exoscale_ccm() {
@@ -91,7 +94,7 @@ deploy_exoscale_ccm() {
     "${INCLUDE_PATH}/docs/scripts/generate-secret.sh"
     kubectl apply --filename "${INTEGTEST_DIR}/manifests/deployment.yml"
 
-    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=Available --timeout=600s
+    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=Available --timeout="${KUBE_TIMEOUT}"
 }
 
 instancepool_join_k8s() {
@@ -116,13 +119,13 @@ instancepool_join_k8s() {
     export EXOSCALE_NODE_NAME
 
     until_success "kubectl get node \"${EXOSCALE_NODE_NAME}\""
-    kubectl wait "node/${EXOSCALE_NODE_NAME}" --for=condition=Ready --timeout=600s
+    kubectl wait "node/${EXOSCALE_NODE_NAME}" --for=condition=Ready --timeout="${KUBE_TIMEOUT}"
 }
 
 deploy_nginx_app() {
     kubectl apply --filename "${INTEGTEST_DIR}/manifests/app.yml"
 
-    kubectl wait deployment.apps/nginx --for=condition=Available --timeout=600s
+    kubectl wait deployment.apps/nginx --for=condition=Available --timeout="${KUBE_TIMEOUT}"
 }
 
 create_external_loadbalancer() {
