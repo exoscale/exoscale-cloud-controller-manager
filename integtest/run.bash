@@ -28,14 +28,14 @@ trap cleanup EXIT
 cleanup() {
     rm -rf "${INTEGTEST_TMP_DIR}"
     exo --quiet vm delete --force "$EXOSCALE_MASTER_NAME"
-    exo --quiet nlb delete --force "$EXOSCALE_LB_NAME" -z de-fra-1 || true
+    exo --quiet nlb delete --force "$EXOSCALE_LB_NAME" -z de-fra-1 2>/dev/null || true
     until_success "exo --quiet instancepool delete --force \"${EXOSCALE_INSTANCEPOOL_NAME}\" -z de-fra-1" || true
     until_success "exo --quiet sshkey delete --force \"$EXOSCALE_SSHKEY_NAME\""
 }
 
 until_success() {
     declare command="$1"
-    timeout 10m bash -c "until $command; do sleep 5; done" --preserve-status
+    timeout 10m bash -c "until $command 2>/dev/null; do sleep 5; done" --preserve-status
 }
 
 remote_run() {
