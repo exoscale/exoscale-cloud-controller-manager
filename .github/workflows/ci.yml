@@ -37,6 +37,7 @@ jobs:
 
   integration-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: docker-build
     steps:
     - uses: actions/checkout@v2
@@ -44,11 +45,11 @@ jobs:
       run: git submodule update --init --recursive go.mk
     - uses: azure/setup-kubectl@v1
       with:
-        version: v1.18.2
+        version: v1.18.5
       id: install
     - name: Install Exoscale CLI
       run: |
-        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/v1.15.0/exoscale-cli_1.15.0_linux_amd64.deb
+        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/v1.17.0/exoscale-cli_1.17.0_linux_amd64.deb
         sudo dpkg -i cli.deb
 
         echo "::set-env name=EXOSCALE_API_KEY::${{ secrets.EXOSCALE_API_KEY }}"
