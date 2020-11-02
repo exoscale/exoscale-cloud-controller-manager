@@ -76,6 +76,14 @@ func (c *cloudProvider) Instances() (cloudprovider.Instances, bool) {
 	return c.instances, true
 }
 
+// InstancesV2 is an implementation for instances and should only be implemented by external cloud providers.
+// Implementing InstancesV2 is behaviorally identical to Instances but is optimized to significantly reduce
+// API calls to the cloud provider when registering and syncing nodes.
+// Also returns true if the interface is supported, false otherwise.
+func (c *cloudProvider) InstancesV2() (cloudprovider.InstancesV2, bool) {
+	return nil, false
+}
+
 // Zones returns a zones interface.
 // Also returns true if the interface is supported, false otherwise.
 func (c *cloudProvider) Zones() (cloudprovider.Zones, bool) {
