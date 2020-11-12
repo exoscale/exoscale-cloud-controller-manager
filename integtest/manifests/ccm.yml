@@ -28,13 +28,14 @@ spec:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
       containers:
-      - image: exoscale/cloud-controller-manager:ci-dev
+      - image: exoscale/cloud-controller-manager:test
         imagePullPolicy: Never
         name: exoscale-cloud-controller-manager
         args:
           - --cloud-provider=exoscale
           - --leader-elect=true
           - --allow-untagged-cloud
+          - --v=3
         env:
           - name: EXOSCALE_API_KEY
             valueFrom:

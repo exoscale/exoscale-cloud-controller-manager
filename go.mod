@@ -6,12 +6,14 @@ require (
 	github.com/deepmap/oapi-codegen v1.3.8 // indirect
 	github.com/exoscale/egoscale v0.28.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
-	github.com/stretchr/testify v1.5.1
+	github.com/google/go-cmp v0.4.0
+	github.com/stretchr/testify v1.6.1
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3
 	k8s.io/client-go v0.19.3
 	k8s.io/cloud-provider v0.19.3
 	k8s.io/component-base v0.19.3
+	k8s.io/klog/v2 v2.2.0
 	k8s.io/kubernetes v1.19.3
 )
 

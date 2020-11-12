@@ -53,7 +53,6 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 	provider.defaultZone = os.Getenv("EXOSCALE_DEFAULT_ZONE")
 
 	return provider, nil
-
 }
 
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
