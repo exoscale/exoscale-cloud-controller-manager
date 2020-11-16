@@ -1,2 +1,5 @@
 dist/
 bin/
+.terraform/
+terraform.tfvars
+terraform.tfstate*
