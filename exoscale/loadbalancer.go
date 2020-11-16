@@ -168,7 +168,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 
 	nlb, err := l.fetchLoadBalancer(ctx, service, zone)
 	if err != nil {
-		if err == errLoadBalancerNotFound {
+		if errors.Is(err, errLoadBalancerNotFound) {
 			return nil
 		}
 
