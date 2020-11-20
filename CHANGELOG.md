@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+### Bug Fixes
+
+* Fix provider ID formatting logic
+
+### Changes
+
+* The Exoscale Cloud Controller Manager now Supports multiple `ServicePorts`
+  per Kubernetes `Service`, previous NLB service-related annotations are
+  obsolete: please refer to the documentation for more information.
+
 
 ## 0.2.0
 
