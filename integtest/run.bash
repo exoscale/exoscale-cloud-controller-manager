@@ -1,166 +1,98 @@
 #!/usr/bin/env bash
 
 set -e
-set -u
 
 export INTEGTEST_DIR="${INCLUDE_PATH}/integtest"
 export INTEGTEST_TMP_DIR="${INTEGTEST_DIR}/tmp"
+mkdir "$INTEGTEST_TMP_DIR"
 
 [[ -n "$EXOSCALE_API_KEY" ]]
 [[ -n "$EXOSCALE_API_SECRET" ]]
 [[ -n "$EXOSCALE_API_ENDPOINT" ]]
 
-EXOSCALE_MASTER_NAME=k8s-ccm-master-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_MASTER_NAME
-EXOSCALE_INSTANCEPOOL_NAME=k8s-ccm-nodes-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_MASTER_NAME
-EXOSCALE_SSHKEY_NAME=k8s-ccm-sshkey-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_SSHKEY_NAME
-EXOSCALE_LB_NAME=k8s-ccm-lb-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_LB_NAME
-EXOSCALE_LB_SERVICE_NAME1=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_LB_SERVICE_NAME1
-EXOSCALE_LB_SERVICE_NAME2=k8s-ccm-lb-service-$(uuidgen | tr '[:upper:]' '[:lower:]')
-export EXOSCALE_LB_SERVICE_NAME2
+source "$INTEGTEST_DIR/test-helpers.bash"
 
-KUBE_TIMEOUT=600s
-export KUBE_TIMEOUT
+export EXOSCALE_ZONE=${EXOSCALE_ZONE:-de-fra-1}
+export KUBECTL_OPTS="--timeout=600s"
+export TERRAFORM_OPTS="-auto-approve -backup=-"
 
-trap cleanup EXIT
 
 cleanup() {
-    rm -rf "${INTEGTEST_TMP_DIR}"
-    exo --quiet vm delete --force "$EXOSCALE_MASTER_NAME"
-    exo --quiet nlb delete --force "$EXOSCALE_LB_NAME" -z de-fra-1 2>/dev/null || true
-    until_success "exo --quiet instancepool delete --force \"${EXOSCALE_INSTANCEPOOL_NAME}\" -z de-fra-1" || true
-    until_success "exo --quiet sshkey delete --force \"$EXOSCALE_SSHKEY_NAME\""
+  echo ">>> CLEANING UP <<<"
+
+  terraform destroy $TERRAFORM_OPTS
+  rm -rf "${INTEGTEST_TMP_DIR}"
 }
 
-until_success() {
-    declare command="$1"
-    timeout 10m bash -c "until $command > /dev/null 2>&1; do sleep 5; done" --preserve-status
+deploy_cluster() {
+  echo ">>> DEPLOYING CLUSTER INFRASTRUCTURE <<<"
+
+  cd "$INTEGTEST_DIR"
+  printf "zone = \"%s\"\ntmpdir = \"%s\"\n" $EXOSCALE_ZONE "$INTEGTEST_TMP_DIR" > terraform.tfvars
+  terraform init
+  terraform apply $TERRAFORM_OPTS
+
+  # Workaround for a problem using GitHub Action hashicorp/setup-terraform@v1:
+  # https://github.com/hashicorp/setup-terraform/issues/20
+  export TEST_ID=$(terraform-bin output test_id)
+  export NODEPOOL_ID=$(terraform-bin output nodepool_id)
+  export KUBECONFIG="${INTEGTEST_TMP_DIR}/kubeconfig"
+
+  _until_success "kubectl cluster-info"
 }
 
-remote_run() {
-    declare ip_address="$1"
-    declare command="$2"
+deploy_ingress_controller() {
+  echo ">>> DEPLOYING CLUSTER INGRESS CONTROLLER <<<"
 
-    ssh -i "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" "ubuntu@${ip_address}" "$command"
-} 
+  export EXOSCALE_CCM_LB_NAME="test-k8s-ccm-${TEST_ID}"
 
-upload_integtest_sshkey() {
-    mkdir -p "${INTEGTEST_TMP_DIR}/.ssh"
-    ssh-keygen -t rsa -f "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" -N ""
-    exo --quiet sshkey upload "${EXOSCALE_SSHKEY_NAME}" "${INTEGTEST_TMP_DIR}/.ssh/id_rsa.pub"
+  sed -r \
+    -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
+    -e "s/%%EXOSCALE_CCM_LB_NAME%%/$EXOSCALE_CCM_LB_NAME/" \
+    "${INTEGTEST_DIR}/manifests/ingress-nginx.yml.tpl" \
+    | kubectl $KUBECTL_OPTS apply -f -
+
+  # It is not possible to `kubectl wait` on an Ingress resource, so we wait until
+  # we see a public IP address associated to the Service Load Balancer...
+  _until_success "test -n \"\$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
+    -o=jsonpath='{.status.loadBalancer.ingress[].ip}')\""
+
+  export INGRESS_NLB_IP=$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
+    -o=jsonpath='{.status.loadBalancer.ingress[].ip}')
+
+  export INGRESS_NLB_ID=$(exo nlb list -z $EXOSCALE_ZONE -O text \
+    | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
 }
 
-create_exoscale_vm() {
- exo --quiet vm create "${EXOSCALE_MASTER_NAME}" \
-        --keypair "${EXOSCALE_SSHKEY_NAME}" \
-        --template ci-k8s-node-1.18.3 \
-        --template-filter mine \
-        --security-group k8s \
-        --zone de-fra-1
+deploy_test_app() {
+  echo ">>> DEPLOYING TEST APPLICATION <<<"
 
-    EXOSCALE_MASTER_IP=$(exo vm show "${EXOSCALE_MASTER_NAME}" --output-template "{{.IPAddress}}")
-    export EXOSCALE_MASTER_IP
-
-    sleep 30
+  kubectl apply -f "${INTEGTEST_DIR}/manifests/hello.yml"
+  kubectl $KUBECTL_OPTS wait --for condition=Available deployment.apps/hello
 }
 
-initialize_k8s_master() {
-    rsync -a "${INCLUDE_PATH}/" "ubuntu@${EXOSCALE_MASTER_IP}:/home/ubuntu" \
-          -e "ssh -o StrictHostKeyChecking=no -i ${INTEGTEST_TMP_DIR}/.ssh/id_rsa"
-
-    remote_run "$EXOSCALE_MASTER_IP" "sudo kubeadm init --config=./integtest/manifests/kubeadm-config-master.yml"
-    remote_run "$EXOSCALE_MASTER_IP" "sudo cp --force /etc/kubernetes/admin.conf admin.conf && sudo chown ubuntu:ubuntu admin.conf"
-
-    mkdir -p "${INTEGTEST_TMP_DIR}/.kube"
-    scp -i "${INTEGTEST_TMP_DIR}/.ssh/id_rsa" \
-           "ubuntu@${EXOSCALE_MASTER_IP}:/home/ubuntu/admin.conf" \
-           "${INTEGTEST_TMP_DIR}/.kube/config"
-
-    export KUBECONFIG="${INTEGTEST_TMP_DIR}/.kube/config"
-
-    kubectl create --filename https://docs.projectcalico.org/manifests/tigera-operator.yaml
-    kubectl create --filename https://docs.projectcalico.org/manifests/custom-resources.yaml
-
-    kubectl wait "node/${EXOSCALE_MASTER_NAME}" --for=condition=Ready --timeout="${KUBE_TIMEOUT}"
+test_node_labels() {
+  echo ">>> TESTING CCM-MANAGED KUBERNETES NODE LABELS <<<"
+  . "${INTEGTEST_DIR}/test-labels.bash"
+  echo "PASS"
 }
 
-deploy_exoscale_ccm() {
-    remote_run "$EXOSCALE_MASTER_IP" "git tag ci-dev && make docker"
-
-    "${INCLUDE_PATH}/docs/scripts/generate-secret.sh"
-    kubectl apply --filename "${INTEGTEST_DIR}/manifests/deployment.yml"
-
-    kubectl wait --namespace kube-system deployment.apps/exoscale-cloud-controller-manager --for=condition=Available --timeout="${KUBE_TIMEOUT}"
+test_ingress_nlb() {
+  echo ">>> TESTING CCM-MANAGED NLB INSTANCE <<<"
+  . "${INTEGTEST_DIR}/test-nlb.bash"
+  echo "PASS"
 }
 
-instancepool_join_k8s() {
-    KUBE_TOKEN=$(remote_run "$EXOSCALE_MASTER_IP" "sudo kubeadm token create")
-    export KUBE_TOKEN
-
-    envsubst < "${INTEGTEST_DIR}/manifests/node-join-cloud-init.yaml" > "${INTEGTEST_TMP_DIR}/node-join-cloud-init.yml"
-    EXOSCALE_INSTANCEPOOL_ID=$(exo instancepool create "${EXOSCALE_INSTANCEPOOL_NAME}" \
-                        --keypair "${EXOSCALE_SSHKEY_NAME}" \
-                        --template ci-k8s-node-1.18.3 \
-                        --template-filter mine \
-                        --size 1 \
-                        --security-group k8s \
-                        --service-offering medium \
-                        --zone de-fra-1 \
-                        --cloud-init "${INTEGTEST_TMP_DIR}/node-join-cloud-init.yml" \
-                        --output-template "{{.ID}}" | tail -n 1)
-    export EXOSCALE_INSTANCEPOOL_ID
-
-    EXOSCALE_NODE_NAME=$(exo instancepool show "${EXOSCALE_INSTANCEPOOL_ID}" \
-                --zone de-fra-1 --output-format json | jq -r '.instances[0]')
-    export EXOSCALE_NODE_NAME
-
-    until_success "kubectl get node \"${EXOSCALE_NODE_NAME}\""
-    kubectl wait "node/${EXOSCALE_NODE_NAME}" --for=condition=Ready --timeout="${KUBE_TIMEOUT}"
+test_node_expunge() {
+  echo ">>> TESTING CCM-MANAGED NODE EXPUNGING <<<"
+  . "${INTEGTEST_DIR}/test-node-expunge.bash"
+  echo "PASS"
 }
 
-deploy_nginx_app() {
-    kubectl apply --filename "${INTEGTEST_DIR}/manifests/app.yml"
-
-    kubectl wait deployment.apps/nginx --for=condition=Available --timeout="${KUBE_TIMEOUT}"
-}
-
-create_external_loadbalancer() {
-    envsubst < "${INTEGTEST_DIR}/manifests/create-nlb.yaml" > "${INTEGTEST_TMP_DIR}/create-nlb.yml"
-    kubectl create --filename "${INTEGTEST_TMP_DIR}/create-nlb.yml"
-
-    until_success "exo nlb show \"${EXOSCALE_LB_NAME}\" --zone de-fra-1"
-    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME1}\" --zone de-fra-1"
-    sleep 10
-
-    envsubst < "${INTEGTEST_DIR}/manifests/add-nlb-service.yaml" > "${INTEGTEST_TMP_DIR}/add-nlb-service.yml"
-    kubectl create --filename "${INTEGTEST_TMP_DIR}/add-nlb-service.yml"
-
-    until_success "exo nlb service show \"${EXOSCALE_LB_NAME}\" \"${EXOSCALE_LB_SERVICE_NAME2}\" --zone de-fra-1"
-    sleep 10
-}
-
-test_k8s_node_labels() {
-    "${INTEGTEST_DIR}/test-labels.bash"
-}
-
-test_k8s_external_loadbalancer() {
-    "${INTEGTEST_DIR}/test-nlb.bash"
-}
-
-main() {
-    upload_integtest_sshkey
-    create_exoscale_vm
-    initialize_k8s_master
-    deploy_exoscale_ccm
-    instancepool_join_k8s
-    deploy_nginx_app
-    create_external_loadbalancer
-    test_k8s_node_labels
-    test_k8s_external_loadbalancer
-}
-
-main
+trap cleanup EXIT
+deploy_cluster
+deploy_ingress_controller
+deploy_test_app
+test_node_labels
+test_ingress_nlb
+test_node_expunge
