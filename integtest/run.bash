@@ -8,7 +8,6 @@ mkdir "$INTEGTEST_TMP_DIR"
 
 [[ -n "$EXOSCALE_API_KEY" ]]
 [[ -n "$EXOSCALE_API_SECRET" ]]
-[[ -n "$EXOSCALE_API_ENDPOINT" ]]
 
 source "$INTEGTEST_DIR/test-helpers.bash"
 
