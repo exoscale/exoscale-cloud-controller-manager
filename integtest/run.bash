@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -e
-set -x
 
 export INTEGTEST_DIR="${INCLUDE_PATH}/integtest"
 export INTEGTEST_TMP_DIR="${INTEGTEST_DIR}/tmp"
@@ -9,7 +8,6 @@ mkdir "$INTEGTEST_TMP_DIR"
 
 [[ -n "$EXOSCALE_API_KEY" ]]
 [[ -n "$EXOSCALE_API_SECRET" ]]
-[[ -n "$EXOSCALE_API_ENDPOINT" ]]
 
 source "$INTEGTEST_DIR/test-helpers.bash"
 
