@@ -52,10 +52,9 @@ jobs:
         latest_tag=$(curl -s https://api.github.com/repos/exoscale/cli/releases/latest | awk -F '"' '/tag_name/ { print $4 }')
         wget -qO cli.deb https://github.com/exoscale/cli/releases/download/${latest_tag}/exoscale-cli_${latest_tag##v}_linux_amd64.deb
         sudo dpkg -i cli.deb
-
-        echo "::set-env name=EXOSCALE_API_KEY::${{ secrets.EXOSCALE_API_KEY }}"
-        echo "::set-env name=EXOSCALE_API_SECRET::${{ secrets.EXOSCALE_API_SECRET }}"
-        echo "::set-env name=EXOSCALE_API_ENDPOINT::https://api.exoscale.com/v1"
     - name: Integration Test
       run: |
         make integtest
+      env:
+        EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
+        EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}
