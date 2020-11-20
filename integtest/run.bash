@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 export INTEGTEST_DIR="${INCLUDE_PATH}/integtest"
 export INTEGTEST_TMP_DIR="${INTEGTEST_DIR}/tmp"
