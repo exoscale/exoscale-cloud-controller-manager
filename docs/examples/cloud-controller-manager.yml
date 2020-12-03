@@ -94,6 +94,8 @@ rules:
   - configmaps
   verbs:
   - 'get'
+  - 'watch'
+  - 'list'
 - apiGroups:
   - ""
   resources:
