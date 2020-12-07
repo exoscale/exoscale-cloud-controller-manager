@@ -52,6 +52,10 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	instance, err := i.p.computeInstanceByName(ctx, nodeName)
 	if err != nil {
+		if csError, ok := err.(*egoscale.ErrorResponse); ok && csError.ErrorCode == egoscale.ParamError {
+			return "", cloudprovider.InstanceNotFound
+		}
+
 		return "", err
 	}
 
