@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	"github.com/exoscale/egoscale"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 const (
@@ -25,6 +28,22 @@ func newMockInstanceAPINotFound() (*cloudProvider, *testServer) {
 }
 
 func newMockInstanceAPI() (*cloudProvider, *testServer) {
+	fakenode := &v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testInstanceName,
+		},
+		Status: v1.NodeStatus{
+			NodeInfo: v1.NodeSystemInfo{
+				SystemUUID: testInstanceID,
+			},
+		},
+	}
+	clientset := fake.NewSimpleClientset(fakenode)
+
 	ts := newTestServer(testHTTPResponse{200, fmt.Sprintf(`
 {"listvirtualmachinesresponse": {
 	"count": 1,
@@ -69,6 +88,7 @@ func newMockInstanceAPI() (*cloudProvider, *testServer) {
 }}`, testInstanceID, testInstanceName, testInstanceIP, testInstanceServiceOffering, testInstanceZoneName)})
 
 	return &cloudProvider{
-		client: egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+		client:  egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+		kclient: clientset,
 	}, ts
 }
