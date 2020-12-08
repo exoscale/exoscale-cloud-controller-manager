@@ -2,7 +2,9 @@ package exoscale
 
 import (
 	"context"
+	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -46,10 +48,10 @@ func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (clo
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	instance, err := z.p.computeInstanceByName(ctx, nodeName)
+	node, err := z.p.kclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
-		return cloudprovider.Zone{}, err
+		return cloudprovider.Zone{}, fmt.Errorf("failed to retrieve node %s from the apiserver: %s", nodeName, err)
 	}
 
-	return cloudprovider.Zone{Region: instance.ZoneName}, nil
+	return z.GetZoneByProviderID(ctx, node.Status.NodeInfo.SystemUUID)
 }
