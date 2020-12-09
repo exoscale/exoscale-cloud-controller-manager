@@ -10,19 +10,9 @@ import (
 
 	"github.com/exoscale/egoscale"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
-
-func (c *cloudProvider) computeInstanceByName(ctx context.Context, name types.NodeName) (*egoscale.VirtualMachine, error) {
-	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{Name: string(name)})
-	if err != nil {
-		return nil, err
-	}
-
-	return r.(*egoscale.VirtualMachine), nil
-}
 
 func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
 	id, err := formatProviderID(providerID)

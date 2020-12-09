@@ -2,10 +2,12 @@ package exoscale
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 
 	"github.com/exoscale/egoscale"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -24,12 +26,12 @@ func newInstances(provider *cloudProvider) cloudprovider.Instances {
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	instance, err := i.p.computeInstanceByName(ctx, name)
+	id, err := i.InstanceID(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodeAddresses(instance)
+	return i.NodeAddressesByProviderID(ctx, id)
 }
 
 // NodeAddressesByProviderID returns the addresses of the specified instance.
@@ -50,26 +52,22 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 // Note that if the instance does not exist, we must return ("", cloudprovider.InstanceNotFound)
 // cloudprovider.InstanceNotFound should NOT be returned for instances that exist but are stopped/sleeping
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	instance, err := i.p.computeInstanceByName(ctx, nodeName)
+	node, err := i.p.kclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
-		if csError, ok := err.(*egoscale.ErrorResponse); ok && csError.ErrorCode == egoscale.ParamError {
-			return "", cloudprovider.InstanceNotFound
-		}
-
-		return "", err
+		return "", fmt.Errorf("failed to retrieve node %s from the apiserver: %s", nodeName, err)
 	}
 
-	return instance.ID.String(), nil
+	return node.Status.NodeInfo.SystemUUID, nil
 }
 
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(ctx context.Context, name types.NodeName) (string, error) {
-	instance, err := i.p.computeInstanceByName(ctx, name)
+	id, err := i.InstanceID(ctx, name)
 	if err != nil {
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ""), nil
+	return i.InstanceTypeByProviderID(ctx, id)
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
