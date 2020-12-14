@@ -81,34 +81,44 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	// Inferring the Instance Pool ID from the cluster Nodes that run the Service in case no Instance Pool ID
 	// has been specified in the annotations.
 	//
-	// IMPORTANT: this use case is not compatible with Services referencing pods using Node Selectors
+	// IMPORTANT: this use case is not compatible with Services referencing Pods using Node Selectors
 	// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
 	// The list of Nodes passed as argument to this method contains *ALL* the Nodes in the cluster, not only the
-	// ones that actually host the containers targeted by the Service.
-	// All Nodes are expected to be members of the same Instance Pool, so we only need to look the first one up.
+	// ones that actually host the Pods targeted by the Service.
 	if getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "") == "" {
+		debugf("no NLB service Instance Pool ID specified in Service annotations, inferring from cluster Nodes")
+
+		instancePoolID := ""
 		for _, node := range nodes {
 			instance, err := l.fetchComputeInstanceFromNode(ctx, node)
 			if err != nil {
 				return nil, err
 			}
 
+			// Standalone Node, leaving it alone.
 			if instance.Manager != "instancepool" {
-				return nil, fmt.Errorf("cluster node %q not running as an Instance Pool member", node.Name)
+				continue
 			}
 
-			debugf("inferred service Instance Pool ID from Node: %s", instance.ManagerID.String())
-
-			err = l.patchAnnotation(
-				ctx,
-				service,
-				annotationLoadBalancerServiceInstancePoolID,
-				instance.ManagerID.String(),
-			)
-			if err != nil {
-				return nil, fmt.Errorf("error patching annotations: %s", err)
+			if instancePoolID != "" && instance.ManagerID.String() != instancePoolID {
+				return nil, errors.New(
+					"multiple Instance Pools detected across cluster Nodes, " +
+						"an Instance Pool ID must be specified in Service manifest annotations",
+				)
 			}
-			break // nolint:staticcheck
+
+			instancePoolID = instance.ManagerID.String()
+		}
+
+		if instancePoolID == "" {
+			return nil, errors.New("couldn't infer any Instance Pool from cluster Nodes")
+		}
+
+		debugf("inferred NLB service Instance Pool ID from cluster Nodes: %s", instancePoolID)
+
+		err = l.patchAnnotation(ctx, service, annotationLoadBalancerServiceInstancePoolID, instancePoolID)
+		if err != nil {
+			return nil, fmt.Errorf("error patching annotations: %s", err)
 		}
 	}
 
@@ -415,6 +425,7 @@ func (l *loadBalancer) getLoadBalancerZone(service *v1.Service) (string, error) 
 }
 
 // fetchComputeInstanceFromNode retrieves the Exoscale Compute instance underlying a cluster Node.
+// This method performs Exoscale API calls, incurring extra latency.
 func (l *loadBalancer) fetchComputeInstanceFromNode(ctx context.Context, node *v1.Node) (*egoscale.VirtualMachine, error) {
 	resp, err := l.p.client.GetWithContext(ctx, &egoscale.ListVirtualMachines{
 		ID: egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID),
