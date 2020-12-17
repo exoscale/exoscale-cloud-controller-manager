@@ -4,11 +4,32 @@ set -e
 
 source "$INTEGTEST_DIR/test-helpers.bash"
 
+echo ">>> TESTING CCM-MANAGED NLB INSTANCE"
+
+echo "- Deploying cluster ingress controller"
+sed -r \
+  -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
+  "${INTEGTEST_DIR}/manifests/ingress-nginx.yml.tpl" \
+  | kubectl $KUBECTL_OPTS apply -f -
+# It is not possible to `kubectl wait` on an Ingress resource, so we wait until
+# we see a public IP address associated to the Service Load Balancer...
+_until_success "test -n \"\$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
+  -o=jsonpath='{.status.loadBalancer.ingress[].ip}')\""
+
+export INGRESS_NLB_IP=$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
+  -o=jsonpath='{.status.loadBalancer.ingress[].ip}')
+export INGRESS_NLB_ID=$(exo nlb list -z $EXOSCALE_ZONE -O text \
+  | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
+
+echo "- Deploying test application"
+kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_DIR}/manifests/hello-ingress.yml"
+kubectl $KUBECTL_OPTS wait --for condition=Available deployment.apps/hello
+
 ### Test the actual NLB + ingress-nginx controller + service + app chain
 echo "- End-to-end requests"
 curl_opts="--retry 10 --retry-delay 5 --retry-connrefused --silent"
-curl $curl_opts http://${INGRESS_NLB_IP} > /dev/null
-curl $curl_opts --insecure https://${INGRESS_NLB_IP} > /dev/null
+curl $curl_opts http://${INGRESS_NLB_IP} > /dev/null || (echo "FAIL" ; return 1)
+curl $curl_opts --insecure https://${INGRESS_NLB_IP} > /dev/null || (echo "FAIL" ; return 1)
 
 ### Test the generated NLB services' properties
 output_template=''
@@ -94,16 +115,20 @@ patch+='"service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mo
 patch+='"service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri":"/"'
 patch+='}}}'
 kubectl -n ingress-nginx patch svc ingress-nginx-controller -p "$patch"
-
 _until_success "test \"\$(exo nlb show \
   --output-template '{{range .Services}}{{println .ID}}{{end}}' \
   -z \${EXOSCALE_ZONE} \$INGRESS_NLB_ID | while read svcid; do
     exo nlb service show -z \$EXOSCALE_ZONE --output-template '{{.Healthcheck.Mode}}' \
       \$INGRESS_NLB_ID \$svcid ; done)\" == \"httphttp\""
 
-## Before handing out to the cleanup phase, delete the ingress controller Service
-## in order to delete the associated NLB, otherwise it won't be possible to delete the
+## Before handing out to the cleanup phase, delete the ingress controller Service in order
+## to delete the managed NLB instance, otherwise it won't be possible to delete the
 ## cluster Nodepool's Instance Pool.
 echo "- Deleting ingress NLB"
-kubectl -n ingress-nginx delete svc ingress-nginx-controller
+sed -r \
+  -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
+  "${INTEGTEST_DIR}/manifests/ingress-nginx.yml.tpl" \
+  | kubectl $KUBECTL_OPTS delete -f -
 _until_success "test ! \$(exo nlb show -z \${EXOSCALE_ZONE} \$INGRESS_NLB_ID 2>/dev/null)"
+
+echo "<<< PASS"

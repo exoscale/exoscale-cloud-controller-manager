@@ -17,14 +17,18 @@ export TERRAFORM_OPTS="-auto-approve -backup=-"
 
 
 cleanup() {
-  echo ">>> CLEANING UP <<<"
+  echo ">>> CLEANING UP"
 
+  set +e
   terraform destroy $TERRAFORM_OPTS
   rm -rf "${INTEGTEST_TMP_DIR}"
-}
 
-deploy_cluster() {
-  echo ">>> DEPLOYING CLUSTER INFRASTRUCTURE <<<"
+  echo "<<< DONE"
+}
+trap cleanup EXIT
+
+{
+  echo ">>> DEPLOYING TEST CLUSTER INFRASTRUCTURE"
 
   cd "$INTEGTEST_DIR"
   printf "zone = \"%s\"\ntmpdir = \"%s\"\n" $EXOSCALE_ZONE "$INTEGTEST_TMP_DIR" > terraform.tfvars
@@ -33,65 +37,21 @@ deploy_cluster() {
 
   # Workaround for a problem using GitHub Action hashicorp/setup-terraform@v1:
   # https://github.com/hashicorp/setup-terraform/issues/20
-  export TEST_ID=$(terraform-bin output test_id)
-  export NODEPOOL_ID=$(terraform-bin output nodepool_id)
+  # Starting from 0.14.0 `terraform output` now displays quotes around output values:
+  # https://github.com/hashicorp/terraform/issues/26831
+  export TEST_ID=$(terraform-bin output -json | jq -r .test_id.value)
+  export NODEPOOL_ID=$(terraform-bin output -json | jq -r .nodepool_id.value)
+  export EXTERNAL_NLB_ID=$(terraform-bin output -json | jq -r .external_nlb_id.value)
+  export EXTERNAL_NLB_IP=$(terraform-bin output -json | jq -r .external_nlb_ip.value)
   export KUBECONFIG="${INTEGTEST_TMP_DIR}/kubeconfig"
 
   _until_success "kubectl cluster-info"
+
+  echo "<<< DONE"
 }
 
-deploy_ingress_controller() {
-  echo ">>> DEPLOYING CLUSTER INGRESS CONTROLLER <<<"
-
-  export EXOSCALE_CCM_LB_NAME="test-k8s-ccm-${TEST_ID}"
-
-  sed -r \
-    -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
-    -e "s/%%EXOSCALE_CCM_LB_NAME%%/$EXOSCALE_CCM_LB_NAME/" \
-    "${INTEGTEST_DIR}/manifests/ingress-nginx.yml.tpl" \
-    | kubectl $KUBECTL_OPTS apply -f -
-
-  # It is not possible to `kubectl wait` on an Ingress resource, so we wait until
-  # we see a public IP address associated to the Service Load Balancer...
-  _until_success "test -n \"\$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
-    -o=jsonpath='{.status.loadBalancer.ingress[].ip}')\""
-
-  export INGRESS_NLB_IP=$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller \
-    -o=jsonpath='{.status.loadBalancer.ingress[].ip}')
-
-  export INGRESS_NLB_ID=$(exo nlb list -z $EXOSCALE_ZONE -O text \
-    | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
-}
-
-deploy_test_app() {
-  echo ">>> DEPLOYING TEST APPLICATION <<<"
-
-  kubectl apply -f "${INTEGTEST_DIR}/manifests/hello.yml"
-  kubectl $KUBECTL_OPTS wait --for condition=Available deployment.apps/hello
-}
-
-test_node_labels() {
-  echo ">>> TESTING CCM-MANAGED KUBERNETES NODE LABELS <<<"
-  . "${INTEGTEST_DIR}/test-labels.bash"
-  echo "PASS"
-}
-
-test_ingress_nlb() {
-  echo ">>> TESTING CCM-MANAGED NLB INSTANCE <<<"
-  . "${INTEGTEST_DIR}/test-nlb.bash"
-  echo "PASS"
-}
-
-test_node_expunge() {
-  echo ">>> TESTING CCM-MANAGED NODE EXPUNGING <<<"
-  . "${INTEGTEST_DIR}/test-node-expunge.bash"
-  echo "PASS"
-}
-
-trap cleanup EXIT
-deploy_cluster
-deploy_ingress_controller
-deploy_test_app
-test_node_labels
-test_ingress_nlb
-test_node_expunge
+## IMPORTANT: the order of the tests matter!
+. "${INTEGTEST_DIR}/test-nlb-ingress.bash"
+. "${INTEGTEST_DIR}/test-nlb-external.bash"
+. "${INTEGTEST_DIR}/test-node-labels.bash"
+. "${INTEGTEST_DIR}/test-node-expunge.bash"

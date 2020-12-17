@@ -111,6 +111,12 @@ The name of the Exoscale NLB. Defaults to `<Kubernetes Service UID>`.
 The description of the Exoscale NLB.
 
 
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-keep`
+
+If set to `true`, the Exoscale CCM will consider the NLB as externally
+managed and will not delete it when there are no NLB services defined on it.
+
+
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-name`
 
 The name of Exoscale NLB service corresponding to the Kubernetes *Service*
@@ -209,8 +215,8 @@ to provision a corresponding NLB instance correctly:
 
 It is possible to co-locate multiple Kubernetes *Services* on a single Exoscale
 NLB instance (up to 10 services) by creating multiple Kubernetes *Services* and
-explicitly specifying the ID of the same NLB in the *Service* annotations. Here
-is an example of 2 different Kubernetes *Services* created on the same NLB
+explicitly specifying the ID of the same NLB ID in the *Service* annotations.
+Here is an example of 2 different Kubernetes *Services* created on the same NLB
 instance:
 
 ```yaml
@@ -266,6 +272,32 @@ app2
 ```
 
 
+### Using an externally managed NLB instance with the Exoscale CCM
+
+If you prefer to manage the NLB instance yourself using different tools 
+(e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
+to use in the k8s *Service* annotations as well as an annotation instructing
+the Exoscale CCM not to delete the NLB instance when there are no more services
+defined on it:
+
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
+    service.beta.kubernetes.io/exoscale-loadbalancer-keep: "true"
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+  - port: 80
+```
+
+
 ## ⚠️ Important Notes
 
 * Currently, the Exoscale CCM doesn't support UDP service load balancing due to
@@ -280,6 +312,7 @@ app2
 [custom-templates]: https://community.exoscale.com/documentation/compute/custom-templates/#create-a-custom-template
 [exo-nlb-svc]: https://community.exoscale.com/documentation/compute/network-load-balancer/#network-load-balancer-services
 [exo-nlb]: https://community.exoscale.com/documentation/compute/network-load-balancer/
+[exo-tf-provider]: https://registry.terraform.io/providers/exoscale/exoscale/latest/docs
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
 [exo-zones]: https://www.exoscale.com/datacenters/
 [ingress-nginx]: https://kubernetes.github.io/ingress-nginx/

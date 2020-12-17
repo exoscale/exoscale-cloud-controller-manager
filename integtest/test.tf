@@ -2,7 +2,7 @@ terraform {
   required_providers {
     exoscale = {
       source  = "exoscale/exoscale"
-      version = "~> 0.20.0"
+      version = "~> 0.21.0"
     }
   }
 }
@@ -240,7 +240,16 @@ resource "exoscale_instance_pool" "test" {
   depends_on = [exoscale_compute.kube_master_node]
 }
 
+resource "exoscale_nlb" "external" {
+  zone = var.zone
+  name = "${local.test_prefix}-${random_string.random.result}"
+
+  depends_on = [exoscale_instance_pool.test]
+}
+
 output "test_id" { value = random_string.random.result }
 output "master_node_name" { value = exoscale_compute.kube_master_node.name }
 output "master_node_ip" { value = exoscale_compute.kube_master_node.ip_address }
 output "nodepool_id" { value = exoscale_instance_pool.test.id }
+output "external_nlb_id" { value = exoscale_nlb.external.id }
+output "external_nlb_ip" { value = exoscale_nlb.external.ip_address }

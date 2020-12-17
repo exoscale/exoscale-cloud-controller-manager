@@ -54,6 +54,7 @@ jobs:
         sudo dpkg -i cli.deb
     - name: Integration Test
       run: |
+        sudo apt-get install -y jq
         make integtest
       env:
         EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}

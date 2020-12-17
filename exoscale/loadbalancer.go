@@ -20,6 +20,7 @@ const (
 	annotationLoadBalancerID                         = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
 	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
 	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
+	annotationLoadBalancerKeep                       = "service.beta.kubernetes.io/exoscale-loadbalancer-keep"
 	annotationLoadBalancerServiceStrategy            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
 	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
 	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
@@ -204,6 +205,11 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	}
 
 	if remainingServices == 0 {
+		if strings.ToLower(getAnnotation(service, annotationLoadBalancerKeep, "")) == "true" {
+			debugf("Service annotated to keep the NLB instance, skipping delete")
+			return nil
+		}
+
 		infof("deleting NLB %q", nlb.Name)
 		return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, nlb.ID)
 	}
@@ -303,27 +309,7 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 		}
 	}
 
-	resp, err := l.p.client.ListNetworkLoadBalancers(ctx, zone)
-	if err != nil {
-		return nil, err
-	}
-
-	var nlb *egoscale.NetworkLoadBalancer
-	for _, n := range resp {
-		if n.Name == getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID)) {
-			nlb = n
-		}
-	}
-
-	if nlb == nil {
-		return nil, errLoadBalancerNotFound
-	}
-
-	if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, nlb.ID); err != nil {
-		return nil, fmt.Errorf("error patching annotations: %s", err)
-	}
-
-	return nlb, nil
+	return nil, errLoadBalancerNotFound
 }
 
 func (l *loadBalancer) patchAnnotation(ctx context.Context, service *v1.Service, k, v string) error {
