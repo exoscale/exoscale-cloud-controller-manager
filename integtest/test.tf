@@ -2,7 +2,7 @@ terraform {
   required_providers {
     exoscale = {
       source  = "exoscale/exoscale"
-      version = "~> 0.21.0"
+      version = "~> 0.20.0"
     }
   }
 }
@@ -53,17 +53,17 @@ EOF
 }
 
 data "local_file" "kube-ca-crt" {
-  filename = "${var.tmpdir}/kube-ca.crt"
+  filename   = "${var.tmpdir}/kube-ca.crt"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
 data "local_file" "cluster-endpoint" {
-  filename = "${var.tmpdir}/cluster_endpoint"
+  filename   = "${var.tmpdir}/cluster_endpoint"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
 data "local_file" "kubelet-join-token" {
-  filename = "${var.tmpdir}/kubelet_join_token"
+  filename   = "${var.tmpdir}/kubelet_join_token"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
@@ -163,9 +163,9 @@ resource "exoscale_ssh_keypair" "test" {
 }
 
 resource "local_file" "ssh_key" {
-  filename = "${var.tmpdir}/id_rsa"
+  filename          = "${var.tmpdir}/id_rsa"
   sensitive_content = exoscale_ssh_keypair.test.private_key
-  file_permission = "0600"
+  file_permission   = "0600"
 }
 
 resource "exoscale_compute" "kube_master_node" {
