@@ -42,6 +42,8 @@ trap cleanup EXIT
   export TEST_ID=$(terraform-bin output -json | jq -r .test_id.value)
   export NODEPOOL_ID=$(terraform-bin output -json | jq -r .nodepool_id.value)
   export EXTERNAL_NLB_ID=$(terraform-bin output -json | jq -r .external_nlb_id.value)
+  export EXTERNAL_NLB_NAME=$(terraform-bin output -json | jq -r .external_nlb_name.value)
+  export EXTERNAL_NLB_DESC=$(terraform-bin output -json | jq -r .external_nlb_desc.value)
   export EXTERNAL_NLB_IP=$(terraform-bin output -json | jq -r .external_nlb_ip.value)
   export KUBECONFIG="${INTEGTEST_TMP_DIR}/kubeconfig"
 
@@ -55,3 +57,5 @@ trap cleanup EXIT
 . "${INTEGTEST_DIR}/test-nlb-external.bash"
 . "${INTEGTEST_DIR}/test-node-labels.bash"
 . "${INTEGTEST_DIR}/test-node-expunge.bash"
+
+echo "=== ALL TESTS PASSED ==="

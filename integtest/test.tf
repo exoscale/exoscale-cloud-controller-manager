@@ -241,8 +241,9 @@ resource "exoscale_instance_pool" "test" {
 }
 
 resource "exoscale_nlb" "external" {
-  zone = var.zone
-  name = "${local.test_prefix}-${random_string.random.result}"
+  zone        = var.zone
+  name        = "${local.test_prefix}-${random_string.random.result}"
+  description = "${local.test_prefix}-${random_string.random.result} Description"
 
   depends_on = [exoscale_instance_pool.test]
 }
@@ -253,3 +254,5 @@ output "master_node_ip" { value = exoscale_compute.kube_master_node.ip_address }
 output "nodepool_id" { value = exoscale_instance_pool.test.id }
 output "external_nlb_id" { value = exoscale_nlb.external.id }
 output "external_nlb_ip" { value = exoscale_nlb.external.ip_address }
+output "external_nlb_name" { value = exoscale_nlb.external.name }
+output "external_nlb_desc" { value = exoscale_nlb.external.description }

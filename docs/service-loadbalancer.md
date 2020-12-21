@@ -277,8 +277,7 @@ app2
 If you prefer to manage the NLB instance yourself using different tools 
 (e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
 to use in the k8s *Service* annotations as well as an annotation instructing
-the Exoscale CCM not to delete the NLB instance when there are no more services
-defined on it:
+the Exoscale CCM not to create/update/delete the specified NLB instance:
 
 ```yaml
 kind: Service
@@ -288,7 +287,7 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
-    service.beta.kubernetes.io/exoscale-loadbalancer-keep: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
 spec:
   selector:
     app: nginx
@@ -296,6 +295,9 @@ spec:
   ports:
   - port: 80
 ```
+
+> Note: the NLB instance referenced in the annotations **must** exist before
+> the k8s *Service* is created.
 
 
 ## ⚠️ Important Notes

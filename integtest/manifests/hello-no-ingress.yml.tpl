@@ -27,7 +27,7 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "%%EXOSCALE_ZONE%%"
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "%%EXTERNAL_NLB_ID%%"
-    service.beta.kubernetes.io/exoscale-loadbalancer-keep: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "%%NODEPOOL_ID%%"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval: "5s"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout: "2s"
