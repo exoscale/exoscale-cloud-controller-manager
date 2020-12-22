@@ -4,6 +4,8 @@ set -e
 
 source "$INTEGTEST_DIR/test-helpers.bash"
 
+echo ">>> TESTING CCM-MANAGED KUBERNETES NODE LABELS"
+
 export NODEPOOL_INSTANCE_NAME=$(kubectl get nodes \
   -o jsonpath={.items[].metadata.name} -l 'node-role.kubernetes.io/master!=')
 
@@ -30,3 +32,5 @@ while read l; do
     exit 1
   fi
 done < "${INTEGTEST_TMP_DIR}/nodepool_labels"
+
+echo "<<< PASS"

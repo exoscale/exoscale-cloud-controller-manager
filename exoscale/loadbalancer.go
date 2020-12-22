@@ -20,6 +20,7 @@ const (
 	annotationLoadBalancerID                         = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
 	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
 	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
+	annotationLoadBalancerExternal                   = "service.beta.kubernetes.io/exoscale-loadbalancer-external"
 	annotationLoadBalancerServiceStrategy            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
 	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
 	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
@@ -35,6 +36,12 @@ var errLoadBalancerNotFound = errors.New("load balancer not found")
 
 type loadBalancer struct {
 	p *cloudProvider
+}
+
+// isExternal returns true if the NLB instance is marked as "external" in the
+// Kubernetes Service manifest annotations (i.e. not managed by the CCM).
+func (l loadBalancer) isExternal(service *v1.Service) bool {
+	return strings.ToLower(getAnnotation(service, annotationLoadBalancerExternal, "")) == "true"
 }
 
 func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
@@ -130,6 +137,10 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	nlb, err := l.fetchLoadBalancer(ctx, service, zone)
 	if err != nil {
 		if errors.Is(err, errLoadBalancerNotFound) {
+			if l.isExternal(service) {
+				return nil, errors.New("NLB instance marked as external in Service annotations, cannot create")
+			}
+
 			infof("creating new NLB %q", lbSpec.Name)
 
 			nlb, err = l.p.client.CreateNetworkLoadBalancer(ctx, zone, lbSpec)
@@ -204,6 +215,11 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	}
 
 	if remainingServices == 0 {
+		if l.isExternal(service) {
+			debugf("NLB instance marked as external in Service annotations, skipping delete")
+			return nil
+		}
+
 		infof("deleting NLB %q", nlb.Name)
 		return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, nlb.ID)
 	}
@@ -228,7 +244,7 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		return err
 	}
 
-	if isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
+	if !l.isExternal(service) && isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
 		infof("updating NLB %q", nlbCurrent.Name)
 		if _, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, nlbUpdate); err != nil {
 			return err
@@ -303,27 +319,7 @@ func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Servic
 		}
 	}
 
-	resp, err := l.p.client.ListNetworkLoadBalancers(ctx, zone)
-	if err != nil {
-		return nil, err
-	}
-
-	var nlb *egoscale.NetworkLoadBalancer
-	for _, n := range resp {
-		if n.Name == getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID)) {
-			nlb = n
-		}
-	}
-
-	if nlb == nil {
-		return nil, errLoadBalancerNotFound
-	}
-
-	if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, nlb.ID); err != nil {
-		return nil, fmt.Errorf("error patching annotations: %s", err)
-	}
-
-	return nlb, nil
+	return nil, errLoadBalancerNotFound
 }
 
 func (l *loadBalancer) patchAnnotation(ctx context.Context, service *v1.Service, k, v string) error {

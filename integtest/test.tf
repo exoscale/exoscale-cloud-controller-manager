@@ -53,17 +53,17 @@ EOF
 }
 
 data "local_file" "kube-ca-crt" {
-  filename = "${var.tmpdir}/kube-ca.crt"
+  filename   = "${var.tmpdir}/kube-ca.crt"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
 data "local_file" "cluster-endpoint" {
-  filename = "${var.tmpdir}/cluster_endpoint"
+  filename   = "${var.tmpdir}/cluster_endpoint"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
 data "local_file" "kubelet-join-token" {
-  filename = "${var.tmpdir}/kubelet_join_token"
+  filename   = "${var.tmpdir}/kubelet_join_token"
   depends_on = [exoscale_compute.kube_master_node]
 }
 
@@ -163,9 +163,9 @@ resource "exoscale_ssh_keypair" "test" {
 }
 
 resource "local_file" "ssh_key" {
-  filename = "${var.tmpdir}/id_rsa"
+  filename          = "${var.tmpdir}/id_rsa"
   sensitive_content = exoscale_ssh_keypair.test.private_key
-  file_permission = "0600"
+  file_permission   = "0600"
 }
 
 resource "exoscale_compute" "kube_master_node" {
@@ -240,7 +240,19 @@ resource "exoscale_instance_pool" "test" {
   depends_on = [exoscale_compute.kube_master_node]
 }
 
+resource "exoscale_nlb" "external" {
+  zone        = var.zone
+  name        = "${local.test_prefix}-${random_string.random.result}"
+  description = "${local.test_prefix}-${random_string.random.result} Description"
+
+  depends_on = [exoscale_instance_pool.test]
+}
+
 output "test_id" { value = random_string.random.result }
 output "master_node_name" { value = exoscale_compute.kube_master_node.name }
 output "master_node_ip" { value = exoscale_compute.kube_master_node.ip_address }
 output "nodepool_id" { value = exoscale_instance_pool.test.id }
+output "external_nlb_id" { value = exoscale_nlb.external.id }
+output "external_nlb_ip" { value = exoscale_nlb.external.ip_address }
+output "external_nlb_name" { value = exoscale_nlb.external.name }
+output "external_nlb_desc" { value = exoscale_nlb.external.description }

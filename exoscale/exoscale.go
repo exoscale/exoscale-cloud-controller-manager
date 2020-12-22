@@ -58,7 +58,7 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping or run custom controllers specific to the cloud provider.
 // Any tasks started here should be cleaned up when the stop channel closes.
-func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, _ <-chan struct{}) {
 	restConfig := clientBuilder.ConfigOrDie("exoscale-cloud-controller-manager")
 	c.kclient = kubernetes.NewForConfigOrDie(restConfig)
 }

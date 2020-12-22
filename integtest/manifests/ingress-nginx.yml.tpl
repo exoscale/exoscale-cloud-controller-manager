@@ -283,7 +283,6 @@ metadata:
   namespace: ingress-nginx
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: %%EXOSCALE_ZONE%%
-    service.beta.kubernetes.io/exoscale-loadbalancer-name: %%EXOSCALE_CCM_LB_NAME%%
 spec:
   type: LoadBalancer
   ports:
