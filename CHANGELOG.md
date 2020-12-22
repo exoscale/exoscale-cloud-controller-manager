@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+### Features
+
+* Add support for externally managed NLB instances
+
+### Changes
+
+* Improve Load Balancer Instance Pool detection logic: an error will be
+  returned if multiple Instance Pools are detected across the cluster Nodes and
+  that no Instance Pool ID is specified in the Kubernetes *Service* annotations
+* Docker image is now based on busybox
+
+
 ## 0.3.0
 
 ### Bug Fixes
