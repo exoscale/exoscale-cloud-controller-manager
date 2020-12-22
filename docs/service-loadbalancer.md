@@ -111,10 +111,11 @@ The name of the Exoscale NLB. Defaults to `<Kubernetes Service UID>`.
 The description of the Exoscale NLB.
 
 
-#### `service.beta.kubernetes.io/exoscale-loadbalancer-keep`
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-external`
 
 If set to `true`, the Exoscale CCM will consider the NLB as externally
-managed and will not delete it when there are no NLB services defined on it.
+managed and will not attempt to create/update/delete the NLB instance
+which ID is specified in the k8s *Service* annotations.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-name`
