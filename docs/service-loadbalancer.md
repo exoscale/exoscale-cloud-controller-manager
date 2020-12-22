@@ -97,8 +97,8 @@ If this annotation is not present, the default value will be taken from the `EXO
 
 The ID of the Exoscale NLB corresponding to the Kubernetes *Service*. This
 annotation is set automatically by the Exoscale CCM after having created the
-NLB instance if one was not specified (see the *Multiple Kubernetes Service on
-a single Exoscale NLB* section for more information).
+NLB instance if one was not specified (see section *Using an externally
+managed NLB instance with the Exoscale CCM*).
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-name`
@@ -238,71 +238,6 @@ spec:
 
 > Note: the NLB instance referenced in the annotations **must** exist before
 > the k8s *Service* is created.
-
-
-### Multiple Kubernetes Service on a single Exoscale NLB
-
-Using and externally managed NLB instance, it is possible to co-locate multiple
-Kubernetes *Services* on a single Exoscale NLB instance (up to 10 services) by
-creating multiple Kubernetes *Services* and explicitly specifying the ID of the
-same NLB ID in the *Service* annotations.
-
-Here is an example of 2 different Kubernetes *Services* created on the same NLB
-instance:
-
-```yaml
-kind: Service
-apiVersion: v1
-metadata:
-  name: app1
-  annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "app1"
-spec:
-  selector:
-    app: app1
-  type: LoadBalancer
-  ports:
-  - port: 8081
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: app2
-  annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "app2"
-spec:
-  selector:
-    app: app2
-  type: LoadBalancer
-  ports:
-  - port: 8082
-```
-
-In the result after applying the manifest, we can see that the 2 services share
-the same external IP address:
-
-```console
-$ kubectl get svc
-NAME   TYPE           CLUSTER-IP       EXTERNAL-IP       PORT(S)         AGE
-...
-app1   LoadBalancer   10.107.25.129    194.182.181.104   8081:30699/TCP  4m54s
-app2   LoadBalancer   10.103.219.252   194.182.181.104   8082:31094/TCP  4m54s
-```
-
-When looking at the Exoscale NLB instance using the `exo` CLI, we can confirm
-that the 2 Kubernetes *Services* have been created on the same NLB instance:
-
-```console
-$ exo nlb show -O json 81729656-e1d3-4bd6-8515-d9267aa4491b | jq -r '.services[].name'
-app1
-app2
-```
 
 
 ## ⚠️ Important Notes
