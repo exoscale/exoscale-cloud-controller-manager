@@ -211,11 +211,41 @@ to provision a corresponding NLB instance correctly:
   set at the CCM level via the `EXOSCALE_DEFAULT_ZONE` environment variable).
 
 
+### Using an externally managed NLB instance with the Exoscale CCM
+
+If you prefer to manage the NLB instance yourself using different tools
+(e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
+to use in the k8s *Service* annotations as well as an annotation instructing
+the Exoscale CCM not to create/update/delete the specified NLB instance:
+
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+  - port: 80
+```
+
+> Note: the NLB instance referenced in the annotations **must** exist before
+> the k8s *Service* is created.
+
+
 ### Multiple Kubernetes Service on a single Exoscale NLB
 
-It is possible to co-locate multiple Kubernetes *Services* on a single Exoscale
-NLB instance (up to 10 services) by creating multiple Kubernetes *Services* and
-explicitly specifying the ID of the same NLB ID in the *Service* annotations.
+Using and externally managed NLB instance, it is possible to co-locate multiple
+Kubernetes *Services* on a single Exoscale NLB instance (up to 10 services) by
+creating multiple Kubernetes *Services* and explicitly specifying the ID of the
+same NLB ID in the *Service* annotations.
+
 Here is an example of 2 different Kubernetes *Services* created on the same NLB
 instance:
 
@@ -227,6 +257,7 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "app1"
 spec:
   selector:
@@ -242,6 +273,7 @@ metadata:
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "81729656-e1d3-4bd6-8515-d9267aa4491b"
     service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "app2"
 spec:
   selector:
@@ -270,34 +302,6 @@ $ exo nlb show -O json 81729656-e1d3-4bd6-8515-d9267aa4491b | jq -r '.services[]
 app1
 app2
 ```
-
-
-### Using an externally managed NLB instance with the Exoscale CCM
-
-If you prefer to manage the NLB instance yourself using different tools 
-(e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
-to use in the k8s *Service* annotations as well as an annotation instructing
-the Exoscale CCM not to create/update/delete the specified NLB instance:
-
-```yaml
-kind: Service
-apiVersion: v1
-metadata:
-  name: nginx
-  annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
-    service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
-    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
-spec:
-  selector:
-    app: nginx
-  type: LoadBalancer
-  ports:
-  - port: 80
-```
-
-> Note: the NLB instance referenced in the annotations **must** exist before
-> the k8s *Service* is created.
 
 
 ## ⚠️ Important Notes
