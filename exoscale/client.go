@@ -44,7 +44,7 @@ func newExoscaleClient(stop <-chan struct{}) (*exoscaleClient, error) {
 
 	if envKey != "" && envSecret != "" {
 		infof("reading exoscale IAM credentials from environment")
-		exoclient.client = egoscale.NewClient(envEndpoint, envKey, envSecret)
+		exoclient.client = egoscale.NewClient(exoclient.endpoint, envKey, envSecret)
 	} else if envCredentialsFile != "" {
 		exoclient.credentialsFile = envCredentialsFile
 		infof("reading exoscale IAM credentials from file %q", exoclient.credentialsFile)
@@ -153,6 +153,10 @@ func (e *exoscaleClient) GetVirtualMachine(ctx context.Context, uuid *egoscale.U
 	defer e.RUnlock()
 
 	vm, err := e.client.GetWithContext(ctx, egoscale.VirtualMachine{ID: uuid})
+
+	if vm == nil {
+		return nil, err
+	}
 
 	return vm.(*egoscale.VirtualMachine), err
 }

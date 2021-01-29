@@ -28,7 +28,6 @@ type cloudProvider struct {
 	loadBalancer cloudprovider.LoadBalancer
 	kclient      kubernetes.Interface
 	defaultZone  string
-	stop         <-chan struct{}
 }
 
 func init() {

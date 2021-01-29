@@ -2,6 +2,7 @@ package exoscale
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/exoscale/egoscale"
 	v1 "k8s.io/api/core/v1"
@@ -23,7 +24,7 @@ func newMockInstanceAPINotFound() (*cloudProvider, *testServer) {
 {"listvirtualmachinesresponse": {}}`})
 
 	return &cloudProvider{
-		client: egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+		client: &exoscaleClient{client: egoscale.NewClient(ts.URL, "KEY", "SECRET"), RWMutex: &sync.RWMutex{}},
 	}, ts
 }
 
@@ -88,7 +89,7 @@ func newMockInstanceAPI() (*cloudProvider, *testServer) {
 }}`, testInstanceID, testInstanceName, testInstanceIP, testInstanceServiceOffering, testInstanceZoneName)})
 
 	return &cloudProvider{
-		client:  egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+		client:  &exoscaleClient{client: egoscale.NewClient(ts.URL, "KEY", "SECRET"), RWMutex: &sync.RWMutex{}},
 		kclient: clientset,
 	}, ts
 }
