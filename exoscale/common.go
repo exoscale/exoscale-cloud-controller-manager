@@ -25,12 +25,12 @@ func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, provide
 		return nil, err
 	}
 
-	r, err := c.client.GetWithContext(ctx, egoscale.VirtualMachine{ID: uuid})
+	r, err := c.client.GetVirtualMachine(ctx, uuid)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.(*egoscale.VirtualMachine), nil
+	return r, nil
 }
 
 func nodeAddresses(instance *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
