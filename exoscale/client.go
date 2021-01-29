@@ -43,15 +43,15 @@ func newExoscaleClient(stop <-chan struct{}) (*exoscaleClient, error) {
 	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
 
 	if envKey != "" && envSecret != "" {
-		infof("reading exoscale IAM credentials from environment")
+		infof("reading Exoscale API credentials from environment")
 		exoclient.client = egoscale.NewClient(exoclient.endpoint, envKey, envSecret)
 	} else if envCredentialsFile != "" {
 		exoclient.credentialsFile = envCredentialsFile
-		infof("reading exoscale IAM credentials from file %q", exoclient.credentialsFile)
+		infof("reading Exoscale API credentials from file %q", exoclient.credentialsFile)
 		exoclient.refreshCredentials()
 		go exoclient.watchCredentialsFile(stop)
 	} else {
-		return nil, errors.New("incomplete or missing for API credentials")
+		return nil, errors.New("incomplete or missing Exoscale API credentials")
 	}
 
 	return exoclient, nil
@@ -60,7 +60,7 @@ func newExoscaleClient(stop <-chan struct{}) (*exoscaleClient, error) {
 func (e *exoscaleClient) watchCredentialsFile(stop <-chan struct{}) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		fatalf("failed to watch credentials file %q, %q", e.credentialsFile, err)
+		fatalf("failed to watch credentials file %q: %v", e.credentialsFile, err)
 	}
 
 	// We watch the folder because the file might get deleted and recreated
@@ -79,7 +79,7 @@ func (e *exoscaleClient) watchCredentialsFile(stop <-chan struct{}) {
 
 			if event.Name == e.credentialsFile &&
 				(event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create) {
-				infof("refreshing IAM credential from file %s", e.credentialsFile)
+				infof("refreshing API credentials from file %q", e.credentialsFile)
 				e.refreshCredentials()
 			}
 		case err, ok := <-watcher.Errors:
@@ -87,7 +87,7 @@ func (e *exoscaleClient) watchCredentialsFile(stop <-chan struct{}) {
 				errorf("credentials file watcher error channel closed")
 				return
 			}
-			errorf("error while watching credentials file %q, %q", e.credentialsFile, err)
+			errorf("error while watching credentials file %q: %v", e.credentialsFile, err)
 		case <-stop:
 			infof("closing credential file watch")
 			watcher.Close()
@@ -115,7 +115,7 @@ func (e *exoscaleClient) refreshCredentials() {
 	e.client = egoscale.NewClient(e.endpoint, credentials.APIKey, credentials.APISecret)
 	e.Unlock()
 
-	infof("exoscale IAM credentials refreshed, now using %s (%s)", credentials.Name, credentials.APIKey)
+	infof("Exoscale API credentials refreshed, now using %s (%s)", credentials.Name, credentials.APIKey)
 }
 
 func (e *exoscaleClient) CreateNetworkLoadBalancer(ctx context.Context, zone string,
@@ -148,7 +148,7 @@ func (e *exoscaleClient) UpdateNetworkLoadBalancer(ctx context.Context, zone str
 	return e.client.UpdateNetworkLoadBalancer(ctx, zone, nlbUpdate)
 }
 
-func (e *exoscaleClient) GetVirtualMachine(ctx context.Context, uuid *egoscale.UUID) (*egoscale.VirtualMachine, error) {
+func (e *exoscaleClient) GetInstance(ctx context.Context, uuid *egoscale.UUID) (*egoscale.VirtualMachine, error) {
 	e.RLock()
 	defer e.RUnlock()
 

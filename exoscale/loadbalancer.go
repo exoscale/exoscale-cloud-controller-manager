@@ -97,7 +97,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 
 		instancePoolID := ""
 		for _, node := range nodes {
-			instance, err := l.p.client.GetVirtualMachine(ctx, egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID))
+			instance, err := l.p.client.GetInstance(ctx, egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID))
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving Compute instance information: %s", err)
 			}

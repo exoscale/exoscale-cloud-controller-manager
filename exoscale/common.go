@@ -25,7 +25,7 @@ func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, provide
 		return nil, err
 	}
 
-	r, err := c.client.GetVirtualMachine(ctx, uuid)
+	r, err := c.client.GetInstance(ctx, uuid)
 	if err != nil {
 		return nil, err
 	}
