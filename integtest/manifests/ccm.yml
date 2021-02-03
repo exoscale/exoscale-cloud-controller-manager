@@ -31,27 +31,19 @@ spec:
       - image: exoscale/cloud-controller-manager:test
         imagePullPolicy: Never
         name: exoscale-cloud-controller-manager
-        args:
-          - --cloud-provider=exoscale
-          - --leader-elect=true
-          - --allow-untagged-cloud
-          - --v=3
+        command:
+        - sh
+        - -c
+        - |
+          echo '{"name":"test","api_key":"xxx","api_secret":"xxx"}' > /tmp/iam-keys && \
+          exec /exoscale-cloud-controller-manager \
+          --cloud-provider=exoscale \
+          --leader-elect=true \
+          --allow-untagged-cloud  \
+          --v=3
         env:
-          - name: EXOSCALE_API_KEY
-            valueFrom:
-              secretKeyRef:
-                key: api-key
-                name: exoscale-credentials
-          - name: EXOSCALE_API_SECRET
-            valueFrom:
-              secretKeyRef:
-                key: api-secret
-                name: exoscale-credentials
-          - name: EXOSCALE_API_ENDPOINT
-            valueFrom:
-              secretKeyRef:
-                key: api-endpoint
-                name: exoscale-credentials
+          - name: EXOSCALE_API_CREDENTIALS_FILE
+            value: /tmp/iam-keys
 
 ---
 apiVersion: v1
