@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+### Features
+
+* Add support for API credentials configuration via local file
+
+
 ## 0.4.0
 
 ### Features
