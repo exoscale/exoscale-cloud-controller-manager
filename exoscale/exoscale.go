@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/exoscale/egoscale"
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -23,7 +22,7 @@ const (
 )
 
 type cloudProvider struct {
-	client       *egoscale.Client
+	client       *exoscaleClient
 	instances    cloudprovider.Instances
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
@@ -38,14 +37,7 @@ func init() {
 }
 
 func newExoscaleCloud() (cloudprovider.Interface, error) {
-	client, err := newExoscaleClient()
-	if err != nil {
-		return nil, fmt.Errorf("could not create Exoscale client: %v", err)
-	}
-
-	provider := &cloudProvider{
-		client: client,
-	}
+	provider := &cloudProvider{}
 
 	provider.instances = newInstances(provider)
 	provider.loadBalancer = newLoadBalancer(provider)
@@ -58,9 +50,15 @@ func newExoscaleCloud() (cloudprovider.Interface, error) {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping or run custom controllers specific to the cloud provider.
 // Any tasks started here should be cleaned up when the stop channel closes.
-func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, _ <-chan struct{}) {
+func (c *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	restConfig := clientBuilder.ConfigOrDie("exoscale-cloud-controller-manager")
 	c.kclient = kubernetes.NewForConfigOrDie(restConfig)
+
+	client, err := newExoscaleClient(stop)
+	if err != nil {
+		fatalf("could not create Exoscale client: %v", err)
+	}
+	c.client = client
 }
 
 // LoadBalancer returns a balancer interface.

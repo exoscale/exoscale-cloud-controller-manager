@@ -97,9 +97,9 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 
 		instancePoolID := ""
 		for _, node := range nodes {
-			instance, err := l.fetchComputeInstanceFromNode(ctx, node)
+			instance, err := l.p.client.GetInstance(ctx, egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID))
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error retrieving Compute instance information: %s", err)
 			}
 
 			// Standalone Node, leaving it alone.
@@ -418,19 +418,6 @@ func (l *loadBalancer) getLoadBalancerZone(service *v1.Service) (string, error) 
 			"controller default zone configuration")
 	}
 	return zone, nil
-}
-
-// fetchComputeInstanceFromNode retrieves the Exoscale Compute instance underlying a cluster Node.
-// This method performs Exoscale API calls, incurring extra latency.
-func (l *loadBalancer) fetchComputeInstanceFromNode(ctx context.Context, node *v1.Node) (*egoscale.VirtualMachine, error) {
-	resp, err := l.p.client.GetWithContext(ctx, &egoscale.ListVirtualMachines{
-		ID: egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving Compute instance information: %s", err)
-	}
-
-	return resp.(*egoscale.VirtualMachine), nil
 }
 
 func isLoadBalancerUpdated(current, update *egoscale.NetworkLoadBalancer) bool {

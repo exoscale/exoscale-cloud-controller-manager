@@ -53,6 +53,7 @@ trap cleanup EXIT
 }
 
 ## IMPORTANT: the order of the tests matter!
+. "${INTEGTEST_DIR}/test-secret-file-reload.bash"
 . "${INTEGTEST_DIR}/test-nlb-ingress.bash"
 . "${INTEGTEST_DIR}/test-nlb-external.bash"
 . "${INTEGTEST_DIR}/test-node-labels.bash"

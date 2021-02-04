@@ -8,6 +8,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/stretchr/testify v1.6.1
+	gopkg.in/fsnotify.v1 v1.4.7
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3
 	k8s.io/client-go v0.19.3

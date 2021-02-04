@@ -219,7 +219,6 @@ kubectl config view --raw -o jsonpath="{.clusters[].cluster.certificate-authorit
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.server}" > "${var.tmpdir}/cluster_endpoint" ; \
 kubectl apply -f https://docs.projectcalico.org/v3.15/manifests/calico.yaml ; \
 kubectl wait --timeout 600s node/${exoscale_compute.kube_master_node.name} --for=condition=Ready ; \
-"${path.cwd}/../docs/scripts/generate-secret.sh" ; \
 kubectl apply -f ${path.cwd}/manifests/ccm.yml ; \
 kubectl wait --timeout 600s -n kube-system --for condition=Available deployment.apps/exoscale-cloud-controller-manager
 EOF
