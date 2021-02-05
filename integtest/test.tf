@@ -219,7 +219,7 @@ kubectl config view --raw -o jsonpath="{.clusters[].cluster.certificate-authorit
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.server}" > "${var.tmpdir}/cluster_endpoint" ; \
 kubectl apply -f https://docs.projectcalico.org/v3.15/manifests/calico.yaml ; \
 kubectl wait --timeout 600s node/${exoscale_compute.kube_master_node.name} --for=condition=Ready ; \
-kubectl apply -f ${path.cwd}/manifests/ccm.yml ; \
+sed -r -e "s/%%EXOSCALE_ZONE%%/${var.zone}/" ${path.cwd}/manifests/ccm.yml.tpl | kubectl apply -f - ; \
 kubectl wait --timeout 600s -n kube-system --for condition=Available deployment.apps/exoscale-cloud-controller-manager
 EOF
   }

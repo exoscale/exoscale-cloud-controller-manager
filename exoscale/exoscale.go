@@ -27,7 +27,7 @@ type cloudProvider struct {
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
 	kclient      kubernetes.Interface
-	defaultZone  string
+	zone         string
 }
 
 func init() {
@@ -37,12 +37,17 @@ func init() {
 }
 
 func newExoscaleCloud() (cloudprovider.Interface, error) {
-	provider := &cloudProvider{}
+	provider := &cloudProvider{
+		zone: os.Getenv("EXOSCALE_ZONE"),
+	}
+
+	if provider.zone == "" {
+		return nil, fmt.Errorf("zone not specified, please set EXOSCALE_ZONE environment variable")
+	}
 
 	provider.instances = newInstances(provider)
 	provider.loadBalancer = newLoadBalancer(provider)
 	provider.zones = newZones(provider)
-	provider.defaultZone = os.Getenv("EXOSCALE_DEFAULT_ZONE")
 
 	return provider, nil
 }

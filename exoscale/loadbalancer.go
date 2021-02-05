@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	annotationLoadBalancerZone                       = "service.beta.kubernetes.io/exoscale-loadbalancer-zone"
 	annotationLoadBalancerID                         = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
 	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
 	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
@@ -53,12 +52,7 @@ func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v1.Service) (*v1.LoadBalancerStatus, bool, error) {
-	zone, err := l.getLoadBalancerZone(service)
-	if err != nil {
-		return nil, false, err
-	}
-
-	lb, err := l.fetchLoadBalancer(ctx, service, zone)
+	lb, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
 			return nil, false, nil
@@ -80,11 +74,6 @@ func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service 
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	zone, err := l.getLoadBalancerZone(service)
-	if err != nil {
-		return nil, err
-	}
-
 	// Inferring the Instance Pool ID from the cluster Nodes that run the Service in case no Instance Pool ID
 	// has been specified in the annotations.
 	//
@@ -123,7 +112,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 
 		debugf("inferred NLB service Instance Pool ID from cluster Nodes: %s", instancePoolID)
 
-		err = l.patchAnnotation(ctx, service, annotationLoadBalancerServiceInstancePoolID, instancePoolID)
+		err := l.patchAnnotation(ctx, service, annotationLoadBalancerServiceInstancePoolID, instancePoolID)
 		if err != nil {
 			return nil, fmt.Errorf("error patching annotations: %s", err)
 		}
@@ -134,7 +123,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 		return nil, err
 	}
 
-	nlb, err := l.fetchLoadBalancer(ctx, service, zone)
+	nlb, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if errors.Is(err, errLoadBalancerNotFound) {
 			if l.isExternal(service) {
@@ -143,7 +132,7 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 
 			infof("creating new NLB %q", lbSpec.Name)
 
-			nlb, err = l.p.client.CreateNetworkLoadBalancer(ctx, zone, lbSpec)
+			nlb, err = l.p.client.CreateNetworkLoadBalancer(ctx, l.p.zone, lbSpec)
 			if err != nil {
 				return nil, err
 			}
@@ -182,12 +171,7 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *v1.Service) error {
-	zone, err := l.getLoadBalancerZone(service)
-	if err != nil {
-		return err
-	}
-
-	nlb, err := l.fetchLoadBalancer(ctx, service, zone)
+	nlb, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if errors.Is(err, errLoadBalancerNotFound) {
 			return nil
@@ -221,7 +205,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 		}
 
 		infof("deleting NLB %q", nlb.Name)
-		return l.p.client.DeleteNetworkLoadBalancer(ctx, zone, nlb.ID)
+		return l.p.client.DeleteNetworkLoadBalancer(ctx, l.p.zone, nlb.ID)
 	}
 
 	return nil
@@ -229,24 +213,19 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 
 // updateLoadBalancer updates the matching Exoscale NLB instance according to the *v1.Service spec provided.
 func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Service) error {
-	zone, err := l.getLoadBalancerZone(service)
-	if err != nil {
-		return err
-	}
-
 	nlbUpdate, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return err
 	}
 
-	nlbCurrent, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, nlbUpdate.ID)
+	nlbCurrent, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, nlbUpdate.ID)
 	if err != nil {
 		return err
 	}
 
 	if !l.isExternal(service) && isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
 		infof("updating NLB %q", nlbCurrent.Name)
-		if _, err = l.p.client.UpdateNetworkLoadBalancer(ctx, zone, nlbUpdate); err != nil {
+		if _, err = l.p.client.UpdateNetworkLoadBalancer(ctx, l.p.zone, nlbUpdate); err != nil {
 			return err
 		}
 		debugf("NLB %q updated successfully", nlbCurrent.Name)
@@ -304,9 +283,9 @@ next:
 	return nil
 }
 
-func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service, zone string) (*egoscale.NetworkLoadBalancer, error) {
+func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
 	if lbID := getAnnotation(service, annotationLoadBalancerID, ""); lbID != "" {
-		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, zone, lbID)
+		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, lbID)
 		switch err {
 		case nil:
 			return nlb, nil
@@ -409,15 +388,6 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 	}
 
 	return &lb, nil
-}
-
-func (l *loadBalancer) getLoadBalancerZone(service *v1.Service) (string, error) {
-	zone := getAnnotation(service, annotationLoadBalancerZone, l.p.defaultZone)
-	if zone == "" {
-		return "", errors.New("zone not specified either in annotations or in the " +
-			"controller default zone configuration")
-	}
-	return zone, nil
 }
 
 func isLoadBalancerUpdated(current, update *egoscale.NetworkLoadBalancer) bool {
