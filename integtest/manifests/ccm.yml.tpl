@@ -42,6 +42,8 @@ spec:
           --allow-untagged-cloud  \
           --v=3
         env:
+          - name: EXOSCALE_ZONE
+            value: %%EXOSCALE_ZONE%%
           - name: EXOSCALE_API_CREDENTIALS_FILE
             value: /tmp/iam-keys
 

@@ -31,7 +31,6 @@ func Test_buildLoadBalancerFromAnnotations(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				UID: "901a4773-b836-409d-9364-b855b7b38c22",
 				Annotations: map[string]string{
-					annotationLoadBalancerZone:                       "ch-gva-2",
 					annotationLoadBalancerID:                         "61a38660-ce67-4649-abef-284aa735d49d",
 					annotationLoadBalancerName:                       "nlb-name",
 					annotationLoadBalancerDescription:                "nlb-description",

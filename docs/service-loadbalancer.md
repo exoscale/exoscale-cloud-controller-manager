@@ -38,8 +38,6 @@ kind: Service
 apiVersion: v1
 metadata:
   name: nginx
-  annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
 spec:
   selector:
     app: nginx
@@ -80,17 +78,6 @@ specifications, the behavior of the Exoscale CCM service node is configurable
 by adding annotations in the Kubernetes `Service` object's `annotations` map.
 The following annotations are supported (annotations marked by a __*__ are
 required):
-
-
-#### `service.beta.kubernetes.io/exoscale-loadbalancer-zone`*
-
-The Exoscale [zone][exo-zones] in which to create the Network Load Balancer
-instance.
-
-> Note: a CCM-managed Network Load Balancer must be located in the same zone as
-> the Kubernetes Nodes it must forward network traffic to.
-
-If this annotation is not present, the default value will be taken from the `EXOSCALE_DEFAULT_ZONE` environment variable.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-id`
@@ -206,10 +193,6 @@ to provision a corresponding NLB instance correctly:
   using a [`DaemonSet`][k8s-daemonset] type of deployment), or the Ingress
   Controller Service `externalTrafficPolicy` property must be set to `Cluster`
   (not `Local`).
-* The manifest annotations of the Ingress Controller `Service` must contain the
-  minimum Exoscale CCM annotation described in this document (e.g. the
-  `service.beta.kubernetes.io/exoscale-loadbalancer-zone` if no default zone is
-  set at the CCM level via the `EXOSCALE_DEFAULT_ZONE` environment variable).
 
 
 ### Using an externally managed NLB instance with the Exoscale CCM
@@ -225,7 +208,6 @@ apiVersion: v1
 metadata:
   name: nginx
   annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "ch-gva-2"
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
     service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
 spec:
@@ -256,7 +238,6 @@ spec:
 [exo-nlb]: https://community.exoscale.com/documentation/compute/network-load-balancer/
 [exo-tf-provider]: https://registry.terraform.io/providers/exoscale/exoscale/latest/docs
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
-[exo-zones]: https://www.exoscale.com/datacenters/
 [ingress-nginx]: https://kubernetes.github.io/ingress-nginx/
 [k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 [k8s-daemonset]: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/

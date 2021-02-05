@@ -36,6 +36,8 @@ spec:
           - --leader-elect=true
           - --allow-untagged-cloud
         env:
+          - name: EXOSCALE_ZONE
+            value: ch-gva-2
           - name: EXOSCALE_API_KEY
             valueFrom:
               secretKeyRef:

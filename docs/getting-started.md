@@ -47,12 +47,13 @@ the CCM *Deployment*.
 
 First, start by exporting the Exoscale API credentials (we recommend that you
 create dedicated API credentials using the [Exoscale IAM][exo-iam] service) to
-provide to the CCM in your shell:
+provide to the CCM in your shell, as well as the zone in which the cluster is
+located:
 
 ```Shell
 export EXOSCALE_API_KEY="EXOxxxxxxxxxxxxxxxxxxxxxxxx"
 export EXOSCALE_API_SECRET="xxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-export EXOSCALE_DEFAULT_ZONE="ch-gva-2"
+export EXOSCALE_ZONE="ch-gva-2"
 ```
 
 Next, run the following command from the same shell:
