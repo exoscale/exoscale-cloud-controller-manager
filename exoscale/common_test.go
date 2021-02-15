@@ -24,7 +24,10 @@ func newMockInstanceAPINotFound() (*cloudProvider, *testServer) {
 {"listvirtualmachinesresponse": {}}`})
 
 	return &cloudProvider{
-		client: &exoscaleClient{client: egoscale.NewClient(ts.URL, "KEY", "SECRET"), RWMutex: &sync.RWMutex{}},
+		client: &exoscaleClient{
+			client:  egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+			RWMutex: &sync.RWMutex{},
+		},
 	}, ts
 }
 
@@ -89,7 +92,10 @@ func newMockInstanceAPI() (*cloudProvider, *testServer) {
 }}`, testInstanceID, testInstanceName, testInstanceIP, testInstanceServiceOffering, testInstanceZoneName)})
 
 	return &cloudProvider{
-		client:  &exoscaleClient{client: egoscale.NewClient(ts.URL, "KEY", "SECRET"), RWMutex: &sync.RWMutex{}},
+		client: &exoscaleClient{
+			client:  egoscale.NewClient(ts.URL, "KEY", "SECRET"),
+			RWMutex: &sync.RWMutex{},
+		},
 		kclient: clientset,
 	}, ts
 }

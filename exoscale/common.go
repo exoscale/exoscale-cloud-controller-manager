@@ -14,7 +14,7 @@ import (
 
 const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
 
-func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
+func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
 	id, err := formatProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (c *cloudProvider) computeInstanceByProviderID(ctx context.Context, provide
 		return nil, err
 	}
 
-	r, err := c.client.GetInstance(ctx, uuid)
+	r, err := p.client.GetInstance(ctx, uuid)
 	if err != nil {
 		return nil, err
 	}

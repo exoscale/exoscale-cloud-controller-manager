@@ -35,7 +35,7 @@ spec:
         - sh
         - -c
         - |
-          echo '{"name":"test","api_key":"xxx","api_secret":"xxx"}' > /tmp/iam-keys && \
+          echo '{"name":"test","api_key":"xxx","api_secret":"xxx"}' > /tmp/api-creds && \
           exec /exoscale-cloud-controller-manager \
           --cloud-provider=exoscale \
           --leader-elect=true \
@@ -45,7 +45,9 @@ spec:
           - name: EXOSCALE_ZONE
             value: %%EXOSCALE_ZONE%%
           - name: EXOSCALE_API_CREDENTIALS_FILE
-            value: /tmp/iam-keys
+            value: /tmp/api-creds
+          - name: EXOSCALE_SKS_AGENT_RUNNERS
+            value: node-csr-validation
 
 ---
 apiVersion: v1
@@ -122,14 +124,26 @@ rules:
   verbs:
   - create
 - apiGroups:
-  - ""
+  - certificates.k8s.io
   resources:
-  - persistentvolumes
+  - certificatesigningrequests
   verbs:
-  - get
   - list
-  - update
   - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  verbs:
+  - update
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/kubelet-serving
+  verbs:
+  - approve
 - apiGroups:
   - ""
   resources:

@@ -2,7 +2,7 @@ terraform {
   required_providers {
     exoscale = {
       source  = "exoscale/exoscale"
-      version = "~> 0.20.0"
+      version = "~> 0.21.1"
     }
   }
 }
@@ -242,7 +242,7 @@ resource "exoscale_instance_pool" "test" {
 resource "exoscale_nlb" "external" {
   zone        = var.zone
   name        = "${local.test_prefix}-${random_string.random.result}"
-  description = "${local.test_prefix}-${random_string.random.result} Description"
+  description = "${local.test_prefix}-${random_string.random.result} description"
 
   depends_on = [exoscale_instance_pool.test]
 }

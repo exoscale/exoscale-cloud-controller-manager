@@ -18,53 +18,59 @@ const (
 
 // InstancePool represents an Instance Pool.
 type InstancePool struct {
-	ID                *UUID             `json:"id"`
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	ServiceOfferingID *UUID             `json:"serviceofferingid"`
-	TemplateID        *UUID             `json:"templateid"`
-	ZoneID            *UUID             `json:"zoneid"`
-	SecurityGroupIDs  []UUID            `json:"securitygroupids"`
-	NetworkIDs        []UUID            `json:"networkids"`
-	KeyPair           string            `json:"keypair"`
-	UserData          string            `json:"userdata"`
-	Size              int               `json:"size"`
-	RootDiskSize      int               `json:"rootdisksize"`
-	State             InstancePoolState `json:"state"`
-	VirtualMachines   []VirtualMachine  `json:"virtualmachines"`
+	ID                   *UUID             `json:"id"`
+	Name                 string            `json:"name"`
+	Description          string            `json:"description"`
+	ServiceOfferingID    *UUID             `json:"serviceofferingid"`
+	TemplateID           *UUID             `json:"templateid"`
+	ZoneID               *UUID             `json:"zoneid"`
+	AntiAffinityGroupIDs []UUID            `json:"affinitygroupids"`
+	SecurityGroupIDs     []UUID            `json:"securitygroupids"`
+	NetworkIDs           []UUID            `json:"networkids"`
+	IPv6                 bool              `json:"ipv6"`
+	KeyPair              string            `json:"keypair"`
+	UserData             string            `json:"userdata"`
+	Size                 int               `json:"size"`
+	RootDiskSize         int               `json:"rootdisksize"`
+	State                InstancePoolState `json:"state"`
+	VirtualMachines      []VirtualMachine  `json:"virtualmachines"`
 }
 
 // CreateInstancePool represents an Instance Pool creation API request.
 type CreateInstancePool struct {
-	Name              string `json:"name"`
-	Description       string `json:"description,omitempty"`
-	ServiceOfferingID *UUID  `json:"serviceofferingid"`
-	TemplateID        *UUID  `json:"templateid"`
-	ZoneID            *UUID  `json:"zoneid"`
-	SecurityGroupIDs  []UUID `json:"securitygroupids,omitempty"`
-	NetworkIDs        []UUID `json:"networkids,omitempty"`
-	KeyPair           string `json:"keypair,omitempty"`
-	UserData          string `json:"userdata,omitempty"`
-	Size              int    `json:"size"`
-	RootDiskSize      int    `json:"rootdisksize,omitempty"`
-	_                 bool   `name:"createInstancePool" description:"Create an Instance Pool"`
+	Name                 string `json:"name"`
+	Description          string `json:"description,omitempty"`
+	ServiceOfferingID    *UUID  `json:"serviceofferingid"`
+	TemplateID           *UUID  `json:"templateid"`
+	ZoneID               *UUID  `json:"zoneid"`
+	AntiAffinityGroupIDs []UUID `json:"affinitygroupids,omitempty"`
+	SecurityGroupIDs     []UUID `json:"securitygroupids,omitempty"`
+	NetworkIDs           []UUID `json:"networkids,omitempty"`
+	IPv6                 bool   `json:"ipv6,omitempty"`
+	KeyPair              string `json:"keypair,omitempty"`
+	UserData             string `json:"userdata,omitempty"`
+	Size                 int    `json:"size"`
+	RootDiskSize         int    `json:"rootdisksize,omitempty"`
+	_                    bool   `name:"createInstancePool" description:"Create an Instance Pool"`
 }
 
 // CreateInstancePoolResponse represents an Instance Pool creation API response.
 type CreateInstancePoolResponse struct {
-	ID                *UUID             `json:"id"`
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	ServiceOfferingID *UUID             `json:"serviceofferingid"`
-	TemplateID        *UUID             `json:"templateid"`
-	ZoneID            *UUID             `json:"zoneid"`
-	SecurityGroupIDs  []UUID            `json:"securitygroupids"`
-	NetworkIDs        []UUID            `json:"networkids"`
-	KeyPair           string            `json:"keypair"`
-	UserData          string            `json:"userdata"`
-	Size              int64             `json:"size"`
-	RootDiskSize      int               `json:"rootdisksize"`
-	State             InstancePoolState `json:"state"`
+	ID                   *UUID             `json:"id"`
+	Name                 string            `json:"name"`
+	Description          string            `json:"description"`
+	ServiceOfferingID    *UUID             `json:"serviceofferingid"`
+	TemplateID           *UUID             `json:"templateid"`
+	ZoneID               *UUID             `json:"zoneid"`
+	AntiAffinityGroupIDs []UUID            `json:"affinitygroupids"`
+	SecurityGroupIDs     []UUID            `json:"securitygroupids"`
+	NetworkIDs           []UUID            `json:"networkids"`
+	IPv6                 bool              `json:"ipv6"`
+	KeyPair              string            `json:"keypair"`
+	UserData             string            `json:"userdata"`
+	Size                 int64             `json:"size"`
+	RootDiskSize         int               `json:"rootdisksize"`
+	State                InstancePoolState `json:"state"`
 }
 
 // Response returns an empty structure to unmarshal an Instance Pool creation API response into.
@@ -74,13 +80,15 @@ func (CreateInstancePool) Response() interface{} {
 
 // UpdateInstancePool represents an Instance Pool update API request.
 type UpdateInstancePool struct {
-	ID          *UUID  `json:"id"`
-	ZoneID      *UUID  `json:"zoneid"`
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	TemplateID  *UUID  `json:"templateid,omitempty"`
-	UserData    string `json:"userdata,omitempty"`
-	_           bool   `name:"updateInstancePool" description:"Update an Instance Pool"`
+	ID           *UUID  `json:"id"`
+	ZoneID       *UUID  `json:"zoneid"`
+	Name         string `json:"name,omitempty"`
+	Description  string `json:"description,omitempty"`
+	TemplateID   *UUID  `json:"templateid,omitempty"`
+	RootDiskSize int    `json:"rootdisksize,omitempty"`
+	UserData     string `json:"userdata,omitempty"`
+	IPv6         bool   `json:"ipv6,omitempty"`
+	_            bool   `name:"updateInstancePool" description:"Update an Instance Pool"`
 }
 
 // Response returns an empty structure to unmarshal an Instance Pool update API response into.

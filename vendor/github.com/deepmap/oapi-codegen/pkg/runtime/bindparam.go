@@ -395,21 +395,14 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 // We don't try to be smart here, if the field exists as a query argument,
 // set its value.
 func bindParamsToExplodedObject(paramName string, values url.Values, dest interface{}) error {
-	// special handling for custom types
-	switch dest.(type) {
-	case *types.Date:
+	// Dereference pointers to their destination values
+	binder, v, t := indirect(dest)
+	if binder != nil {
 		return BindStringToObject(values.Get(paramName), dest)
-	case *time.Time:
-		return BindStringToObject(values.Get(paramName), dest)
-
 	}
-
-	v := reflect.Indirect(reflect.ValueOf(dest))
-	if v.Type().Kind() != reflect.Struct {
+	if t.Kind() != reflect.Struct {
 		return fmt.Errorf("unmarshaling query arg '%s' into wrong type", paramName)
 	}
-
-	t := v.Type()
 
 	for i := 0; i < t.NumField(); i++ {
 		fieldT := t.Field(i)
@@ -444,4 +437,27 @@ func bindParamsToExplodedObject(paramName string, values url.Values, dest interf
 		}
 	}
 	return nil
+}
+
+// indirect
+func indirect(dest interface{}) (interface{}, reflect.Value, reflect.Type) {
+	v := reflect.ValueOf(dest)
+	if v.Type().NumMethod() > 0 && v.CanInterface() {
+		if u, ok := v.Interface().(Binder); ok {
+			return u, reflect.Value{}, nil
+		}
+	}
+	v = reflect.Indirect(v)
+	t := v.Type()
+	// special handling for custom types which might look like an object. We
+	// don't want to use object binding on them, but rather treat them as
+	// primitive types. time.Time{} is a unique case since we can't add a Binder
+	// to it without changing the underlying generated code.
+	if t.ConvertibleTo(reflect.TypeOf(time.Time{})) {
+		return dest, reflect.Value{}, nil
+	}
+	if t.ConvertibleTo(reflect.TypeOf(types.Date{})) {
+		return dest, reflect.Value{}, nil
+	}
+	return nil, v, t
 }

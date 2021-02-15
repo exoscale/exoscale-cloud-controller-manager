@@ -28,8 +28,11 @@ type exoscaleAPICredentials struct {
 	Name      string `json:"name"`
 }
 
-func newExoscaleClient(stop <-chan struct{}) (*exoscaleClient, error) {
-	exoclient := &exoscaleClient{RWMutex: &sync.RWMutex{}, endpoint: defaultComputeEndpoint}
+func newExoscaleClient(ctx context.Context) (*exoscaleClient, error) {
+	c := &exoscaleClient{
+		RWMutex:  &sync.RWMutex{},
+		endpoint: defaultComputeEndpoint,
+	}
 
 	envEndpoint := os.Getenv("EXOSCALE_API_ENDPOINT")
 	envKey := os.Getenv("EXOSCALE_API_KEY")
@@ -37,27 +40,27 @@ func newExoscaleClient(stop <-chan struct{}) (*exoscaleClient, error) {
 	envCredentialsFile := os.Getenv("EXOSCALE_API_CREDENTIALS_FILE")
 
 	if envEndpoint != "" {
-		exoclient.endpoint = envEndpoint
+		c.endpoint = envEndpoint
 	}
 
 	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
 
 	if envKey != "" && envSecret != "" {
 		infof("reading Exoscale API credentials from environment")
-		exoclient.client = egoscale.NewClient(exoclient.endpoint, envKey, envSecret)
+		c.client = egoscale.NewClient(c.endpoint, envKey, envSecret)
 	} else if envCredentialsFile != "" {
-		exoclient.credentialsFile = envCredentialsFile
-		infof("reading Exoscale API credentials from file %q", exoclient.credentialsFile)
-		exoclient.refreshCredentials()
-		go exoclient.watchCredentialsFile(stop)
+		c.credentialsFile = envCredentialsFile
+		infof("reading Exoscale API credentials from file %q", c.credentialsFile)
+		c.refreshCredentials()
+		go c.watchCredentialsFile(ctx)
 	} else {
 		return nil, errors.New("incomplete or missing Exoscale API credentials")
 	}
 
-	return exoclient, nil
+	return c, nil
 }
 
-func (e *exoscaleClient) watchCredentialsFile(stop <-chan struct{}) {
+func (e *exoscaleClient) watchCredentialsFile(ctx context.Context) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fatalf("failed to watch credentials file %q: %v", e.credentialsFile, err)
@@ -82,19 +85,20 @@ func (e *exoscaleClient) watchCredentialsFile(stop <-chan struct{}) {
 				infof("refreshing API credentials from file %q", e.credentialsFile)
 				e.refreshCredentials()
 			}
+
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				errorf("credentials file watcher error channel closed")
 				return
 			}
 			errorf("error while watching credentials file %q: %v", e.credentialsFile, err)
-		case <-stop:
+
+		case <-ctx.Done():
 			infof("closing credential file watch")
-			watcher.Close()
+			_ = watcher.Close()
 			return
 		}
 	}
-
 }
 
 func (e *exoscaleClient) refreshCredentials() {
@@ -110,7 +114,7 @@ func (e *exoscaleClient) refreshCredentials() {
 	if err != nil {
 		fatalf("failed to decode credentials file %q: %s", e.credentialsFile, err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	e.client = egoscale.NewClient(e.endpoint, credentials.APIKey, credentials.APISecret)
 	e.Unlock()
@@ -153,10 +157,32 @@ func (e *exoscaleClient) GetInstance(ctx context.Context, uuid *egoscale.UUID) (
 	defer e.RUnlock()
 
 	vm, err := e.client.GetWithContext(ctx, egoscale.VirtualMachine{ID: uuid})
-
 	if vm == nil {
 		return nil, err
 	}
 
 	return vm.(*egoscale.VirtualMachine), err
+}
+
+func (e *exoscaleClient) ListInstances(ctx context.Context, zone string) ([]egoscale.VirtualMachine, error) {
+	e.RLock()
+	defer e.RUnlock()
+
+	res, err := e.client.GetWithContext(ctx, &egoscale.Zone{Name: zone})
+	if err != nil {
+		if err == egoscale.ErrNotFound {
+			return nil, fmt.Errorf("invalid zone %q", zone)
+		}
+		return nil, err
+	}
+	z := res.(*egoscale.Zone)
+
+	res, err = e.client.RequestWithContext(ctx, &egoscale.ListVirtualMachines{
+		ZoneID: z.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.(*egoscale.ListVirtualMachinesResponse).VirtualMachine, nil
 }
