@@ -126,6 +126,7 @@ func (vm VirtualMachine) ListRequest() (ListCommand, error) {
 	req := &ListVirtualMachines{
 		GroupID:    vm.GroupID,
 		ID:         vm.ID,
+		ManagerID:  vm.ManagerID,
 		Name:       vm.Name,
 		State:      vm.State,
 		TemplateID: vm.TemplateID,
@@ -426,6 +427,23 @@ func (UpdateVirtualMachine) Response() interface{} {
 	return new(VirtualMachine)
 }
 
+// UpdateVirtualMachineSecurityGroups represents the update of the virtual machine security group membership
+type UpdateVirtualMachineSecurityGroups struct {
+	ID               *UUID  `json:"id" doc:"The ID of the virtual machine"`
+	SecurityGroupIDs []UUID `json:"securitygroupids,omitempty" doc:"list of security group ids to be applied on the virtual machine."`
+	_                bool   `name:"updateVirtualMachineSecurityGroups" description:"Updates a virtual machine Security Group membership'."`
+}
+
+// Response returns the struct to unmarshal
+func (UpdateVirtualMachineSecurityGroups) Response() interface{} {
+	return new(AsyncJobResult)
+}
+
+// AsyncResponse returns the struct to unmarshal the async job
+func (UpdateVirtualMachineSecurityGroups) AsyncResponse() interface{} {
+	return new(VirtualMachine)
+}
+
 // ExpungeVirtualMachine represents the annihilation of a VM
 type ExpungeVirtualMachine struct {
 	ID *UUID `json:"id" doc:"The ID of the virtual machine"`
@@ -516,6 +534,7 @@ type ListVirtualMachines struct {
 	IPAddress         net.IP        `json:"ipaddress,omitempty" doc:"an IP address to filter the result"`
 	IsoID             *UUID         `json:"isoid,omitempty" doc:"list vms by iso"`
 	Keyword           string        `json:"keyword,omitempty" doc:"List by keyword"`
+	ManagerID         *UUID         `json:"managerid,omitempty" doc:"list by manager id"`
 	Name              string        `json:"name,omitempty" doc:"name of the virtual machine"`
 	NetworkID         *UUID         `json:"networkid,omitempty" doc:"list by network id"`
 	Page              int           `json:"page,omitempty"`

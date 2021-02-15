@@ -1,6 +1,150 @@
 Changelog
 =========
 
+0.42.0
+------
+
+- feature: new `SKSNodepool.AntiAffinityGroupIDs` field
+- change: `SKSCluster.Level` field renamed as `SKSCluster.ServiceLevel`
+
+0.41.0
+------
+
+- feature: new method `ListZones()`
+
+0.40.1
+------
+
+- Improve API v2 async job tests and error reporting (#466)
+
+0.40.0
+------
+
+- feature: new method `UpgradeSKSCluster()`
+- feature: new fields `SKSCluster.Level` and `SKSCluster.CNI`
+- change: `SKSCluster.EnableExoscaleCloudController` replaced with `SKSCluster.AddOns`
+
+0.39.1
+------
+
+- fix: add missing `UpdateVirtualMachineSecurityGroups` operation metadata
+
+0.39.0
+------
+
+- feature: add `UpdateVirtualMachineSecurityGroups` operation (#464)
+
+0.38.0
+------
+
+- feature: add `SKSCluster.EvictNodepoolMembers()` and `ListSKSClusterVersions()` methods
+
+0.37.1
+------
+
+- fix: `UpdateIPAddress.HealthcheckTLSSkipVerify` field always set to `false` (#462)
+
+0.37.0
+------
+
+- feature: `NewClient()` now accepts options (460)
+- fix: NLB service healthcheck TLS SNI bug (#461)
+
+0.36.2
+------
+
+- fix: `CreateInstancePool.AntiAffinityGroupIDs` field is optional (#459)
+
+0.36.1
+------
+
+- feature: add support for Exoscale Cloud Controller in SKS clusters
+- fix: add missing tests for SKS Nodepools Security Groups
+
+0.36.0
+------
+
+- feature: add support for Anti-Affinity Groups to Instance Pools
+- feature: add support for Security Groups to SKS Nodepools
+
+0.35.3
+------
+
+- Fix typo in version.go
+
+0.35.2
+------
+
+- Improve API v2 errors handling (#455)
+
+0.35.1
+------
+
+- fix: various SKS-related bugs (#454)
+
+0.35.0
+------
+
+- feature: add support for SKS resources (#453)
+
+0.34.0
+------
+
+- change: `BucketUsage.Usage` is now an `int64` (#451)
+
+0.33.2
+------
+
+- fix: make `GetWithContext` return more relevant errors (#450)
+
+0.33.1
+------
+
+- fix: `UpdateNetworkLoadBalancer` call panicking following a public API change
+
+0.33.0
+------
+
+- feature: add support for Network Load Balancer service HTTPS health checking (#449)
+
+0.32.0
+------
+
+- feature: add support for Instance Pool root disk size update (#448)
+
+0.31.2
+------
+
+- fix: add missing TLS-specific parameters to `AssociateIPAddress`
+
+0.31.1
+------
+
+- fix: Instance Pool IPv6 flag handling
+
+0.31.0
+------
+
+- feature: add support for IPv6 in Instance Pools (#446)
+
+0.30.0
+------
+
+- feature: add new TLS-specific parameters to managed EIP
+
+0.29.0
+------
+
+- feature: `ListVirtualMachines` call to allow searching by `ManagerID` (#442)
+- fix: remove duplicate `User-Agent` HTTP header in Runstatus calls
+- tests: `*NetworkLoadBalancer*` calls are now tested using HTTP mocks
+- codegen: `internal/v2` updated
+
+0.28.1
+------
+
+- fix: Fix `ListVolumes` call to allow searching by ID (#440)
+
 0.28.0
 ------
 
