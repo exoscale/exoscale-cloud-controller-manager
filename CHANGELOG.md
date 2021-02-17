@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+### Features
+
+* Add support for Exoscale SKS
+
+
 ## 0.5.0
 
 ### Features
