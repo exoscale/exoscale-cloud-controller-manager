@@ -6,6 +6,13 @@
 
 * Add support for Exoscale SKS
 
+### Changes
+
+* An Exoscale zone is now required to be specified via the `EXOSCALE_ZONE`
+  environment variable to the CCM. As a result, the `EXOSCALE_DEFAULT_ZONE` has
+  been removed, and it is no longer necessary to specify the zone via manifest
+  annotations for CCM-managed Kubernetes Services.
+
 
 ## 0.5.0
 
