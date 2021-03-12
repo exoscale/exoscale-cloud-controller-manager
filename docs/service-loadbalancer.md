@@ -102,7 +102,7 @@ The description of the Exoscale NLB.
 
 If set to `true`, the Exoscale CCM will consider the NLB as externally
 managed and will not attempt to create/update/delete the NLB instance
-which ID is specified in the k8s *Service* annotations.
+which ID is specified in the K8s *Service* annotations.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-name`
@@ -131,7 +131,7 @@ specified in case your *Service* is targeting *Pods* that are subject to
 [custom *Node* scheduling][k8s-assign-pod-node].
 
 > Note: the Instance Pool cannot be changed after NLB service creation – the
-> k8s Service will have to be deleted and re-created with the annotation
+> K8s Service will have to be deleted and re-created with the annotation
 > updated.
 
 
@@ -158,10 +158,9 @@ The Exoscale NLB service health checking mode.
 Supported values: `tcp` (default), `http`.
 
 
-#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-http-healthcheck-uri`
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri`
 
 The Exoscale NLB service health check HTTP request URI (in `http` mode only).
-Defaults to `/`.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval`
@@ -199,7 +198,7 @@ to provision a corresponding NLB instance correctly:
 
 If you prefer to manage the NLB instance yourself using different tools
 (e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
-to use in the k8s *Service* annotations as well as an annotation instructing
+to use in the K8s *Service* annotations as well as an annotation instructing
 the Exoscale CCM not to create/update/delete the specified NLB instance:
 
 ```yaml
@@ -218,15 +217,21 @@ spec:
   - port: 80
 ```
 
-> Note: the NLB instance referenced in the annotations **must** exist before
-> the k8s *Service* is created.
+**Notes:**
+
+* The NLB instance referenced in the annotations **must** exist before
+  the K8s *Service* is created.
+* When deploying a K8s Service to an external NLB, be careful not to use a
+  *Service* port already used by another *Service* attached to the same
+  external NLB, as **it will overwrite the existing NLB Service with the new
+  K8s Service port**.
 
 
 ## ⚠️ Important Notes
 
 * Currently, the Exoscale CCM doesn't support UDP service load balancing due to
   a [technical limitation in Kubernetes][k8s-issue-no-proto-mix].
-* As `NodePort` created by k8s *Services* are picked randomly [within a defined
+* As `NodePort` created by K8s *Services* are picked randomly [within a defined
   range][k8s-service-nodeport] (by default `30000-32767`), don't forget to
   configure [Security Groups][exo-sg] used by your Compute Instance Pools to
   accept ingress traffic in this range, otherwise the Exoscale Network Load
