@@ -16,19 +16,20 @@ import (
 )
 
 const (
-	annotationLoadBalancerID                         = "service.beta.kubernetes.io/exoscale-loadbalancer-id"
-	annotationLoadBalancerName                       = "service.beta.kubernetes.io/exoscale-loadbalancer-name"
-	annotationLoadBalancerDescription                = "service.beta.kubernetes.io/exoscale-loadbalancer-description"
-	annotationLoadBalancerExternal                   = "service.beta.kubernetes.io/exoscale-loadbalancer-external"
-	annotationLoadBalancerServiceStrategy            = "service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy"
-	annotationLoadBalancerServiceName                = "service.beta.kubernetes.io/exoscale-loadbalancer-service-name"
-	annotationLoadBalancerServiceDescription         = "service.beta.kubernetes.io/exoscale-loadbalancer-service-description"
-	annotationLoadBalancerServiceInstancePoolID      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id"
-	annotationLoadBalancerServiceHealthCheckMode     = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode"
-	annotationLoadBalancerServiceHealthCheckURI      = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri"
-	annotationLoadBalancerServiceHealthCheckInterval = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval"
-	annotationLoadBalancerServiceHealthCheckTimeout  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout"
-	annotationLoadBalancerServiceHealthCheckRetries  = "service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries"
+	annotationPrefix                                 = "service.beta.kubernetes.io/exoscale-loadbalancer-"
+	annotationLoadBalancerID                         = annotationPrefix + "id"
+	annotationLoadBalancerName                       = annotationPrefix + "name"
+	annotationLoadBalancerDescription                = annotationPrefix + "description"
+	annotationLoadBalancerExternal                   = annotationPrefix + "external"
+	annotationLoadBalancerServiceStrategy            = annotationPrefix + "service-strategy"
+	annotationLoadBalancerServiceName                = annotationPrefix + "service-name"
+	annotationLoadBalancerServiceDescription         = annotationPrefix + "service-description"
+	annotationLoadBalancerServiceInstancePoolID      = annotationPrefix + "service-instancepool-id"
+	annotationLoadBalancerServiceHealthCheckMode     = annotationPrefix + "service-healthcheck-mode"
+	annotationLoadBalancerServiceHealthCheckURI      = annotationPrefix + "service-healthcheck-uri"
+	annotationLoadBalancerServiceHealthCheckInterval = annotationPrefix + "service-healthcheck-interval"
+	annotationLoadBalancerServiceHealthCheckTimeout  = annotationPrefix + "service-healthcheck-timeout"
+	annotationLoadBalancerServiceHealthCheckRetries  = annotationPrefix + "service-healthcheck-retries"
 )
 
 var errLoadBalancerNotFound = errors.New("load balancer not found")
@@ -239,12 +240,21 @@ next:
 			// If a service exposing the same port already exists,
 			// flag it for update and save its ID for later reference.
 			if nlbServiceUpdate.Port == nlbServiceCurrent.Port {
-				debugf("service port %d already in use by NLB service %q, marking for update",
+				debugf("Service port %d already in use by NLB service %s/%s, marking for update",
 					nlbServiceCurrent.Port,
+					nlbCurrent.Name,
 					nlbServiceCurrent.Name)
 				nlbServices[nlbServiceCurrent.Port] = nlbServiceCurrent
 				continue next
 			}
+		}
+
+		if l.isExternal(service) {
+			debugf("NLB service %s/%s doesn't match any service port, but this Service is "+
+				"using an external NLB so we don't delete it as it may belong to another Service",
+				nlbCurrent.Name,
+				nlbServiceCurrent.Name)
+			continue next
 		}
 
 		infof("NLB service %s/%s doesn't match any service port, deleting",
