@@ -251,7 +251,7 @@ next:
 
 		if l.isExternal(service) {
 			debugf("NLB service %s/%s doesn't match any service port, but this Service is "+
-				"using an external NLB so we don't delete it as it may belong to another Service",
+				"using an external NLB. Avoiding deletion since it may belong to another Service",
 				nlbCurrent.Name,
 				nlbServiceCurrent.Name)
 			continue next
