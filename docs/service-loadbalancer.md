@@ -102,7 +102,7 @@ The description of the Exoscale NLB.
 
 If set to `true`, the Exoscale CCM will consider the NLB as externally
 managed and will not attempt to create/update/delete the NLB instance
-which ID is specified in the K8s *Service* annotations.
+whose ID is specified in the K8s *Service* annotations.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-name`
