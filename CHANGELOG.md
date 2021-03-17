@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+### Bug Fixes
+
+* Fix external NLB Service management logic
+
+
 ## 0.6.0
 
 ### Features
