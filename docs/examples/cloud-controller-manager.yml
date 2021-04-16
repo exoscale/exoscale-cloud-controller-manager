@@ -32,7 +32,6 @@ spec:
         imagePullPolicy: Always
         name: exoscale-cloud-controller-manager
         args:
-          - --cloud-provider=exoscale
           - --leader-elect=true
           - --allow-untagged-cloud
         env:
