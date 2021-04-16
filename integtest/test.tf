@@ -2,7 +2,7 @@ terraform {
   required_providers {
     exoscale = {
       source  = "exoscale/exoscale"
-      version = "~> 0.22.0"
+      version = "~> 0.23.0"
     }
   }
 }
@@ -217,7 +217,7 @@ scp -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i "${var.tmpdir}/id_rsa" 
 export KUBECONFIG="${var.tmpdir}/kubeconfig" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.certificate-authority-data}" > "${var.tmpdir}/kube-ca.crt" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.server}" > "${var.tmpdir}/cluster_endpoint" ; \
-kubectl apply -f https://docs.projectcalico.org/v3.15/manifests/calico.yaml ; \
+kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml ; \
 kubectl wait --timeout 600s node/${exoscale_compute.kube_master_node.name} --for=condition=Ready ; \
 sed -r -e "s/%%EXOSCALE_ZONE%%/${var.zone}/" ${path.cwd}/manifests/ccm.yml.tpl | kubectl apply -f - ; \
 kubectl wait --timeout 600s -n kube-system --for condition=Available deployment.apps/exoscale-cloud-controller-manager
