@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	providerName   = "exoscale"
+	ProviderName   = "exoscale"
 	providerPrefix = "exoscale://"
 )
 
@@ -37,7 +37,7 @@ type cloudProvider struct {
 }
 
 func init() {
-	cloudprovider.RegisterCloudProvider(providerName, func(io.Reader) (cloudprovider.Interface, error) {
+	cloudprovider.RegisterCloudProvider(ProviderName, func(io.Reader) (cloudprovider.Interface, error) {
 		return newExoscaleCloud()
 	})
 }
@@ -128,7 +128,7 @@ func (p *cloudProvider) Routes() (cloudprovider.Routes, bool) {
 
 // ProviderName returns the cloud provider ID.
 func (p *cloudProvider) ProviderName() string {
-	return providerName
+	return ProviderName
 }
 
 // HasClusterID is not implemented.

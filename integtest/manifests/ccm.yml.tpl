@@ -37,10 +37,9 @@ spec:
         - |
           echo '{"name":"test","api_key":"xxx","api_secret":"xxx"}' > /tmp/api-creds && \
           exec /exoscale-cloud-controller-manager \
-          --cloud-provider=exoscale \
-          --leader-elect=true \
-          --allow-untagged-cloud  \
-          --v=3
+            --leader-elect=true \
+            --allow-untagged-cloud  \
+            --v=3
         env:
           - name: EXOSCALE_ZONE
             value: %%EXOSCALE_ZONE%%
