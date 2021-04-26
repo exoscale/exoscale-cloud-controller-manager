@@ -183,15 +183,22 @@ The Exoscale NLB service health checking retries before considering a target
 ### Using a Kubernetes Ingress Controller behind an Exoscale NLB
 
 If you wish to expose a Kubernetes [Ingress Controller][k8s-ingress-controller]
-(such as the popular [ingress-nginx][ingress-nginx]) behind an Exoscale NLB,
-some adjustments to its manifests are required in order for the CCM to be able
-to provision a corresponding NLB instance correctly:
+(such as the popular [ingress-nginx][ingress-nginx]), or any other *Service*
+behind an Exoscale NLB, please note that by default the traffic is forwarded
+to all [healthy] Nodes in the destination Instance Pool, whether they actually
+host *Pods* targeted by the *Service* or not – which may result in additional
+hops inside the Kubernetes cluster, as well as losing the source IP address
+(source NAT).
 
-* Since the Ingress traffic will be load-balanced across multiple Instance Pool
-  members, the Ingress Controller must either run on every cluster Node (e.g.
-  using a [`DaemonSet`][k8s-daemonset] type of deployment), or the Ingress
-  Controller Service `externalTrafficPolicy` property must be set to `Cluster`
-  (not `Local`).
+According to the [Kubernetes documentation][k8s-service-source-ip], it is
+possible to set the value of the *Service* `spec.externalTrafficPolicy` to
+`Local`, which preserves the client source IP and avoids a second hop, but
+risks potentially imbalanced traffic spreading. In this configuration, the
+Exoscale CCM will configure managed NLB services to use the *Service*
+`spec.healthCheckNodePort` value for the NLB service healthcheck port, which
+will result in having the ingress traffic forwarded only to *Nodes* running
+the target *Pods*. With `spec.externalTrafficPolicy=Cluster` (the default),
+the CCM uses `spec.ports[].nodePort`.
 
 
 ### Using an externally managed NLB instance with the Exoscale CCM
@@ -250,5 +257,6 @@ spec:
 [k8s-issue-no-proto-mix]: https://github.com/kubernetes/kubernetes/issues/23880
 [k8s-service-kube-proxy]: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 [k8s-service-nodeport]: https://kubernetes.io/docs/concepts/services-networking/service/#nodeport
+[k8s-service-source-ip]: https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-type-loadbalancer
 [k8s-service-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#service-v1-core
 [k8s-serviceport-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#serviceport-v1-core
