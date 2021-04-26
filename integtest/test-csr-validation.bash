@@ -18,7 +18,4 @@ echo "- Checking that the Node CSR got approved"
 
 _until_success "test \$(kubectl get csr --no-headers | awk '\$4 ~ /^system:node:pool-/ && \$5 ~ /Approved/' | wc -l) -eq 2"
 
-CCM_POD="$(kubectl get pods -n kube-system -l app=exoscale-cloud-controller-manager -o name)"
-test $(kubectl -n kube-system logs $CCM_POD | grep -c "sks-agent: CSR .* approved") -eq 2
-
 echo "<<< PASS"
