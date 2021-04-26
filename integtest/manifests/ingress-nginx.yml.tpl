@@ -281,8 +281,6 @@ metadata:
     app.kubernetes.io/component: controller
   name: ingress-nginx-controller
   namespace: ingress-nginx
-  annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-zone: %%EXOSCALE_ZONE%%
 spec:
   type: LoadBalancer
   ports:

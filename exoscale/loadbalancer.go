@@ -360,6 +360,23 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 	}
 
 	for _, servicePort := range service.Spec.Ports {
+		// If the Service is configured with externalTrafficPolicy=Local, we use the value of the
+		// healthCheckNodePort property as NLB service healthcheck port as explained in this article:
+		// https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-type-loadbalancer
+		// TL;DR: this configures the NLB service to ensure only Instance Pool members actually running
+		// an endpoint for the corresponding K8s Service will receive ingress traffic from the NLB, thus
+		// preserving the source IP address information.
+		hcPort := uint16(servicePort.NodePort)
+		if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal &&
+			service.Spec.HealthCheckNodePort > 0 {
+			debugf("Service is configured with externalPolicy:Local, "+
+				"using the Service spec.healthCheckNodePort value (%d) instead "+
+				"of NodePort (%d) for NLB service healthcheck port",
+				service.Spec.HealthCheckNodePort,
+				servicePort.NodePort)
+			hcPort = uint16(service.Spec.HealthCheckNodePort)
+		}
+
 		// Exoscale NLB services can forward both TCP and UDP protocol, however the only supported
 		// healthcheck protocol is TCP (plain TCP or HTTP).
 		// Due to a technical limitation in Kubernetes preventing declaration of mixed protocols in a
@@ -378,7 +395,7 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 			Strategy:       getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
 			Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
 				Mode:     getAnnotation(service, annotationLoadBalancerServiceHealthCheckMode, "tcp"),
-				Port:     uint16(servicePort.NodePort),
+				Port:     hcPort,
 				URI:      getAnnotation(service, annotationLoadBalancerServiceHealthCheckURI, ""),
 				Interval: hcInterval,
 				Timeout:  hcTimeout,
