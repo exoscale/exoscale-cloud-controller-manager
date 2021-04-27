@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+### Features
+
+* Add support for `healthCheckNodePort` with NLB services
+
+
 ## 0.6.1
 
 ### Bug Fixes
