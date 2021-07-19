@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	egoscale "github.com/exoscale/egoscale/v2"
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -26,7 +27,7 @@ const (
 
 type cloudProvider struct {
 	ctx          context.Context
-	client       *exoscaleClient
+	client       exoscaleClient
 	instances    cloudprovider.Instances
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
@@ -37,6 +38,8 @@ type cloudProvider struct {
 }
 
 func init() {
+	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
+
 	cloudprovider.RegisterCloudProvider(ProviderName, func(io.Reader) (cloudprovider.Interface, error) {
 		return newExoscaleCloud()
 	})
@@ -69,7 +72,7 @@ func (p *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 	p.ctx = ctx
 	p.stop = cancel
 
-	client, err := newExoscaleClient(p.ctx)
+	client, err := newRefreshableExoscaleClient(p.ctx)
 	if err != nil {
 		fatalf("could not create Exoscale client: %v", err)
 	}

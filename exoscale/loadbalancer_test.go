@@ -6,58 +6,73 @@ import (
 	"testing"
 	"time"
 
-	"github.com/exoscale/egoscale"
+	egoscale "github.com/exoscale/egoscale/v2"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+var (
+	testNLBDescription                      = "nlb-description"
+	testNLBID                               = "61a38660-ce67-4649-abef-284aa735d49d"
+	testNLBName                             = "nlb-name"
+	testNLBServiceDescription               = "nlb-service-description"
+	testNLBServiceHealthcheckInterval       = 10 * time.Second
+	testNLBServiceHealthcheckMode           = "http"
+	testNLBServiceHealthcheckRetries  int64 = 2
+	testNLBServiceHealthcheckTimeout        = 5 * time.Second
+	testNLBServiceHealthcheckURI            = "/health"
+	testNLBServiceInstancePoolID            = "1ca4a029-3df9-4a20-8a68-437d5de2f5fb"
+	testNLBServiceName                      = "nlb-service-name"
+	testNLBServiceProtocol                  = strings.ToLower(string(v1.ProtocolTCP))
+	testNLBServiceStrategy                  = "round-robin"
 )
 
 func Test_buildLoadBalancerFromAnnotations(t *testing.T) {
 	var (
-		serviceHealthcheckInterval       = 10 * time.Second
-		serviceHealthcheckTimeout        = 5 * time.Second
-		serviceHealthcheckRetries  int64 = 2
-
-		servicePortHTTPName            = "http"
-		servicePortHTTPPort      int32 = 80
-		servicePortHTTPNodePort  int32 = 32058
-		servicePortHTTPProtocol        = v1.ProtocolTCP
-		servicePortHTTPSName           = "https"
-		servicePortHTTPSPort     int32 = 443
-		servicePortHTTPSNodePort int32 = 32059
-		servicePortHTTPSProtocol       = v1.ProtocolTCP
+		serviceUID                      = "901a4773-b836-409d-9364-b855b7b38c22"
+		servicePortProtocol             = v1.ProtocolTCP
+		servicePortHTTPName             = "http"
+		servicePortHTTPPort      uint16 = 80
+		servicePortHTTPNodePort  uint16 = 32058
+		servicePortHTTPSName            = "https"
+		servicePortHTTPSPort     uint16 = 443
+		servicePortHTTPSNodePort uint16 = 32059
+		serviceHTTPDefaultName          = fmt.Sprintf("%s-%d", serviceUID, servicePortHTTPPort)
+		serviceHTTPSDefaultName         = fmt.Sprintf("%s-%d", serviceUID, servicePortHTTPSPort)
 
 		service = &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				UID: "901a4773-b836-409d-9364-b855b7b38c22",
+				UID: types.UID(serviceUID),
 				Annotations: map[string]string{
-					annotationLoadBalancerID:                         "61a38660-ce67-4649-abef-284aa735d49d",
-					annotationLoadBalancerName:                       "nlb-name",
-					annotationLoadBalancerDescription:                "nlb-description",
-					annotationLoadBalancerServiceName:                "service-name",
-					annotationLoadBalancerServiceDescription:         "service-description",
-					annotationLoadBalancerServiceStrategy:            "round-robin",
-					annotationLoadBalancerServiceInstancePoolID:      "1ca4a029-3df9-4a20-8a68-437d5de2f5fb",
-					annotationLoadBalancerServiceHealthCheckMode:     "http",
-					annotationLoadBalancerServiceHealthCheckURI:      "/health",
-					annotationLoadBalancerServiceHealthCheckInterval: fmt.Sprint(serviceHealthcheckInterval),
-					annotationLoadBalancerServiceHealthCheckTimeout:  fmt.Sprint(serviceHealthcheckTimeout),
-					annotationLoadBalancerServiceHealthCheckRetries:  fmt.Sprint(serviceHealthcheckRetries),
+					annotationLoadBalancerID:                         testNLBID,
+					annotationLoadBalancerName:                       testNLBName,
+					annotationLoadBalancerDescription:                testNLBDescription,
+					annotationLoadBalancerServiceName:                testNLBServiceName,
+					annotationLoadBalancerServiceDescription:         testNLBServiceDescription,
+					annotationLoadBalancerServiceStrategy:            testNLBServiceStrategy,
+					annotationLoadBalancerServiceInstancePoolID:      testNLBServiceInstancePoolID,
+					annotationLoadBalancerServiceHealthCheckMode:     testNLBServiceHealthcheckMode,
+					annotationLoadBalancerServiceHealthCheckURI:      testNLBServiceHealthcheckURI,
+					annotationLoadBalancerServiceHealthCheckInterval: fmt.Sprint(testNLBServiceHealthcheckInterval),
+					annotationLoadBalancerServiceHealthCheckTimeout:  fmt.Sprint(testNLBServiceHealthcheckTimeout),
+					annotationLoadBalancerServiceHealthCheckRetries:  fmt.Sprint(testNLBServiceHealthcheckRetries),
 				},
 			},
 			Spec: v1.ServiceSpec{
 				Ports: []v1.ServicePort{
 					{
 						Name:     servicePortHTTPName,
-						Protocol: servicePortHTTPProtocol,
-						Port:     servicePortHTTPPort,
-						NodePort: servicePortHTTPNodePort,
+						Protocol: servicePortProtocol,
+						Port:     int32(servicePortHTTPPort),
+						NodePort: int32(servicePortHTTPNodePort),
 					},
 					{
 						Name:     servicePortHTTPSName,
-						Protocol: servicePortHTTPSProtocol,
-						Port:     servicePortHTTPSPort,
-						NodePort: servicePortHTTPSNodePort,
+						Protocol: servicePortProtocol,
+						Port:     int32(servicePortHTTPSPort),
+						NodePort: int32(servicePortHTTPSNodePort),
 					},
 				},
 			},
@@ -65,40 +80,40 @@ func Test_buildLoadBalancerFromAnnotations(t *testing.T) {
 	)
 
 	expected := &egoscale.NetworkLoadBalancer{
-		ID:          service.Annotations[annotationLoadBalancerID],
-		Name:        service.Annotations[annotationLoadBalancerName],
-		Description: service.Annotations[annotationLoadBalancerDescription],
+		ID:          &testNLBID,
+		Name:        &testNLBName,
+		Description: &testNLBDescription,
 		Services: []*egoscale.NetworkLoadBalancerService{
 			{
-				Name:           fmt.Sprintf("%s-%d", service.UID, servicePortHTTPPort),
-				InstancePoolID: service.Annotations[annotationLoadBalancerServiceInstancePoolID],
-				Protocol:       strings.ToLower(string(servicePortHTTPProtocol)),
-				Port:           uint16(servicePortHTTPPort),
-				TargetPort:     uint16(servicePortHTTPNodePort),
-				Strategy:       service.Annotations[annotationLoadBalancerServiceStrategy],
-				Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
-					Mode:     service.Annotations[annotationLoadBalancerServiceHealthCheckMode],
-					Port:     uint16(servicePortHTTPNodePort),
-					URI:      service.Annotations[annotationLoadBalancerServiceHealthCheckURI],
-					Interval: serviceHealthcheckInterval,
-					Timeout:  serviceHealthcheckTimeout,
-					Retries:  serviceHealthcheckRetries,
+				Name:           &serviceHTTPDefaultName,
+				InstancePoolID: &testNLBServiceInstancePoolID,
+				Protocol:       &testNLBServiceProtocol,
+				Port:           &servicePortHTTPPort,
+				TargetPort:     &servicePortHTTPNodePort,
+				Strategy:       &testNLBServiceStrategy,
+				Healthcheck: &egoscale.NetworkLoadBalancerServiceHealthcheck{
+					Mode:     &testNLBServiceHealthcheckMode,
+					Port:     &servicePortHTTPNodePort,
+					URI:      &testNLBServiceHealthcheckURI,
+					Interval: &testNLBServiceHealthcheckInterval,
+					Timeout:  &testNLBServiceHealthcheckTimeout,
+					Retries:  &testNLBServiceHealthcheckRetries,
 				},
 			},
 			{
-				Name:           fmt.Sprintf("%s-%d", service.UID, servicePortHTTPSPort),
-				InstancePoolID: service.Annotations[annotationLoadBalancerServiceInstancePoolID],
-				Protocol:       strings.ToLower(string(servicePortHTTPSProtocol)),
-				Port:           uint16(servicePortHTTPSPort),
-				TargetPort:     uint16(servicePortHTTPSNodePort),
-				Strategy:       service.Annotations[annotationLoadBalancerServiceStrategy],
-				Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
-					Mode:     service.Annotations[annotationLoadBalancerServiceHealthCheckMode],
-					Port:     uint16(servicePortHTTPSNodePort),
-					URI:      service.Annotations[annotationLoadBalancerServiceHealthCheckURI],
-					Interval: serviceHealthcheckInterval,
-					Timeout:  serviceHealthcheckTimeout,
-					Retries:  serviceHealthcheckRetries,
+				Name:           &serviceHTTPSDefaultName,
+				InstancePoolID: &testNLBServiceInstancePoolID,
+				Protocol:       &testNLBServiceProtocol,
+				Port:           &servicePortHTTPSPort,
+				TargetPort:     &servicePortHTTPSNodePort,
+				Strategy:       &testNLBServiceStrategy,
+				Healthcheck: &egoscale.NetworkLoadBalancerServiceHealthcheck{
+					Mode:     &testNLBServiceHealthcheckMode,
+					Port:     &servicePortHTTPSNodePort,
+					URI:      &testNLBServiceHealthcheckURI,
+					Interval: &testNLBServiceHealthcheckInterval,
+					Timeout:  &testNLBServiceHealthcheckTimeout,
+					Retries:  &testNLBServiceHealthcheckRetries,
 				},
 			},
 		},
@@ -111,8 +126,8 @@ func Test_buildLoadBalancerFromAnnotations(t *testing.T) {
 	// Variant: with a single service, NLB service name/description can be overridden via annotation.
 	service.Spec.Ports = service.Spec.Ports[:1]
 	expected.Services = expected.Services[:1]
-	expected.Services[0].Name = service.Annotations[annotationLoadBalancerServiceName]
-	expected.Services[0].Description = service.Annotations[annotationLoadBalancerServiceDescription]
+	expected.Services[0].Name = &testNLBServiceName
+	expected.Services[0].Description = &testNLBServiceDescription
 	actual, err = buildLoadBalancerFromAnnotations(service)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
@@ -127,20 +142,20 @@ func Test_isLoadBalancerUpdated(t *testing.T) {
 	}{
 		{
 			"no change",
-			&egoscale.NetworkLoadBalancer{Name: "lb", Description: "lb desc"},
-			&egoscale.NetworkLoadBalancer{Name: "lb", Description: "lb desc"},
+			&egoscale.NetworkLoadBalancer{Name: &testNLBName, Description: &testNLBDescription},
+			&egoscale.NetworkLoadBalancer{Name: &testNLBName, Description: &testNLBDescription},
 			require.False,
 		},
 		{
 			"description updated",
-			&egoscale.NetworkLoadBalancer{Name: "lb"},
-			&egoscale.NetworkLoadBalancer{Name: "lb", Description: "lb desc"},
+			&egoscale.NetworkLoadBalancer{Name: &testNLBName},
+			&egoscale.NetworkLoadBalancer{Name: &testNLBName, Description: &testNLBDescription},
 			require.True,
 		},
 		{
 			"name updated",
-			&egoscale.NetworkLoadBalancer{Description: "lb desc"},
-			&egoscale.NetworkLoadBalancer{Name: "lb", Description: "lb desc"},
+			&egoscale.NetworkLoadBalancer{Description: &testNLBDescription},
+			&egoscale.NetworkLoadBalancer{Name: &testNLBName, Description: &testNLBDescription},
 			require.True,
 		},
 	}
@@ -161,14 +176,14 @@ func Test_isLoadBalancerServiceUpdated(t *testing.T) {
 	}{
 		{
 			"no change",
-			&egoscale.NetworkLoadBalancerService{Name: "svc", Description: "svc desc"},
-			&egoscale.NetworkLoadBalancerService{Name: "svc", Description: "svc desc"},
+			&egoscale.NetworkLoadBalancerService{Name: &testNLBServiceName, Description: &testNLBServiceDescription},
+			&egoscale.NetworkLoadBalancerService{Name: &testNLBServiceName, Description: &testNLBServiceDescription},
 			require.False,
 		},
 		{
 			"description updated",
-			&egoscale.NetworkLoadBalancerService{Name: "svc"},
-			&egoscale.NetworkLoadBalancerService{Name: "svc", Description: "svc desc"},
+			&egoscale.NetworkLoadBalancerService{Name: &testNLBServiceName},
+			&egoscale.NetworkLoadBalancerService{Name: &testNLBServiceName, Description: &testNLBServiceDescription},
 			require.True,
 		},
 	}

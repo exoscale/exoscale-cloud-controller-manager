@@ -2,7 +2,7 @@ terraform {
   required_providers {
     exoscale = {
       source  = "exoscale/exoscale"
-      version = "~> 0.23.0"
+      version = "~> 0.25.0"
     }
   }
 }
@@ -201,6 +201,7 @@ resource "exoscale_compute" "kube_master_node" {
 
     inline = [
       "timeout 60s bash -c 'until which kubeadm > /dev/null; do sleep 5s ; done || (echo kubeadm command not found ; exit 1)'",
+      "sudo apt update && sudo apt install -f make",
       "git tag test ; make docker",
       "sudo touch /etc/kubernetes/bootstrap-kubelet.conf",
       "sudo kubeadm init --config=/tmp/kubeadm-init.yml",

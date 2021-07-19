@@ -111,8 +111,8 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 				}
 
 				for _, instance := range instances {
-					if instance.Name == parsedCSR.DNSNames[0] {
-						if instance.DefaultNic().IPAddress.Equal(parsedCSR.IPAddresses[0]) {
+					if *instance.Name == parsedCSR.DNSNames[0] {
+						if instance.PublicIPAddress.Equal(parsedCSR.IPAddresses[0]) {
 							ok = true
 							break
 						}

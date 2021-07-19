@@ -3,10 +3,9 @@ module github.com/exoscale/exoscale-cloud-controller-manager
 go 1.16
 
 require (
-	github.com/deepmap/oapi-codegen v1.5.1 // indirect
-	github.com/exoscale/egoscale v0.42.0
+	github.com/exoscale/egoscale v0.68.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/gofrs/uuid v4.0.0+incompatible // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/google/go-cmp v0.5.2
 	github.com/jarcoal/httpmock v1.0.8 // indirect
 	github.com/spf13/pflag v1.0.5
