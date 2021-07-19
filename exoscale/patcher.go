@@ -30,13 +30,13 @@ func newServicePatcher(ctx context.Context, kclient kubernetes.Interface, servic
 
 // Patch submits a patch request for the Service to add some annotations
 // unless the updated service reference contains the same set of annotations.
-func (ksp *kubeServicePatcher) Patch() error {
-	currentJSON, err := json.Marshal(ksp.current)
+func (p *kubeServicePatcher) Patch() error {
+	currentJSON, err := json.Marshal(p.current)
 	if err != nil {
 		return fmt.Errorf("failed to serialize current original object: %s", err)
 	}
 
-	modifiedJSON, err := json.Marshal(ksp.modified)
+	modifiedJSON, err := json.Marshal(p.modified)
 	if err != nil {
 		return fmt.Errorf("failed to serialize modified updated object: %s", err)
 	}
@@ -50,9 +50,11 @@ func (ksp *kubeServicePatcher) Patch() error {
 		return nil
 	}
 
-	_, err = ksp.kclient.CoreV1().Services(ksp.current.Namespace).Patch(ksp.ctx, ksp.current.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+	_, err = p.kclient.CoreV1().
+		Services(p.current.Namespace).
+		Patch(p.ctx, p.current.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to patch service object %s/%s: %s", ksp.current.Namespace, ksp.current.Name, err)
+		return fmt.Errorf("failed to patch service object %s/%s: %s", p.current.Namespace, p.current.Name, err)
 	}
 
 	return nil

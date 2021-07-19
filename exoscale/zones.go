@@ -23,7 +23,7 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // In most cases, this method is called from the kubelet querying a local metadata service to acquire its zone.
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
-func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
+func (z zones) GetZone(_ context.Context) (cloudprovider.Zone, error) {
 	zone, err := queryInstanceMetadata("availability-zone")
 	if err != nil {
 		return cloudprovider.Zone{}, err
@@ -32,25 +32,25 @@ func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 	return cloudprovider.Zone{Region: zone}, nil
 }
 
-// GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerID
-// This method is particularly used in the context of external cloud providers where node initialization must be done
-// outside the kubelets.
-func (z *zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	instance, err := z.p.computeInstanceByProviderID(ctx, providerID)
-	if err != nil {
-		return cloudprovider.Zone{}, err
-	}
-
-	return cloudprovider.Zone{Region: instance.ZoneName}, nil
+// GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by
+// providerID. This method is particularly used in the context of external cloud providers where node initialization
+// must be done outside the kubelets.
+func (z *zones) GetZoneByProviderID(_ context.Context, _ string) (cloudprovider.Zone, error) {
+	// The Exoscale is set at Cloud Controller Manager level, cluster Nodes cannot be in a different zone.
+	return cloudprovider.Zone{Region: z.p.zone}, nil
 }
 
-// GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node name
-// This method is particularly used in the context of external cloud providers where node initialization must be done
-// outside the kubelets.
+// GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node
+// name. This method is particularly used in the context of external cloud providers where node initialization must
+// be done outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
 	node, err := z.p.kclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
-		return cloudprovider.Zone{}, fmt.Errorf("failed to retrieve node %s from the apiserver: %s", nodeName, err)
+		return cloudprovider.Zone{}, fmt.Errorf(
+			"failed to retrieve node %s from the apiserver: %s",
+			nodeName,
+			err,
+		)
 	}
 
 	return z.GetZoneByProviderID(ctx, node.Status.NodeInfo.SystemUUID)

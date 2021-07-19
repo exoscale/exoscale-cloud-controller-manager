@@ -8,7 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/exoscale/egoscale"
+	egoscale "github.com/exoscale/egoscale/v2"
+	exoapi "github.com/exoscale/egoscale/v2/api"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	v1 "k8s.io/api/core/v1"
@@ -32,6 +33,14 @@ const (
 	annotationLoadBalancerServiceHealthCheckRetries  = annotationPrefix + "service-healthcheck-retries"
 )
 
+var (
+	defaultNLBServiceHealthCheckTimeout        = "5s"
+	defaultNLBServiceHealthcheckInterval       = "10s"
+	defaultNLBServiceHealthcheckMode           = "tcp"
+	defaultNLBServiceHealthcheckRetries  int64 = 1
+	defaultNLBServiceStrategy                  = "round-robin"
+)
+
 var errLoadBalancerNotFound = errors.New("load balancer not found")
 
 type loadBalancer struct {
@@ -41,7 +50,7 @@ type loadBalancer struct {
 // isExternal returns true if the NLB instance is marked as "external" in the
 // Kubernetes Service manifest annotations (i.e. not managed by the CCM).
 func (l loadBalancer) isExternal(service *v1.Service) bool {
-	return strings.ToLower(getAnnotation(service, annotationLoadBalancerExternal, "")) == "true"
+	return strings.ToLower(*getAnnotation(service, annotationLoadBalancerExternal, "false")) == "true"
 }
 
 func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
@@ -52,8 +61,12 @@ func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
 // if so, what its status is.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v1.Service) (*v1.LoadBalancerStatus, bool, error) {
-	lb, err := l.fetchLoadBalancer(ctx, service)
+func (l *loadBalancer) GetLoadBalancer(
+	ctx context.Context,
+	_ string,
+	service *v1.Service,
+) (*v1.LoadBalancerStatus, bool, error) {
+	nlb, err := l.fetchLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLoadBalancerNotFound {
 			return nil, false, nil
@@ -61,20 +74,26 @@ func (l *loadBalancer) GetLoadBalancer(ctx context.Context, _ string, service *v
 		return nil, false, err
 	}
 
-	return &v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb.IPAddress.String()}}}, true, nil
+	return &v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: nlb.IPAddress.String()}}}, true, nil
 }
 
 // GetLoadBalancerName returns the name of the load balancer. Implementations must treat the
 // *v1.Service parameter as read-only and not modify it.
 func (l *loadBalancer) GetLoadBalancerName(_ context.Context, _ string, service *v1.Service) string {
-	return getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID))
+	return *getAnnotation(service, annotationLoadBalancerName, "k8s-"+string(service.UID))
 }
 
-// EnsureLoadBalancer creates a new load balancer 'name', or updates the existing one. Returns the status of the balancer
+// EnsureLoadBalancer creates a new load balancer 'name', or updates the existing one.
+// Returns the status of the balancer.
 // Implementations must treat the *v1.Service and *v1.Node
 // parameters as read-only and not modify them.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
+func (l *loadBalancer) EnsureLoadBalancer(
+	ctx context.Context,
+	_ string,
+	service *v1.Service,
+	nodes []*v1.Node,
+) (*v1.LoadBalancerStatus, error) {
 	// Inferring the Instance Pool ID from the cluster Nodes that run the Service in case no Instance Pool ID
 	// has been specified in the annotations.
 	//
@@ -82,29 +101,29 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 	// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
 	// The list of Nodes passed as argument to this method contains *ALL* the Nodes in the cluster, not only the
 	// ones that actually host the Pods targeted by the Service.
-	if getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "") == "" {
+	if getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "") == nil {
 		debugf("no NLB service Instance Pool ID specified in Service annotations, inferring from cluster Nodes")
 
 		instancePoolID := ""
 		for _, node := range nodes {
-			instance, err := l.p.client.GetInstance(ctx, egoscale.MustParseUUID(node.Status.NodeInfo.SystemUUID))
+			instance, err := l.p.client.GetInstance(ctx, l.p.zone, node.Status.NodeInfo.SystemUUID)
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving Compute instance information: %s", err)
 			}
 
 			// Standalone Node, leaving it alone.
-			if instance.Manager != "instancepool" {
+			if instance.Manager == nil || instance.Manager.Type != "instance-pool" {
 				continue
 			}
 
-			if instancePoolID != "" && instance.ManagerID.String() != instancePoolID {
+			if instancePoolID != "" && instance.Manager.ID != instancePoolID {
 				return nil, errors.New(
 					"multiple Instance Pools detected across cluster Nodes, " +
 						"an Instance Pool ID must be specified in Service manifest annotations",
 				)
 			}
 
-			instancePoolID = instance.ManagerID.String()
+			instancePoolID = instance.Manager.ID
 		}
 
 		if instancePoolID == "" {
@@ -131,18 +150,18 @@ func (l *loadBalancer) EnsureLoadBalancer(ctx context.Context, _ string, service
 				return nil, errors.New("NLB instance marked as external in Service annotations, cannot create")
 			}
 
-			infof("creating new NLB %q", lbSpec.Name)
+			infof("creating new NLB %q", *lbSpec.Name)
 
 			nlb, err = l.p.client.CreateNetworkLoadBalancer(ctx, l.p.zone, lbSpec)
 			if err != nil {
 				return nil, err
 			}
 
-			if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, nlb.ID); err != nil {
+			if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, *nlb.ID); err != nil {
 				return nil, fmt.Errorf("error patching annotations: %s", err)
 			}
 
-			debugf("NLB %q created successfully (ID: %s)", nlb.Name, nlb.ID)
+			debugf("NLB %q created successfully (ID: %s)", *nlb.Name, *nlb.ID)
 		} else {
 			return nil, err
 		}
@@ -168,7 +187,7 @@ func (l *loadBalancer) UpdateLoadBalancer(ctx context.Context, _ string, service
 // was successfully deleted.
 // This construction is useful because many cloud providers' load balancers
 // have multiple underlying components, meaning a Get could say that the LB
-// doesn't exist even if some part of it is still laying around.
+// doesn't exist even if some part of it is still lying around.
 // Implementations must treat the *v1.Service parameter as read-only and not modify it.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *v1.Service) error {
@@ -189,9 +208,9 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	remainingServices := len(nlb.Services)
 	for _, nlbService := range nlb.Services {
 		for _, servicePort := range service.Spec.Ports {
-			if int32(nlbService.Port) == servicePort.Port {
-				infof("deleting NLB service %s/%s", nlb.Name, nlbService.Name)
-				if err = nlb.DeleteService(ctx, nlbService); err != nil {
+			if int32(*nlbService.Port) == servicePort.Port {
+				infof("deleting NLB service %s/%s", *nlb.Name, *nlbService.Name)
+				if err = l.p.client.DeleteNetworkLoadBalancerService(ctx, l.p.zone, nlb, nlbService); err != nil {
 					return err
 				}
 				remainingServices--
@@ -205,8 +224,9 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 			return nil
 		}
 
-		infof("deleting NLB %q", nlb.Name)
-		return l.p.client.DeleteNetworkLoadBalancer(ctx, l.p.zone, nlb.ID)
+		infof("deleting NLB %q", *nlb.Name)
+
+		return l.p.client.DeleteNetworkLoadBalancer(ctx, l.p.zone, nlb)
 	}
 
 	return nil
@@ -219,17 +239,19 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		return err
 	}
 
-	nlbCurrent, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, nlbUpdate.ID)
+	nlbCurrent, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, *nlbUpdate.ID)
 	if err != nil {
 		return err
 	}
 
 	if !l.isExternal(service) && isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
-		infof("updating NLB %q", nlbCurrent.Name)
-		if _, err = l.p.client.UpdateNetworkLoadBalancer(ctx, l.p.zone, nlbUpdate); err != nil {
+		infof("updating NLB %q", *nlbCurrent.Name)
+
+		if err = l.p.client.UpdateNetworkLoadBalancer(ctx, l.p.zone, nlbUpdate); err != nil {
 			return err
 		}
-		debugf("NLB %q updated successfully", nlbCurrent.Name)
+
+		debugf("NLB %q updated successfully", *nlbCurrent.Name)
 	}
 
 	// Delete the NLB services which port is not present in the updated version.
@@ -239,12 +261,12 @@ next:
 		for _, nlbServiceUpdate := range nlbUpdate.Services {
 			// If a service exposing the same port already exists,
 			// flag it for update and save its ID for later reference.
-			if nlbServiceUpdate.Port == nlbServiceCurrent.Port {
+			if *nlbServiceUpdate.Port == *nlbServiceCurrent.Port {
 				debugf("Service port %d already in use by NLB service %s/%s, marking for update",
-					nlbServiceCurrent.Port,
-					nlbCurrent.Name,
-					nlbServiceCurrent.Name)
-				nlbServices[nlbServiceCurrent.Port] = nlbServiceCurrent
+					*nlbServiceCurrent.Port,
+					*nlbCurrent.Name,
+					*nlbServiceCurrent.Name)
+				nlbServices[*nlbServiceCurrent.Port] = nlbServiceCurrent
 				continue next
 			}
 		}
@@ -252,55 +274,74 @@ next:
 		if l.isExternal(service) {
 			debugf("NLB service %s/%s doesn't match any service port, but this Service is "+
 				"using an external NLB. Avoiding deletion since it may belong to another Service",
-				nlbCurrent.Name,
-				nlbServiceCurrent.Name)
+				*nlbCurrent.Name,
+				*nlbServiceCurrent.Name)
 			continue next
 		}
 
 		infof("NLB service %s/%s doesn't match any service port, deleting",
-			nlbCurrent.Name,
-			nlbServiceCurrent.Name)
-		if err := nlbCurrent.DeleteService(ctx, nlbServiceCurrent); err != nil {
+			*nlbCurrent.Name,
+			*nlbServiceCurrent.Name)
+
+		if err := l.p.client.DeleteNetworkLoadBalancerService(
+			ctx,
+			l.p.zone,
+			nlbCurrent,
+			nlbServiceCurrent,
+		); err != nil {
 			return err
 		}
-		debugf("NLB service %s/%s deleted successfully", nlbCurrent.Name, nlbServiceCurrent.Name)
+
+		debugf("NLB service %s/%s deleted successfully", *nlbCurrent.Name, *nlbServiceCurrent.Name)
 	}
 
 	// Update existing services and add new ones.
 	for _, nlbServiceUpdate := range nlbUpdate.Services {
-		if nlbServiceCurrent, ok := nlbServices[nlbServiceUpdate.Port]; ok {
+		if nlbServiceCurrent, ok := nlbServices[*nlbServiceUpdate.Port]; ok {
 			nlbServiceUpdate.ID = nlbServiceCurrent.ID
 			if isLoadBalancerServiceUpdated(nlbServiceCurrent, nlbServiceUpdate) {
-				infof("updating NLB service %s/%s", nlbCurrent.Name, nlbServiceUpdate.Name)
-				if err = nlbCurrent.UpdateService(ctx, nlbServiceUpdate); err != nil {
+				infof("updating NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
+
+				if err = l.p.client.UpdateNetworkLoadBalancerService(
+					ctx,
+					l.p.zone,
+					nlbUpdate,
+					nlbServiceUpdate,
+				); err != nil {
 					return err
 				}
-				debugf("NLB service %s/%s updated successfully", nlbCurrent.Name, nlbServiceUpdate.Name)
+
+				debugf("NLB service %s/%s updated successfully", *nlbCurrent.Name, *nlbServiceUpdate.Name)
 			}
 		} else {
-			infof("creating new NLB service %s/%s", nlbCurrent.Name, nlbServiceUpdate.Name)
-			svc, err := nlbCurrent.AddService(ctx, nlbServiceUpdate)
+			infof("creating new NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
+
+			svc, err := l.p.client.CreateNetworkLoadBalancerService(ctx, l.p.zone, nlbCurrent, nlbServiceUpdate)
 			if err != nil {
 				return err
 			}
+
 			debugf("NLB service %s/%s created successfully (ID: %s)",
-				nlbCurrent.Name,
-				nlbServiceUpdate.Name,
-				svc.ID)
+				*nlbCurrent.Name,
+				*nlbServiceUpdate.Name,
+				*svc.ID)
 		}
 	}
 
 	return nil
 }
 
-func (l *loadBalancer) fetchLoadBalancer(ctx context.Context, service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
-	if lbID := getAnnotation(service, annotationLoadBalancerID, ""); lbID != "" {
-		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, lbID)
+func (l *loadBalancer) fetchLoadBalancer(
+	ctx context.Context,
+	service *v1.Service,
+) (*egoscale.NetworkLoadBalancer, error) {
+	if lbID := getAnnotation(service, annotationLoadBalancerID, ""); lbID != nil {
+		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, *lbID)
 		switch err {
 		case nil:
 			return nlb, nil
 
-		case egoscale.ErrNotFound:
+		case exoapi.ErrNotFound:
 			return nil, errLoadBalancerNotFound
 
 		default:
@@ -327,13 +368,96 @@ func (l *loadBalancer) patchAnnotation(ctx context.Context, service *v1.Service,
 	return patcher.Patch()
 }
 
-func getAnnotation(service *v1.Service, annotation, defaultValue string) string {
+func (c *refreshableExoscaleClient) CreateNetworkLoadBalancer(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+) (*egoscale.NetworkLoadBalancer, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.CreateNetworkLoadBalancer(ctx, zone, nlb)
+}
+
+func (c *refreshableExoscaleClient) CreateNetworkLoadBalancerService(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+	svc *egoscale.NetworkLoadBalancerService,
+) (*egoscale.NetworkLoadBalancerService, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.CreateNetworkLoadBalancerService(ctx, zone, nlb, svc)
+}
+
+func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancer(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+) error {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.DeleteNetworkLoadBalancer(ctx, zone, nlb)
+}
+
+func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancerService(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+	svc *egoscale.NetworkLoadBalancerService) error {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.DeleteNetworkLoadBalancerService(ctx, zone, nlb, svc)
+}
+
+func (c *refreshableExoscaleClient) GetNetworkLoadBalancer(
+	ctx context.Context,
+	zone string,
+	id string,
+) (*egoscale.NetworkLoadBalancer, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.GetNetworkLoadBalancer(ctx, zone, id)
+}
+
+func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancer(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+) error {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.UpdateNetworkLoadBalancer(ctx, zone, nlb)
+}
+
+func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancerService(
+	ctx context.Context,
+	zone string,
+	nlb *egoscale.NetworkLoadBalancer,
+	svc *egoscale.NetworkLoadBalancerService,
+) error {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.UpdateNetworkLoadBalancerService(ctx, zone, nlb, svc)
+}
+
+func getAnnotation(service *v1.Service, annotation, defaultValue string) *string {
 	v, ok := service.Annotations[annotation]
-	if !ok {
-		return defaultValue
+	if ok {
+		return &v
 	}
 
-	return v
+	if defaultValue != "" {
+		return &defaultValue
+	}
+
+	return nil
 }
 
 func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoadBalancer, error) {
@@ -344,20 +468,33 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 		Services:    make([]*egoscale.NetworkLoadBalancerService, 0),
 	}
 
-	hcInterval, err := time.ParseDuration(getAnnotation(service, annotationLoadBalancerServiceHealthCheckInterval, "10s"))
+	hcInterval, err := time.ParseDuration(*getAnnotation(
+		service,
+		annotationLoadBalancerServiceHealthCheckInterval,
+		defaultNLBServiceHealthcheckInterval,
+	))
 	if err != nil {
 		return nil, err
 	}
 
-	hcTimeout, err := time.ParseDuration(getAnnotation(service, annotationLoadBalancerServiceHealthCheckTimeout, "5s"))
+	hcTimeout, err := time.ParseDuration(*getAnnotation(
+		service,
+		annotationLoadBalancerServiceHealthCheckTimeout,
+		defaultNLBServiceHealthCheckTimeout,
+	))
 	if err != nil {
 		return nil, err
 	}
 
-	hcRetries, err := strconv.Atoi(getAnnotation(service, annotationLoadBalancerServiceHealthCheckRetries, "1"))
+	hcRetriesI, err := strconv.Atoi(*getAnnotation(
+		service,
+		annotationLoadBalancerServiceHealthCheckRetries,
+		fmt.Sprint(defaultNLBServiceHealthcheckRetries),
+	))
 	if err != nil {
 		return nil, err
 	}
+	hcRetries := int64(hcRetriesI)
 
 	for _, servicePort := range service.Spec.Ports {
 		// If the Service is configured with externalTrafficPolicy=Local, we use the value of the
@@ -386,28 +523,43 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 			return nil, errors.New("only TCP is supported as service port protocol")
 		}
 
+		var (
+			svcName       = fmt.Sprintf("%s-%d", service.UID, servicePort.Port)
+			svcProtocol   = strings.ToLower(string(servicePort.Protocol))
+			svcPort       = uint16(servicePort.Port)
+			svcTargetPort = uint16(servicePort.NodePort)
+		)
+
 		svc := egoscale.NetworkLoadBalancerService{
-			Name:           fmt.Sprintf("%s-%d", service.UID, servicePort.Port),
-			InstancePoolID: getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, ""),
-			Protocol:       strings.ToLower(string(servicePort.Protocol)),
-			Port:           uint16(servicePort.Port),
-			TargetPort:     uint16(servicePort.NodePort),
-			Strategy:       getAnnotation(service, annotationLoadBalancerServiceStrategy, "round-robin"),
-			Healthcheck: egoscale.NetworkLoadBalancerServiceHealthcheck{
-				Mode:     getAnnotation(service, annotationLoadBalancerServiceHealthCheckMode, "tcp"),
-				Port:     hcPort,
+			Healthcheck: &egoscale.NetworkLoadBalancerServiceHealthcheck{
+				Mode: getAnnotation(
+					service,
+					annotationLoadBalancerServiceHealthCheckMode,
+					defaultNLBServiceHealthcheckMode,
+				),
+				Port:     &hcPort,
 				URI:      getAnnotation(service, annotationLoadBalancerServiceHealthCheckURI, ""),
-				Interval: hcInterval,
-				Timeout:  hcTimeout,
-				Retries:  int64(hcRetries),
+				Interval: &hcInterval,
+				Timeout:  &hcTimeout,
+				Retries:  &hcRetries,
 			},
+			InstancePoolID: getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, ""),
+			Name:           &svcName,
+			Port:           &svcPort,
+			Protocol:       &svcProtocol,
+			Strategy: getAnnotation(
+				service,
+				annotationLoadBalancerServiceStrategy,
+				defaultNLBServiceStrategy,
+			),
+			TargetPort: &svcTargetPort,
 		}
 
 		// If there is only one service port defined, allow additional NLB service properties
 		// to be set via annotations, as setting those from annotations would not make sense
 		// if multiple NLB services co-exist on the same NLB instance (e.g. name, description).
 		if len(service.Spec.Ports) == 1 {
-			svc.Name = getAnnotation(service, annotationLoadBalancerServiceName, svc.Name)
+			svc.Name = getAnnotation(service, annotationLoadBalancerServiceName, *svc.Name)
 			svc.Description = getAnnotation(service, annotationLoadBalancerServiceDescription, "")
 		}
 
@@ -418,11 +570,11 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 }
 
 func isLoadBalancerUpdated(current, update *egoscale.NetworkLoadBalancer) bool {
-	if current.Name != update.Name {
+	if defaultString(current.Name, "") != defaultString(update.Name, "") {
 		return true
 	}
 
-	if current.Description != update.Description {
+	if defaultString(current.Description, "") != defaultString(update.Description, "") {
 		return true
 	}
 

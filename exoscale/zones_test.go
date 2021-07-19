@@ -2,40 +2,41 @@ package exoscale
 
 import (
 	"context"
-	"testing"
 
-	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/fake"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
-func TestGetZoneByProviderID(t *testing.T) {
-	ctx := context.Background()
-	p, ts := newMockInstanceAPI()
-	zones := &zones{p: p}
-	defer ts.Close()
+func (ts *exoscaleCCMTestSuite) TestGetZoneByProviderID() {
+	expected := cloudprovider.Zone{Region: testZone}
 
-	zone, err := zones.GetZoneByProviderID(ctx, testInstanceProviderID)
-
-	require.NoError(t, err)
-	require.NotNil(t, zone)
-
-	expectedZone := cloudprovider.Zone{Region: testInstanceZoneName}
-
-	require.Equal(t, expectedZone, zone)
+	actual, err := ts.provider.zones.GetZoneByProviderID(context.Background(), "")
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
 }
 
-func TestGetZoneByNodeName(t *testing.T) {
-	ctx := context.Background()
-	p, ts := newMockInstanceAPI()
-	zones := &zones{p: p}
-	defer ts.Close()
+func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName() {
+	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testInstanceName,
+		},
+		Status: v1.NodeStatus{
+			NodeInfo: v1.NodeSystemInfo{
+				SystemUUID: testInstanceID,
+			},
+		},
+	})
 
-	zone, err := zones.GetZoneByNodeName(ctx, testInstanceName)
+	expected := cloudprovider.Zone{Region: testZone}
 
-	require.NoError(t, err)
-	require.NotNil(t, zone)
-
-	expectedZone := cloudprovider.Zone{Region: testInstanceZoneName}
-
-	require.Equal(t, expectedZone, zone)
+	actual, err := ts.provider.zones.GetZoneByNodeName(context.Background(), types.NodeName(testInstanceName))
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
 }

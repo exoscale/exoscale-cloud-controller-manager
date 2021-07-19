@@ -15,8 +15,8 @@ kubectl get node $NODEPOOL_INSTANCE_NAME \
 
 declare -A EXPECTED
 EXPECTED[kubernetes.io/hostname]="$NODEPOOL_INSTANCE_NAME"
-EXPECTED[beta.kubernetes.io/instance-type]="Medium"
-EXPECTED[node.kubernetes.io/instance-type]="Medium"
+EXPECTED[beta.kubernetes.io/instance-type]="medium"
+EXPECTED[node.kubernetes.io/instance-type]="medium"
 EXPECTED[failure-domain.beta.kubernetes.io/region]="$EXOSCALE_ZONE"
 EXPECTED[topology.kubernetes.io/region]="$EXOSCALE_ZONE"
 

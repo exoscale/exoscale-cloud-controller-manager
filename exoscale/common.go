@@ -3,45 +3,22 @@ package exoscale
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
-	"github.com/exoscale/egoscale"
-	v1 "k8s.io/api/core/v1"
+	egoscale "github.com/exoscale/egoscale/v2"
 )
 
 const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
 
-func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.VirtualMachine, error) {
+func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.Instance, error) {
 	id, err := formatProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
 
-	uuid, err := egoscale.ParseUUID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := p.client.GetInstance(ctx, uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
-func nodeAddresses(instance *egoscale.VirtualMachine) ([]v1.NodeAddress, error) {
-	nic := instance.DefaultNic()
-	if nic == nil {
-		return nil, fmt.Errorf("default NIC not found for instance %q", instance.ID.String())
-	}
-
-	return []v1.NodeAddress{
-		{Type: v1.NodeExternalIP, Address: nic.IPAddress.String()},
-	}, nil
+	return p.client.GetInstance(ctx, p.zone, id)
 }
 
 func formatProviderID(providerID string) (string, error) {

@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/exoscale/egoscale"
+	egoscale "github.com/exoscale/egoscale/v2"
+	exoapi "github.com/exoscale/egoscale/v2/api"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
-var labelInvalidCharsRegex *regexp.Regexp = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
+var labelInvalidCharsRegex = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
 
 type instances struct {
 	p *cloudProvider
@@ -46,7 +47,10 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	return nodeAddresses(instance)
+	return []v1.NodeAddress{{
+		Type:    v1.NodeExternalIP,
+		Address: instance.PublicIPAddress.String(),
+	}}, nil
 }
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
@@ -78,18 +82,23 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(instance.ServiceOfferingName, ""), nil
+	instanceType, err := i.p.client.GetInstanceType(ctx, i.p.zone, *instance.InstanceTypeID)
+	if err != nil {
+		return "", err
+	}
+
+	return labelInvalidCharsRegex.ReplaceAllString(*instanceType.Size, ""), nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
 // expected format for the key is standard ssh-keygen format: <protocol> <blob>
-func (i *instances) AddSSHKeyToAllInstances(ctx context.Context, user string, keyData []byte) error {
+func (i *instances) AddSSHKeyToAllInstances(_ context.Context, _ string, _ []byte) error {
 	return cloudprovider.NotImplemented
 }
 
 // CurrentNodeName returns the name of the node we are currently running on
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname
-func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types.NodeName, error) {
+func (i *instances) CurrentNodeName(_ context.Context, hostname string) (types.NodeName, error) {
 	return types.NodeName(hostname), nil
 }
 
@@ -99,7 +108,7 @@ func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types
 func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
-		if errors.Is(err, egoscale.ErrNotFound) {
+		if errors.Is(err, exoapi.ErrNotFound) {
 			return false, nil
 		}
 
@@ -116,5 +125,26 @@ func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID
 		return false, err
 	}
 
-	return egoscale.VirtualMachineState(instance.State) == egoscale.VirtualMachineShutdowned, nil
+	return *instance.State == "stopping" || *instance.State == "stopped", nil
+}
+
+func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, zone, id string) (*egoscale.Instance, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.GetInstance(ctx, zone, id)
+}
+
+func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, zone, id string) (*egoscale.InstanceType, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.GetInstanceType(ctx, zone, id)
+}
+
+func (c *refreshableExoscaleClient) ListInstances(ctx context.Context, zone string) ([]*egoscale.Instance, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.ListInstances(ctx, zone)
 }
