@@ -1,63 +1,41 @@
 package exoscale
 
 import (
-	"fmt"
+	"context"
 	"math/rand"
-	"net/http"
-	"sync"
 	"testing"
 	"time"
 
-	egoscale "github.com/exoscale/egoscale/v2"
 	"github.com/gofrs/uuid"
-	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/suite"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 var (
-	testZone        = "ch-gva-2"
-	testAPIEndpoint = fmt.Sprintf("https://api-%s.exoscale.com/v2.alpha", testZone)
-	testSeededRand  = rand.New(rand.NewSource(time.Now().UnixNano()))
+	testZone       = "ch-gva-2"
+	testSeededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
 type exoscaleCCMTestSuite struct {
 	suite.Suite
 
-	provider *cloudProvider
+	p *cloudProvider
 }
 
 func (ts *exoscaleCCMTestSuite) SetupTest() {
-	httpmock.Activate()
-
-	exo, err := egoscale.NewClient("x", "x", egoscale.ClientOptWithPollInterval(10*time.Millisecond))
-	if err != nil {
-		ts.T().Fatal(err)
+	ts.p = &cloudProvider{
+		ctx:     context.Background(),
+		client:  new(exoscaleClientMock),
+		kclient: fake.NewSimpleClientset(),
+		zone:    testZone,
 	}
 
-	ts.provider = &cloudProvider{
-		client: &exoscaleClient{
-			exo:     exo,
-			RWMutex: &sync.RWMutex{},
-		},
-		zone: testZone,
-	}
-	ts.provider.instances = &instances{p: ts.provider}
-	ts.provider.loadBalancer = &loadBalancer{p: ts.provider}
-	ts.provider.zones = &zones{p: ts.provider}
+	ts.p.instances = &instances{p: ts.p}
+	ts.p.loadBalancer = &loadBalancer{p: ts.p}
+	ts.p.zones = &zones{p: ts.p}
 }
 
 func (ts *exoscaleCCMTestSuite) TearDownTest() {
-	ts.provider = nil
-
-	httpmock.DeactivateAndReset()
-}
-
-func (ts *exoscaleCCMTestSuite) mockAPIRequest(method, url string, body interface{}) {
-	httpmock.RegisterResponder(
-		method,
-		testAPIEndpoint+url,
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, body),
-	)
 }
 
 func (ts *exoscaleCCMTestSuite) randomID() string {

@@ -1,7 +1,9 @@
 package exoscale
 
 import (
-	"context"
+	"bytes"
+	"io/ioutil"
+	"net/http"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,16 +12,49 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 )
 
+type exoscaleMetadataMockTransport struct {
+	res *http.Response
+	err error
+}
+
+func (t *exoscaleMetadataMockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.res.Request = req
+	return t.res, t.err
+}
+
+func (ts *exoscaleCCMTestSuite) TestGetZone() {
+	defaultHTTPClient := http.DefaultClient
+	defer func() { http.DefaultClient = defaultHTTPClient }()
+
+	http.DefaultClient = &http.Client{Transport: &exoscaleMetadataMockTransport{
+		res: &http.Response{
+			Status:        "200 ok",
+			StatusCode:    200,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			Header:        http.Header{},
+			Body:          ioutil.NopCloser(bytes.NewBufferString(testZone)),
+			ContentLength: int64(len(testZone)),
+		},
+	}}
+
+	expected := cloudprovider.Zone{Region: testZone}
+	actual, err := ts.p.zones.GetZone(ts.p.ctx)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
 func (ts *exoscaleCCMTestSuite) TestGetZoneByProviderID() {
 	expected := cloudprovider.Zone{Region: testZone}
 
-	actual, err := ts.provider.zones.GetZoneByProviderID(context.Background(), "")
+	actual, err := ts.p.zones.GetZoneByProviderID(ts.p.ctx, "")
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName() {
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -36,7 +71,7 @@ func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName() {
 
 	expected := cloudprovider.Zone{Region: testZone}
 
-	actual, err := ts.provider.zones.GetZoneByNodeName(context.Background(), types.NodeName(testInstanceName))
+	actual, err := ts.p.zones.GetZoneByNodeName(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected, actual)
 }

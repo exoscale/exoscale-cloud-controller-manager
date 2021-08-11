@@ -10,8 +10,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-const testServiceID = "009e9cb6-147e-4a33-ab93-7651f246cb5c"
-
 func newFakeService() *v1.Service {
 	return &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -25,14 +23,13 @@ func newFakeService() *v1.Service {
 // TestNewServicePatcher tests that the kubeServicePatcher object returned correctly snapshots the v1.Service object
 // internally.
 func TestNewServicePatcher(t *testing.T) {
-	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
-
 	service := newFakeService()
-	patcher := newServicePatcher(ctx, clientset, service)
 
+	patcher := newServicePatcher(context.Background(), clientset, service)
 	require.Equal(t, patcher.current, patcher.modified, "service values should not differ")
-	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testServiceID
+
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID
 	require.NotEqual(t, patcher.current, patcher.modified, "service values should differ")
 }
 
@@ -41,8 +38,8 @@ func TestNewServicePatcher(t *testing.T) {
 func TestKubeServicePatcherPatch(t *testing.T) {
 	ctx := context.Background()
 	clientset := fake.NewSimpleClientset()
-
 	service := newFakeService()
+
 	serviceAdded, err := clientset.CoreV1().Services(metav1.NamespaceDefault).Create(ctx, service, metav1.CreateOptions{})
 	require.NoError(t, err)
 
@@ -50,7 +47,7 @@ func TestKubeServicePatcherPatch(t *testing.T) {
 	require.Empty(t, svcID)
 
 	patcher := newServicePatcher(ctx, clientset, service)
-	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testServiceID
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID
 	err = patcher.Patch()
 	require.NoError(t, err)
 
@@ -58,5 +55,5 @@ func TestKubeServicePatcherPatch(t *testing.T) {
 	require.NoError(t, err)
 
 	svcID = serviceFinal.ObjectMeta.Annotations[annotationLoadBalancerID]
-	require.Equal(t, svcID, testServiceID)
+	require.Equal(t, svcID, testNLBID)
 }
