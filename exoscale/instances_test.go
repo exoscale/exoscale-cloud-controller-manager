@@ -1,31 +1,22 @@
 package exoscale
 
 import (
-	"context"
-	"fmt"
 	"net"
-	"net/http"
-	"time"
 
 	egoscale "github.com/exoscale/egoscale/v2"
-	"github.com/jarcoal/httpmock"
+	exoapi "github.com/exoscale/egoscale/v2/api"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 var (
-	testInstanceCreatedAt              = time.Now().UTC()
-	testInstanceDiskSize         int64 = 10
 	testInstanceID                     = new(exoscaleCCMTestSuite).randomID()
-	testInstanceIPv6Enabled            = false
-	testInstanceManagerID              = new(exoscaleCCMTestSuite).randomID()
 	testInstanceName                   = new(exoscaleCCMTestSuite).randomString(10)
-	testInstancePublicIPAddress        = "159.100.251.253"
+	testInstancePublicIPAddress        = "1.2.3.4"
 	testInstancePublicIPAddressP       = net.ParseIP(testInstancePublicIPAddress)
-	testInstanceState                  = "running"
-	testInstanceTemplateID             = new(exoscaleCCMTestSuite).randomID()
 	testInstanceTypeAuthorized         = true
 	testInstanceTypeCPUs         int64 = 2
 	testInstanceTypeFamily             = "standard"
@@ -35,23 +26,18 @@ var (
 )
 
 func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPAddressP,
+			},
+			nil,
+		)
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -71,29 +57,24 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 		Address: testInstancePublicIPAddress,
 	}}
 
-	actual, err := ts.provider.instances.NodeAddresses(context.Background(), types.NodeName(testInstanceName))
+	actual, err := ts.p.instances.NodeAddresses(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPAddressP,
+			},
+			nil,
+		)
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -108,20 +89,18 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 		},
 	})
 
-	expected := []v1.NodeAddress{
-		{
-			Type:    v1.NodeExternalIP,
-			Address: testInstancePublicIPAddress,
-		},
-	}
+	expected := []v1.NodeAddress{{
+		Type:    v1.NodeExternalIP,
+		Address: testInstancePublicIPAddress,
+	}}
 
-	actual, err := ts.provider.instances.NodeAddressesByProviderID(context.Background(), providerPrefix+testInstanceID)
+	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceID() {
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -136,37 +115,38 @@ func (ts *exoscaleCCMTestSuite) TestInstanceID() {
 		},
 	})
 
-	actual, err := ts.provider.instances.InstanceID(context.Background(), types.NodeName(testInstanceName))
+	actual, err := ts.p.instances.InstanceID(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
 	ts.Require().Equal(actual, testInstanceID)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceType() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
-	ts.mockAPIRequest("GET", "/instance-type/"+testInstanceTypeID, egoscale.InstanceType{
-		Authorized: &testInstanceTypeAuthorized,
-		CPUs:       &testInstanceTypeCPUs,
-		Family:     &testInstanceTypeFamily,
-		ID:         &testInstanceTypeID,
-		Memory:     &testInstanceTypeMemory,
-		Size:       &testInstanceTypeSize,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:             &testInstanceID,
+				InstanceTypeID: &testInstanceTypeID,
+				Name:           &testInstanceName,
+			},
+			nil,
+		)
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstanceType", ts.p.ctx, ts.p.zone, testInstanceTypeID).
+		Return(
+			&egoscale.InstanceType{
+				Authorized: &testInstanceTypeAuthorized,
+				CPUs:       &testInstanceTypeCPUs,
+				Family:     &testInstanceTypeFamily,
+				ID:         &testInstanceTypeID,
+				Memory:     &testInstanceTypeMemory,
+				Size:       &testInstanceTypeSize,
+			},
+			nil,
+		)
+
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -181,38 +161,38 @@ func (ts *exoscaleCCMTestSuite) TestInstanceType() {
 		},
 	})
 
-	actual, err := ts.provider.instances.InstanceType(context.Background(), types.NodeName(testInstanceName))
+	actual, err := ts.p.instances.InstanceType(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
 	ts.Require().Equal(actual, testInstanceTypeSize)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:             &testInstanceID,
+				InstanceTypeID: &testInstanceTypeID,
+				Name:           &testInstanceName,
+			},
+			nil,
+		)
 
-	ts.mockAPIRequest("GET", "/instance-type/"+testInstanceTypeID, egoscale.InstanceType{
-		Authorized: &testInstanceTypeAuthorized,
-		CPUs:       &testInstanceTypeCPUs,
-		Family:     &testInstanceTypeFamily,
-		ID:         &testInstanceTypeID,
-		Memory:     &testInstanceTypeMemory,
-		Size:       &testInstanceTypeSize,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstanceType", ts.p.ctx, ts.p.zone, testInstanceTypeID).
+		Return(
+			&egoscale.InstanceType{
+				Authorized: &testInstanceTypeAuthorized,
+				CPUs:       &testInstanceTypeCPUs,
+				Family:     &testInstanceTypeFamily,
+				ID:         &testInstanceTypeID,
+				Memory:     &testInstanceTypeMemory,
+				Size:       &testInstanceTypeSize,
+			},
+			nil,
+		)
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -227,13 +207,17 @@ func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID() {
 		},
 	})
 
-	actual, err := ts.provider.instances.InstanceTypeByProviderID(context.Background(), providerPrefix+testInstanceID)
+	actual, err := ts.p.instances.InstanceTypeByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
 	ts.Require().Equal(actual, testInstanceTypeSize)
 }
 
+func (ts *exoscaleCCMTestSuite) AddSSHKeyToAllInstances() {
+	ts.T().Skip(cloudprovider.NotImplemented)
+}
+
 func (ts *exoscaleCCMTestSuite) TestCurrentNodeName() {
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -248,29 +232,23 @@ func (ts *exoscaleCCMTestSuite) TestCurrentNodeName() {
 		},
 	})
 
-	actual, err := ts.provider.instances.CurrentNodeName(context.Background(), testInstanceName)
+	actual, err := ts.p.instances.CurrentNodeName(ts.p.ctx, testInstanceName)
 	ts.Require().NoError(err)
 	ts.Require().Equal(actual, types.NodeName(testInstanceName))
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:   &testInstanceID,
+				Name: &testInstanceName,
+			},
+			nil,
+		)
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -285,7 +263,7 @@ func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID() {
 		},
 	})
 
-	exists, err := ts.provider.instances.InstanceExistsByProviderID(context.Background(), providerPrefix+testInstanceID)
+	exists, err := ts.p.instances.InstanceExistsByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
 	ts.Require().True(exists)
 
@@ -293,35 +271,30 @@ func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID() {
 
 	nonExistentID := ts.randomID()
 
-	httpmock.RegisterResponder(
-		"GET",
-		fmt.Sprintf("%s/instance/%s", testAPIEndpoint, nonExistentID),
-		httpmock.NewBytesResponder(http.StatusNotFound, nil),
-	)
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, nonExistentID).
+		Return(new(egoscale.Instance), exoapi.ErrNotFound)
 
-	exists, err = ts.provider.instances.InstanceExistsByProviderID(context.Background(), providerPrefix+nonExistentID)
+	exists, err = ts.p.instances.InstanceExistsByProviderID(ts.p.ctx, providerPrefix+nonExistentID)
 	ts.Require().NoError(err)
 	ts.Require().False(exists)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceShutdownByProviderID() {
-	ts.mockAPIRequest("GET", "/instance/"+testInstanceID, egoscale.Instance{
-		CreatedAt:      &testInstanceCreatedAt,
-		DiskSize:       &testInstanceDiskSize,
-		ID:             &testInstanceID,
-		IPv6Enabled:    &testInstanceIPv6Enabled,
-		InstanceTypeID: &testInstanceTypeID,
-		Manager: &egoscale.InstanceManager{
-			ID:   testInstanceManagerID,
-			Type: "instance-pool",
-		},
-		Name:            &testInstanceName,
-		PublicIPAddress: &testInstancePublicIPAddressP,
-		State:           &testInstanceState,
-		TemplateID:      &testInstanceTemplateID,
-	}.ToAPIMock())
+	testInstanceStateShutdown := "stopped"
 
-	ts.provider.kclient = fake.NewSimpleClientset(&v1.Node{
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:    &testInstanceID,
+				Name:  &testInstanceName,
+				State: &testInstanceStateShutdown,
+			},
+			nil,
+		)
+
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -336,10 +309,10 @@ func (ts *exoscaleCCMTestSuite) TestInstanceShutdownByProviderID() {
 		},
 	})
 
-	shutdown, err := ts.provider.instances.InstanceShutdownByProviderID(
-		context.Background(),
+	shutdown, err := ts.p.instances.InstanceShutdownByProviderID(
+		ts.p.ctx,
 		providerPrefix+testInstanceID,
 	)
 	ts.Require().NoError(err)
-	ts.Require().False(shutdown)
+	ts.Require().True(shutdown)
 }

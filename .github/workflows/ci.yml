@@ -40,29 +40,3 @@ jobs:
       run: git submodule update --init --recursive go.mk
     - name: Build Docker image
       run: make docker
-
-  integration-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: docker-build
-    steps:
-    - uses: actions/checkout@v2
-    - name: Init go.mk submodule
-      run: git submodule update --init --recursive go.mk
-    - uses: azure/setup-kubectl@v1
-      with:
-        version: v1.20.2
-      id: install
-    - uses: hashicorp/setup-terraform@v1
-    - name: Install Exoscale CLI
-      run: |
-        latest_tag=$(curl -s https://api.github.com/repos/exoscale/cli/releases/latest | awk -F '"' '/tag_name/ { print $4 }')
-        wget -qO cli.deb https://github.com/exoscale/cli/releases/download/${latest_tag}/exoscale-cli_${latest_tag##v}_linux_amd64.deb
-        sudo dpkg -i cli.deb
-    - name: Integration Test
-      run: |
-        sudo apt-get install -y jq
-        make integtest
-      env:
-        EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
-        EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}

@@ -14,6 +14,11 @@ import (
 	k8swatch "k8s.io/apimachinery/pkg/watch"
 )
 
+const (
+	sksAgentNodeCSRValidationApprovalReason  = "ExoscaleCloudControllerApproved"
+	sksAgentNodeCSRValidationApprovalMessage = "This CSR was approved by the Exoscale Cloud Controller Manager"
+)
+
 // sksAgentNodeCSRValidationRequiredGroups describes the list of Kubernetes
 // RBAC groups a Node must be member of in order to have its CSR validated.
 var sksAgentNodeCSRValidationRequiredGroups = []string{
@@ -44,7 +49,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 				TimeoutSeconds: &watchTimeoutSeconds, // Default timeout: 20 minutes.
 			})
 		if err != nil {
-			errorf("sks-agent: failed to list CSR resources: %s", err)
+			errorf("sks-agent: failed to list CSR resources: %v", err)
 			time.Sleep(10 * time.Second) // Pause for a while before retrying, otherwise we'll spam error logs.
 			continue
 		}
@@ -91,7 +96,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 
 				parsedCSR, err := r.parseCSR(csr.Spec.Request)
 				if err != nil {
-					errorf("sks-agent: failed to parse CSR: %s", err)
+					errorf("sks-agent: failed to parse CSR: %v", err)
 					continue
 				}
 
@@ -106,7 +111,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 
 				instances, err := r.p.client.ListInstances(ctx, r.p.zone)
 				if err != nil {
-					errorf("sks-agent: failed to list Compute instances: %s", err)
+					errorf("sks-agent: failed to list Compute instances: %v", err)
 					continue
 				}
 
@@ -117,7 +122,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 							break
 						}
 
-						errorf("sks-agent: CSR %q Node IP address doesn't match corresponding "+
+						errorf("sks-agent: CSR %s Node IP address doesn't match corresponding "+
 							"Compute instance public interface IP address", csr.Name)
 						continue
 					}
@@ -130,8 +135,8 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 				csr.Status.Conditions = append(csr.Status.Conditions, k8scertv1.CertificateSigningRequestCondition{
 					Type:           k8scertv1.CertificateApproved,
 					Status:         corev1.ConditionTrue,
-					Reason:         "ExoscaleCloudControllerApproved",
-					Message:        "This CSR was approved by the Exoscale Cloud Controller Manager",
+					Reason:         sksAgentNodeCSRValidationApprovalReason,
+					Message:        sksAgentNodeCSRValidationApprovalMessage,
 					LastUpdateTime: metav1.Now(),
 				})
 
@@ -140,7 +145,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 					CertificateSigningRequests().
 					UpdateApproval(ctx, csr.Name, csr, metav1.UpdateOptions{})
 				if err != nil {
-					errorf("sks-agent: failed to approve CSR %s: %s", err)
+					errorf("sks-agent: failed to approve CSR %s: %v", csr.Name, err)
 					continue
 				}
 
