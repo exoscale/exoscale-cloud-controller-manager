@@ -30,11 +30,11 @@ github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
-# github.com/exoscale/egoscale v0.68.0
+# github.com/exoscale/egoscale v0.77.0
 ## explicit
 github.com/exoscale/egoscale/v2
 github.com/exoscale/egoscale/v2/api
-github.com/exoscale/egoscale/v2/internal/public-api
+github.com/exoscale/egoscale/v2/oapi
 github.com/exoscale/egoscale/version
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit

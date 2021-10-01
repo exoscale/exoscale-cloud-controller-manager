@@ -5,7 +5,7 @@ import (
 	"time"
 
 	apiv2 "github.com/exoscale/egoscale/v2/api"
-	papi "github.com/exoscale/egoscale/v2/internal/public-api"
+	"github.com/exoscale/egoscale/v2/oapi"
 )
 
 // Template represents a Compute instance template.
@@ -17,7 +17,7 @@ type Template struct {
 	DefaultUser     *string
 	Description     *string
 	Family          *string
-	ID              *string
+	ID              *string `req-for:"delete"`
 	Name            *string `req-for:"create"`
 	PasswordEnabled *bool   `req-for:"create"`
 	SSHKeyEnabled   *bool   `req-for:"create"`
@@ -25,9 +25,31 @@ type Template struct {
 	URL             *string `req-for:"create"`
 	Version         *string
 	Visibility      *string
+	Zone            *string
 }
 
-func templateFromAPI(t *papi.Template) *Template {
+// ListTemplatesOpt represents an ListTemplates operation option.
+type ListTemplatesOpt func(params *oapi.ListTemplatesParams)
+
+// ListTemplatesWithFamily sets a family filter to list Templates with.
+func ListTemplatesWithFamily(v string) ListTemplatesOpt {
+	return func(p *oapi.ListTemplatesParams) {
+		if v != "" {
+			p.Family = &v
+		}
+	}
+}
+
+// ListTemplatesWithVisibility sets a visibility filter to list Templates with (default: "public").
+func ListTemplatesWithVisibility(v string) ListTemplatesOpt {
+	return func(p *oapi.ListTemplatesParams) {
+		if v != "" {
+			p.Visibility = (*oapi.ListTemplatesParamsVisibility)(&v)
+		}
+	}
+}
+
+func templateFromAPI(t *oapi.Template, zone string) *Template {
 	return &Template{
 		BootMode:        (*string)(t.BootMode),
 		Build:           t.Build,
@@ -44,17 +66,22 @@ func templateFromAPI(t *papi.Template) *Template {
 		URL:             t.Url,
 		Version:         t.Version,
 		Visibility:      (*string)(t.Visibility),
+		Zone:            &zone,
 	}
 }
 
 // DeleteTemplate deletes a Template.
 func (c *Client) DeleteTemplate(ctx context.Context, zone string, template *Template) error {
+	if err := validateOperationParams(template, "delete"); err != nil {
+		return err
+	}
+
 	resp, err := c.DeleteTemplateWithResponse(apiv2.WithZone(ctx, zone), *template.ID)
 	if err != nil {
 		return err
 	}
 
-	_, err = papi.NewPoller().
+	_, err = oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -72,29 +99,30 @@ func (c *Client) GetTemplate(ctx context.Context, zone, id string) (*Template, e
 		return nil, err
 	}
 
-	return templateFromAPI(resp.JSON200), nil
+	return templateFromAPI(resp.JSON200, zone), nil
 }
 
 // ListTemplates returns the list of existing Templates.
-func (c *Client) ListTemplates(ctx context.Context, zone, visibility, family string) ([]*Template, error) {
+func (c *Client) ListTemplates(ctx context.Context, zone string, opts ...ListTemplatesOpt) ([]*Template, error) {
 	list := make([]*Template, 0)
 
-	resp, err := c.ListTemplatesWithResponse(apiv2.WithZone(ctx, zone), &papi.ListTemplatesParams{
-		Visibility: (*papi.ListTemplatesParamsVisibility)(&visibility),
-		Family: func() *string {
-			if family != "" {
-				return &family
-			}
-			return nil
-		}(),
-	})
+	defaultVisibility := oapi.TemplateVisibilityPublic
+	params := oapi.ListTemplatesParams{
+		Visibility: (*oapi.ListTemplatesParamsVisibility)(&defaultVisibility),
+	}
+
+	for _, opt := range opts {
+		opt(&params)
+	}
+
+	resp, err := c.ListTemplatesWithResponse(apiv2.WithZone(ctx, zone), &params)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.JSON200.Templates != nil {
 		for i := range *resp.JSON200.Templates {
-			list = append(list, templateFromAPI(&(*resp.JSON200.Templates)[i]))
+			list = append(list, templateFromAPI(&(*resp.JSON200.Templates)[i], zone))
 		}
 	}
 
@@ -109,8 +137,8 @@ func (c *Client) RegisterTemplate(ctx context.Context, zone string, template *Te
 
 	resp, err := c.RegisterTemplateWithResponse(
 		apiv2.WithZone(ctx, zone),
-		papi.RegisterTemplateJSONRequestBody{
-			BootMode:        (*papi.RegisterTemplateJSONBodyBootMode)(template.BootMode),
+		oapi.RegisterTemplateJSONRequestBody{
+			BootMode:        (*oapi.RegisterTemplateJSONBodyBootMode)(template.BootMode),
 			Checksum:        *template.Checksum,
 			DefaultUser:     template.DefaultUser,
 			Description:     template.Description,
@@ -123,7 +151,7 @@ func (c *Client) RegisterTemplate(ctx context.Context, zone string, template *Te
 		return nil, err
 	}
 
-	res, err := papi.NewPoller().
+	res, err := oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -131,5 +159,5 @@ func (c *Client) RegisterTemplate(ctx context.Context, zone string, template *Te
 		return nil, err
 	}
 
-	return c.GetTemplate(ctx, zone, *res.(*papi.Reference).Id)
+	return c.GetTemplate(ctx, zone, *res.(*oapi.Reference).Id)
 }

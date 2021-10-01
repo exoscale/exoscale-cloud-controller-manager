@@ -4,21 +4,32 @@ import (
 	"context"
 
 	apiv2 "github.com/exoscale/egoscale/v2/api"
-	papi "github.com/exoscale/egoscale/v2/internal/public-api"
+	"github.com/exoscale/egoscale/v2/oapi"
 )
 
 // AntiAffinityGroup represents an Anti-Affinity Group.
 type AntiAffinityGroup struct {
 	Description *string
-	ID          *string
+	ID          *string `req-for:"delete"`
+	InstanceIDs *[]string
 	Name        *string `req-for:"create"`
 }
 
-func antiAffinityGroupFromAPI(a *papi.AntiAffinityGroup) *AntiAffinityGroup {
+func antiAffinityGroupFromAPI(a *oapi.AntiAffinityGroup) *AntiAffinityGroup {
 	return &AntiAffinityGroup{
 		Description: a.Description,
 		ID:          a.Id,
-		Name:        a.Name,
+		InstanceIDs: func() (v *[]string) {
+			if a.Instances != nil && len(*a.Instances) > 0 {
+				ids := make([]string, len(*a.Instances))
+				for i, item := range *a.Instances {
+					ids[i] = *item.Id
+				}
+				v = &ids
+			}
+			return
+		}(),
+		Name: a.Name,
 	}
 }
 
@@ -34,7 +45,7 @@ func (c *Client) CreateAntiAffinityGroup(
 
 	resp, err := c.CreateAntiAffinityGroupWithResponse(
 		apiv2.WithZone(ctx, zone),
-		papi.CreateAntiAffinityGroupJSONRequestBody{
+		oapi.CreateAntiAffinityGroupJSONRequestBody{
 			Description: antiAffinityGroup.Description,
 			Name:        *antiAffinityGroup.Name,
 		})
@@ -42,7 +53,7 @@ func (c *Client) CreateAntiAffinityGroup(
 		return nil, err
 	}
 
-	res, err := papi.NewPoller().
+	res, err := oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -50,7 +61,7 @@ func (c *Client) CreateAntiAffinityGroup(
 		return nil, err
 	}
 
-	return c.GetAntiAffinityGroup(ctx, zone, *res.(*papi.Reference).Id)
+	return c.GetAntiAffinityGroup(ctx, zone, *res.(*oapi.Reference).Id)
 }
 
 // DeleteAntiAffinityGroup deletes an Anti-Affinity Group.
@@ -59,12 +70,16 @@ func (c *Client) DeleteAntiAffinityGroup(
 	zone string,
 	antiAffinityGroup *AntiAffinityGroup,
 ) error {
+	if err := validateOperationParams(antiAffinityGroup, "delete"); err != nil {
+		return err
+	}
+
 	resp, err := c.DeleteAntiAffinityGroupWithResponse(apiv2.WithZone(ctx, zone), *antiAffinityGroup.ID)
 	if err != nil {
 		return err
 	}
 
-	_, err = papi.NewPoller().
+	_, err = oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))

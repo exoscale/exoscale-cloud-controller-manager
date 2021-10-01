@@ -4,16 +4,16 @@ import (
 	"context"
 
 	apiv2 "github.com/exoscale/egoscale/v2/api"
-	papi "github.com/exoscale/egoscale/v2/internal/public-api"
+	"github.com/exoscale/egoscale/v2/oapi"
 )
 
 // SSHKey represents an SSH key.
 type SSHKey struct {
 	Fingerprint *string
-	Name        *string
+	Name        *string `req-for:"delete"`
 }
 
-func sshKeyFromAPI(k *papi.SshKey) *SSHKey {
+func sshKeyFromAPI(k *oapi.SshKey) *SSHKey {
 	return &SSHKey{
 		Fingerprint: k.Fingerprint,
 		Name:        k.Name,
@@ -22,12 +22,16 @@ func sshKeyFromAPI(k *papi.SshKey) *SSHKey {
 
 // DeleteSSHKey deletes an SSH key.
 func (c *Client) DeleteSSHKey(ctx context.Context, zone string, sshKey *SSHKey) error {
+	if err := validateOperationParams(sshKey, "delete"); err != nil {
+		return err
+	}
+
 	resp, err := c.DeleteSshKeyWithResponse(apiv2.WithZone(ctx, zone), *sshKey.Name)
 	if err != nil {
 		return err
 	}
 
-	_, err = papi.NewPoller().
+	_, err = oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -70,7 +74,7 @@ func (c *Client) ListSSHKeys(ctx context.Context, zone string) ([]*SSHKey, error
 func (c *Client) RegisterSSHKey(ctx context.Context, zone, name, publicKey string) (*SSHKey, error) {
 	_, err := c.RegisterSshKeyWithResponse(
 		apiv2.WithZone(ctx, zone),
-		papi.RegisterSshKeyJSONRequestBody{
+		oapi.RegisterSshKeyJSONRequestBody{
 			Name:      name,
 			PublicKey: publicKey,
 		})

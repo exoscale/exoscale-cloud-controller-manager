@@ -5,7 +5,7 @@ import (
 	"time"
 
 	apiv2 "github.com/exoscale/egoscale/v2/api"
-	papi "github.com/exoscale/egoscale/v2/internal/public-api"
+	"github.com/exoscale/egoscale/v2/oapi"
 )
 
 // SnapshotExport represents exported Snapshot information.
@@ -17,30 +17,38 @@ type SnapshotExport struct {
 // Snapshot represents a Snapshot.
 type Snapshot struct {
 	CreatedAt  *time.Time
-	ID         *string
+	ID         *string `req-for:"update,delete"`
 	InstanceID *string
 	Name       *string
+	Size       *int64
 	State      *string
+	Zone       *string
 }
 
-func snapshotFromAPI(s *papi.Snapshot) *Snapshot {
+func snapshotFromAPI(s *oapi.Snapshot, zone string) *Snapshot {
 	return &Snapshot{
 		CreatedAt:  s.CreatedAt,
 		ID:         s.Id,
 		InstanceID: s.Instance.Id,
 		Name:       s.Name,
+		Size:       s.Size,
 		State:      (*string)(s.State),
+		Zone:       &zone,
 	}
 }
 
 // DeleteSnapshot deletes a Snapshot.
 func (c *Client) DeleteSnapshot(ctx context.Context, zone string, snapshot *Snapshot) error {
+	if err := validateOperationParams(snapshot, "delete"); err != nil {
+		return err
+	}
+
 	resp, err := c.DeleteSnapshotWithResponse(apiv2.WithZone(ctx, zone), *snapshot.ID)
 	if err != nil {
 		return err
 	}
 
-	_, err = papi.NewPoller().
+	_, err = oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -53,12 +61,16 @@ func (c *Client) DeleteSnapshot(ctx context.Context, zone string, snapshot *Snap
 
 // ExportSnapshot exports a Snapshot and returns the exported Snapshot information.
 func (c *Client) ExportSnapshot(ctx context.Context, zone string, snapshot *Snapshot) (*SnapshotExport, error) {
+	if err := validateOperationParams(snapshot, "update"); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.ExportSnapshotWithResponse(apiv2.WithZone(ctx, zone), *snapshot.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := papi.NewPoller().
+	res, err := oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
 		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
@@ -66,7 +78,7 @@ func (c *Client) ExportSnapshot(ctx context.Context, zone string, snapshot *Snap
 		return nil, err
 	}
 
-	expSnapshot, err := c.GetSnapshotWithResponse(apiv2.WithZone(ctx, zone), *res.(*papi.Reference).Id)
+	expSnapshot, err := c.GetSnapshotWithResponse(apiv2.WithZone(ctx, zone), *res.(*oapi.Reference).Id)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +96,7 @@ func (c *Client) GetSnapshot(ctx context.Context, zone, id string) (*Snapshot, e
 		return nil, err
 	}
 
-	return snapshotFromAPI(resp.JSON200), nil
+	return snapshotFromAPI(resp.JSON200, zone), nil
 }
 
 // ListSnapshots returns the list of existing Snapshots.
@@ -98,7 +110,7 @@ func (c *Client) ListSnapshots(ctx context.Context, zone string) ([]*Snapshot, e
 
 	if resp.JSON200.Snapshots != nil {
 		for i := range *resp.JSON200.Snapshots {
-			list = append(list, snapshotFromAPI(&(*resp.JSON200.Snapshots)[i]))
+			list = append(list, snapshotFromAPI(&(*resp.JSON200.Snapshots)[i], zone))
 		}
 	}
 

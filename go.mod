@@ -3,7 +3,7 @@ module github.com/exoscale/exoscale-cloud-controller-manager
 go 1.16
 
 require (
-	github.com/exoscale/egoscale v0.68.0
+	github.com/exoscale/egoscale v0.77.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/google/go-cmp v0.5.2
