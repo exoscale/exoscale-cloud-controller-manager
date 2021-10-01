@@ -4,7 +4,7 @@ import (
 	"context"
 
 	apiv2 "github.com/exoscale/egoscale/v2/api"
-	papi "github.com/exoscale/egoscale/v2/internal/public-api"
+	"github.com/exoscale/egoscale/v2/oapi"
 )
 
 // Quota represents an Exoscale organization quota.
@@ -14,16 +14,7 @@ type Quota struct {
 	Limit    *int64
 }
 
-// ToAPIMock returns the low-level representation of the resource. This is intended for testing purposes.
-func (q Quota) ToAPIMock() interface{} {
-	return papi.Quota{
-		Limit:    q.Limit,
-		Resource: q.Resource,
-		Usage:    q.Usage,
-	}
-}
-
-func quotaFromAPI(q *papi.Quota) *Quota {
+func quotaFromAPI(q *oapi.Quota) *Quota {
 	return &Quota{
 		Resource: q.Resource,
 		Usage:    q.Usage,
