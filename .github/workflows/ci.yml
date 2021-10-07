@@ -30,6 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '^1.17'
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
     - name: Build
@@ -39,6 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '^1.17'
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
     - name: Build Docker image
