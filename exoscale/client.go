@@ -22,7 +22,7 @@ type exoscaleClient interface {
 	GetInstance(context.Context, string, string) (*egoscale.Instance, error)
 	GetInstanceType(context.Context, string, string) (*egoscale.InstanceType, error)
 	GetNetworkLoadBalancer(context.Context, string, string) (*egoscale.NetworkLoadBalancer, error)
-	ListInstances(context.Context, string) ([]*egoscale.Instance, error)
+	ListInstances(context.Context, string, ...egoscale.ListInstancesOpt) ([]*egoscale.Instance, error)
 	UpdateNetworkLoadBalancer(context.Context, string, *egoscale.NetworkLoadBalancer) error
 	UpdateNetworkLoadBalancerService(context.Context, string, *egoscale.NetworkLoadBalancer, *egoscale.NetworkLoadBalancerService) error
 }

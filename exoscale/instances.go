@@ -142,9 +142,13 @@ func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, zone, i
 	return c.exo.GetInstanceType(ctx, zone, id)
 }
 
-func (c *refreshableExoscaleClient) ListInstances(ctx context.Context, zone string) ([]*egoscale.Instance, error) {
+func (c *refreshableExoscaleClient) ListInstances(
+	ctx context.Context,
+	zone string,
+	opts ...egoscale.ListInstancesOpt,
+) ([]*egoscale.Instance, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.ListInstances(ctx, zone)
+	return c.exo.ListInstances(ctx, zone, opts...)
 }

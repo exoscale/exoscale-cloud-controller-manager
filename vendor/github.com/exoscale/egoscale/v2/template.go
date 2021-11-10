@@ -17,7 +17,7 @@ type Template struct {
 	DefaultUser     *string
 	Description     *string
 	Family          *string
-	ID              *string `req-for:"delete"`
+	ID              *string `req-for:"update,delete"`
 	Name            *string `req-for:"create"`
 	PasswordEnabled *bool   `req-for:"create"`
 	SSHKeyEnabled   *bool   `req-for:"create"`
@@ -70,6 +70,32 @@ func templateFromAPI(t *oapi.Template, zone string) *Template {
 	}
 }
 
+// CopyTemplate copies a Template to a different Exoscale zone.
+func (c *Client) CopyTemplate(ctx context.Context, zone string, template *Template, dstZone string) (*Template, error) {
+	if err := validateOperationParams(template, "update"); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.CopyTemplateWithResponse(
+		apiv2.WithZone(ctx, zone),
+		*template.ID,
+		oapi.CopyTemplateJSONRequestBody{TargetZone: oapi.Zone{Name: (*oapi.ZoneName)(&dstZone)}},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := oapi.NewPoller().
+		WithTimeout(c.timeout).
+		WithInterval(c.pollInterval).
+		Poll(ctx, oapi.OperationPoller(c, zone, *resp.JSON200.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.GetTemplate(ctx, dstZone, *res.(*oapi.Reference).Id)
+}
+
 // DeleteTemplate deletes a Template.
 func (c *Client) DeleteTemplate(ctx context.Context, zone string, template *Template) error {
 	if err := validateOperationParams(template, "delete"); err != nil {
@@ -84,7 +110,7 @@ func (c *Client) DeleteTemplate(ctx context.Context, zone string, template *Temp
 	_, err = oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
-		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
+		Poll(ctx, oapi.OperationPoller(c, zone, *resp.JSON200.Id))
 	if err != nil {
 		return err
 	}
@@ -154,10 +180,38 @@ func (c *Client) RegisterTemplate(ctx context.Context, zone string, template *Te
 	res, err := oapi.NewPoller().
 		WithTimeout(c.timeout).
 		WithInterval(c.pollInterval).
-		Poll(ctx, c.OperationPoller(zone, *resp.JSON200.Id))
+		Poll(ctx, oapi.OperationPoller(c, zone, *resp.JSON200.Id))
 	if err != nil {
 		return nil, err
 	}
 
 	return c.GetTemplate(ctx, zone, *res.(*oapi.Reference).Id)
+}
+
+// UpdateTemplate updates a Template.
+func (c *Client) UpdateTemplate(ctx context.Context, zone string, template *Template) error {
+	if err := validateOperationParams(template, "update"); err != nil {
+		return err
+	}
+
+	resp, err := c.UpdateTemplateWithResponse(
+		apiv2.WithZone(ctx, zone),
+		*template.ID,
+		oapi.UpdateTemplateJSONRequestBody{
+			Description: oapi.NilableString(template.Description),
+			Name:        template.Name,
+		})
+	if err != nil {
+		return err
+	}
+
+	_, err = oapi.NewPoller().
+		WithTimeout(c.timeout).
+		WithInterval(c.pollInterval).
+		Poll(ctx, oapi.OperationPoller(c, zone, *resp.JSON200.Id))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -220,7 +220,7 @@ func (ts *exoscaleCCMTestSuite) Test_sksAgentRunnerNodeCSRValidation_run() {
 	}
 
 	ts.p.client.(*exoscaleClientMock).
-		On("ListInstances", mock.Anything, ts.p.zone).
+		On("ListInstances", mock.Anything, ts.p.zone, mock.Anything).
 		Return(
 			[]*egoscale.Instance{{
 				Name:            &testInstanceName,
