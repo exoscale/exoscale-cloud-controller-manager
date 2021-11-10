@@ -68,8 +68,12 @@ func (m *exoscaleClientMock) GetNetworkLoadBalancer(
 	return args.Get(0).(*egoscale.NetworkLoadBalancer), args.Error(1)
 }
 
-func (m *exoscaleClientMock) ListInstances(ctx context.Context, zone string) ([]*egoscale.Instance, error) {
-	args := m.Called(ctx, zone)
+func (m *exoscaleClientMock) ListInstances(
+	ctx context.Context,
+	zone string,
+	opts ...egoscale.ListInstancesOpt,
+) ([]*egoscale.Instance, error) {
+	args := m.Called(ctx, zone, opts)
 	return args.Get(0).([]*egoscale.Instance), args.Error(1)
 }
 

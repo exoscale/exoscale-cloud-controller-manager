@@ -195,15 +195,15 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("CreateNetworkLoadBalancer", ts.p.ctx, ts.p.zone, mock.Anything).
+		Run(func(args mock.Arguments) {
+			nlbCreated = true
+			ts.Require().Equal(args.Get(2), expectedNLB)
+		}).
 		Return(&egoscale.NetworkLoadBalancer{
 			ID:        &testNLBID,
 			IPAddress: &testNLBIPaddressP,
 			Name:      &testNLBName,
-		}, nil).
-		Run(func(args mock.Arguments) {
-			nlbCreated = true
-			ts.Require().Equal(args.Get(2), expectedNLB)
-		})
+		}, nil)
 
 	ts.p.client.(*exoscaleClientMock).
 		On("GetNetworkLoadBalancer", ts.p.ctx, ts.p.zone, testNLBID).
@@ -215,11 +215,11 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("CreateNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil).
 		Run(func(args mock.Arguments) {
 			nlbServiceCreated = true
 			ts.Require().Equal(args.Get(3), expectedNLBService)
-		})
+		}).
+		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil)
 
 	ts.p.kclient = fake.NewSimpleClientset(service)
 
@@ -337,11 +337,11 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_reuse() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("CreateNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil).
 		Run(func(args mock.Arguments) {
 			nlbServiceCreated = true
 			ts.Require().Equal(args.Get(3), expectedNLBService)
-		})
+		}).
+		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil)
 
 	ts.p.kclient = fake.NewSimpleClientset(service)
 
@@ -406,19 +406,19 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancerDeleted() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("DeleteNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(nil).
 		Run(func(args mock.Arguments) {
 			nlbServiceDeleted = true
 			ts.Require().Equal(args.Get(3), expectedNLB.Services[0])
-		})
+		}).
+		Return(nil)
 
 	ts.p.client.(*exoscaleClientMock).
 		On("DeleteNetworkLoadBalancer", ts.p.ctx, ts.p.zone, mock.Anything).
-		Return(nil).
 		Run(func(args mock.Arguments) {
 			nlbDeleted = true
 			ts.Require().Equal(args.Get(2), expectedNLB)
-		})
+		}).
+		Return(nil)
 
 	ts.p.kclient = fake.NewSimpleClientset(service)
 
@@ -720,12 +720,12 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_create() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("CreateNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil).
 		Run(func(args mock.Arguments) {
 			created = true
 			ts.Require().Equal(args.Get(2), currentNLB)
 			ts.Require().Equal(args.Get(3), expectedNLBService)
-		})
+		}).
+		Return(&egoscale.NetworkLoadBalancerService{ID: &testNLBServiceID}, nil)
 
 	ts.Require().NoError(ts.p.loadBalancer.(*loadBalancer).updateLoadBalancer(ts.p.ctx, service))
 	ts.Require().True(created)
@@ -823,11 +823,11 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_update() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("UpdateNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(nil).
 		Run(func(args mock.Arguments) {
 			updated = true
 			ts.Require().Equal(args.Get(3), expectedNLBService)
-		})
+		}).
+		Return(nil)
 
 	ts.Require().NoError(ts.p.loadBalancer.(*loadBalancer).updateLoadBalancer(ts.p.ctx, service))
 	ts.Require().True(updated)
@@ -917,11 +917,11 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_delete() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("DeleteNetworkLoadBalancerService", ts.p.ctx, ts.p.zone, mock.Anything, mock.Anything).
-		Return(nil).
 		Run(func(args mock.Arguments) {
 			deleted = true
 			ts.Require().Equal(args.Get(3), expectedNLBService)
-		})
+		}).
+		Return(nil)
 
 	ts.Require().NoError(ts.p.loadBalancer.(*loadBalancer).updateLoadBalancer(ts.p.ctx, service))
 	ts.Require().True(deleted)
