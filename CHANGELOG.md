@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+### Features
+
+* Add support for Kubernetes 1.22.x
+
+### Bug Fixes
+
+* Fix API errors when resetting NLB/NLB service description to an empty string
+
+
 ## 0.7.0
 
 ### Features
