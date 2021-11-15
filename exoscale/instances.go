@@ -132,14 +132,21 @@ func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, zone, id st
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.GetInstance(ctx, zone, id)
+	return c.exo.GetInstance(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		id,
+	)
 }
 
 func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, zone, id string) (*egoscale.InstanceType, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.GetInstanceType(ctx, zone, id)
+	return c.exo.GetInstanceType(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		id)
 }
 
 func (c *refreshableExoscaleClient) ListInstances(
@@ -150,5 +157,9 @@ func (c *refreshableExoscaleClient) ListInstances(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.ListInstances(ctx, zone, opts...)
+	return c.exo.ListInstances(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		opts...,
+	)
 }

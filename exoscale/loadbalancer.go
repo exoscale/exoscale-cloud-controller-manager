@@ -376,7 +376,11 @@ func (c *refreshableExoscaleClient) CreateNetworkLoadBalancer(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.CreateNetworkLoadBalancer(ctx, zone, nlb)
+	return c.exo.CreateNetworkLoadBalancer(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+	)
 }
 
 func (c *refreshableExoscaleClient) CreateNetworkLoadBalancerService(
@@ -388,7 +392,12 @@ func (c *refreshableExoscaleClient) CreateNetworkLoadBalancerService(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.CreateNetworkLoadBalancerService(ctx, zone, nlb, svc)
+	return c.exo.CreateNetworkLoadBalancerService(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+		svc,
+	)
 }
 
 func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancer(
@@ -399,7 +408,11 @@ func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancer(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.DeleteNetworkLoadBalancer(ctx, zone, nlb)
+	return c.exo.DeleteNetworkLoadBalancer(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+	)
 }
 
 func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancerService(
@@ -410,7 +423,12 @@ func (c *refreshableExoscaleClient) DeleteNetworkLoadBalancerService(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.DeleteNetworkLoadBalancerService(ctx, zone, nlb, svc)
+	return c.exo.DeleteNetworkLoadBalancerService(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+		svc,
+	)
 }
 
 func (c *refreshableExoscaleClient) GetNetworkLoadBalancer(
@@ -421,7 +439,11 @@ func (c *refreshableExoscaleClient) GetNetworkLoadBalancer(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.GetNetworkLoadBalancer(ctx, zone, id)
+	return c.exo.GetNetworkLoadBalancer(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		id,
+	)
 }
 
 func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancer(
@@ -432,7 +454,11 @@ func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancer(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.UpdateNetworkLoadBalancer(ctx, zone, nlb)
+	return c.exo.UpdateNetworkLoadBalancer(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+	)
 }
 
 func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancerService(
@@ -444,7 +470,12 @@ func (c *refreshableExoscaleClient) UpdateNetworkLoadBalancerService(
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.exo.UpdateNetworkLoadBalancerService(ctx, zone, nlb, svc)
+	return c.exo.UpdateNetworkLoadBalancerService(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+		nlb,
+		svc,
+	)
 }
 
 func getAnnotation(service *v1.Service, annotation, defaultValue string) *string {
