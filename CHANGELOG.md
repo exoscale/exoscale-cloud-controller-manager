@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+### Bug Fixes
+
+* Fix handling of alternative Exoscale API environments
+
+
 ## 0.8.0
 
 ### Features
