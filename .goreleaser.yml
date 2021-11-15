@@ -16,8 +16,7 @@ builds:
   - amd64
 
 dockers:
-- builds: [exoscale-cloud-controller-manager]
-  goos: linux
+- goos: linux
   goarch: amd64
   image_templates:
   - "exoscale/cloud-controller-manager:latest"
@@ -30,7 +29,6 @@ dockers:
   - --build-arg="VERSION={{.Version}}"
   - --build-arg="VCS_REF={{.ShortCommit}}"
   - --build-arg="BUILD_DATE={{.Date}}"
-  skip_push: auto
 
 signs:
 - cmd: gpg
