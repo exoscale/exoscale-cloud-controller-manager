@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0
+
+### Features
+
+* Add support for Kubernetes 1.23.x
+
 ## 0.8.1
 
 ### Bug Fixes
