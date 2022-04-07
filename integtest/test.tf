@@ -118,54 +118,38 @@ resource "exoscale_security_group" "test" {
   name = "${local.test_prefix}-${random_string.random.result}"
 }
 
-resource "exoscale_security_group_rules" "test" {
-  security_group = exoscale_security_group.test.name
-
-  ingress {
-    protocol                 = "TCP"
-    ports                    = ["1-65535"]
-    user_security_group_list = [exoscale_security_group.test.name]
+resource "exoscale_security_group_rule" "test" {
+  for_each = {
+    wide_open_sg   = { protocol = "TCP", port = "1-65535", sg = exoscale_security_group.test.id }
+    ssh_ipv4       = { protocol = "TCP", port = 22, cidr = "0.0.0.0/0" }
+    ssh_ipv6       = { protocol = "TCP", port = 22, cidr = "::/0" }
+    http_ipv4      = { protocol = "TCP", port = 80, cidr = "0.0.0.0/0" }
+    http_ipv6      = { protocol = "TCP", port = 80, cidr = "::/0" }
+    https_ipv4     = { protocol = "TCP", port = 443, cidr = "0.0.0.0/0" }
+    https_ipv6     = { protocol = "TCP", port = 443, cidr = "::/0" }
+    apiserver_ipv4 = { protocol = "TCP", port = 6443, cidr = "0.0.0.0/0" }
+    apiserver_ipv6 = { protocol = "TCP", port = 6443, cidr = "::/0" }
+    nodeports_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
+    nodeports_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
   }
 
-  ingress {
-    protocol  = "TCP"
-    ports     = ["22"]
-    cidr_list = ["0.0.0.0/0", "::/0"]
-  }
-
-  ingress {
-    protocol  = "TCP"
-    ports     = ["80"]
-    cidr_list = ["0.0.0.0/0", "::/0"]
-  }
-
-  ingress {
-    protocol  = "TCP"
-    ports     = ["443"]
-    cidr_list = ["0.0.0.0/0", "::/0"]
-  }
-
-  ingress {
-    protocol  = "TCP"
-    cidr_list = ["0.0.0.0/0", "::/0"]
-    ports     = ["6443"]
-  }
-
-  ingress {
-    protocol  = "TCP"
-    cidr_list = ["0.0.0.0/0"]
-    ports     = ["30000-32767"]
-  }
+  security_group_id      = exoscale_security_group.test.id
+  protocol               = each.value.protocol
+  type                   = "INGRESS"
+  start_port             = try(split("-", each.value.port)[0], each.value.port, null)
+  end_port               = try(split("-", each.value.port)[1], each.value.port, null)
+  user_security_group_id = try(each.value.sg, null)
+  cidr                   = try(each.value.cidr, null)
 }
 
 resource "exoscale_ssh_keypair" "test" {
   name = "${local.test_prefix}-${random_string.random.result}"
 }
 
-resource "local_file" "ssh_key" {
-  filename          = "${var.tmpdir}/id_rsa"
-  sensitive_content = exoscale_ssh_keypair.test.private_key
-  file_permission   = "0600"
+resource "local_sensitive_file" "ssh_key" {
+  filename        = "${var.tmpdir}/id_rsa"
+  content         = exoscale_ssh_keypair.test.private_key
+  file_permission = "0600"
 }
 
 resource "exoscale_compute" "kube_master_node" {
