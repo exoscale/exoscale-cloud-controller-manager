@@ -1,24 +1,31 @@
+## Project
+
+PACKAGE := github.com/exoscale/exoscale-cloud-controller-manager
+PROJECT_URL := https://$(PACKAGE)
+GO_MAIN_PKG_PATH := ./cmd/exoscale-cloud-controller-manager
+
+EXTRA_ARGS := -parallel 3 -count=1 -failfast
+
+# Dependencies
+
+# Requires: https://github.com/exoscale/go.mk
+# - install: git submodule update --init --recursive go.mk
+# - update:  git submodule update --remote
 include go.mk/init.mk
 include go.mk/public.mk
 
-PROJECT_URL = https://github.com/exoscale/exoscale-cloud-controller-manager
 
-GO_MAIN_PKG_PATH := "./cmd/exoscale-cloud-controller-manager"
+## Targets
 
-.PHONY: docker
-docker:
-	docker build --rm \
-		-t exoscale/cloud-controller-manager \
-		--build-arg VERSION="${VERSION}" \
-		--build-arg VCS_REF="${GIT_REVISION}" \
-		--build-arg BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%m:%SZ")" \
-		.
-	docker tag exoscale/cloud-controller-manager:latest exoscale/cloud-controller-manager:${VERSION}
+# Docker
+include Makefile.docker
 
-.PHONY: docker-push
-docker-push:
-	docker push exoscale/cloud-controller-manager:latest && docker push exoscale/cloud-controller-manager:${VERSION}
+# Tests
 
-.PHONY: integtest
-integtest:
+.PHONY: test-integration
+test-integration: ## Runs integration tests (requires valid Exoscale API credentials)
 	@INCLUDE_PATH=$(PWD) ./integtest/run.bash
+
+# Clean
+clean::
+	@INCLUDE_PATH=$(PWD) ./integtest/run.bash clean

@@ -24,7 +24,7 @@ output_template=''
 output_template+='Name={{ println .Name }}'
 output_template+='Description={{ println .Description }}'
 
-exo nlb show \
+exo compute load-balancer show \
   -z $EXOSCALE_ZONE \
   --output-template "$output_template" \
   $EXTERNAL_NLB_ID > "${INTEGTEST_TMP_DIR}/external_nlb"
@@ -49,7 +49,7 @@ sed -r \
   "${INTEGTEST_DIR}/manifests/hello-no-ingress.yml.tpl" \
   | kubectl $KUBECTL_OPTS delete -f -
 _until_success "test \
-  \$(exo nlb show -z \$EXOSCALE_ZONE --output-template '{{.Services|len}}' \$EXTERNAL_NLB_ID) \
+  \$(exo compute load-balancer show -z \$EXOSCALE_ZONE --output-template '{{.Services|len}}' \$EXTERNAL_NLB_ID) \
   -eq 0"
 
 echo "<<< PASS"

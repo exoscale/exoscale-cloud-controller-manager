@@ -1,0 +1,25 @@
+## Project
+
+# Dependencies
+# (do not pull the entire Go build environment in)
+include go.mk/version.mk
+
+
+## Targets
+
+# Docker
+
+.PHONY: docker
+docker:
+	docker build --rm \
+	  -t exoscale/cloud-controller-manager \
+	  --build-arg VERSION="${VERSION}" \
+	  --build-arg VCS_REF="${GIT_REVISION}" \
+	  --build-arg BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%m:%SZ")" \
+	  .
+	docker tag exoscale/cloud-controller-manager:latest exoscale/cloud-controller-manager:${VERSION}
+
+.PHONY: docker-push
+docker-push:
+	docker push exoscale/cloud-controller-manager:latest \
+	  && docker push exoscale/cloud-controller-manager:${VERSION}

@@ -5,9 +5,9 @@ set -e
 source "$INTEGTEST_DIR/test-helpers.bash"
 
 echo ">>> TESTING API CREDENTIALS FILE RELOADING"
-
-kubectl certificate approve $(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name)
 CCM_POD="$(kubectl get pods -n kube-system -l app=exoscale-cloud-controller-manager -o name)"
+
+echo "- Checking initial API credentials"
 
 _until_success "kubectl -n kube-system logs \"$CCM_POD\" | grep -m 1 \"Exoscale API credentials refreshed, now using test\""
 

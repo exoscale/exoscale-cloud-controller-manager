@@ -13,5 +13,14 @@ Export your Exoscale credentials as described in the main [README file](https://
 ## Execute integration tests
 
 ```Shell
-make integtest
+make test-integration
+```
+
+## Refresh tests resources
+
+```Shell
+# ingress-nginx
+help repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+help repo update
+helm template --namespace ingress-nginx ingress-nginx ingress-nginx/ingress-nginx > manifests/ingress-nginx.yml
 ```
