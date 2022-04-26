@@ -7,12 +7,7 @@ source "$INTEGTEST_DIR/test-helpers.bash"
 echo ">>> TESTING CCM WITH EXTERNAL NLB INSTANCE"
 
 echo "- Deploying Service"
-sed -r \
-  -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
-  -e "s/%%EXTERNAL_NLB_ID%%/$EXTERNAL_NLB_ID/" \
-  -e "s/%%NODEPOOL_ID%%/$NODEPOOL_ID/" \
-  "${INTEGTEST_DIR}/manifests/hello-no-ingress.yml.tpl" \
-  | kubectl $KUBECTL_OPTS apply -f -
+kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_TMP_DIR}/manifests/hello-no-ingress.yml"
 
 ### Test the actual NLB + service + app chain
 echo "- End-to-end requests"
@@ -42,12 +37,7 @@ while read l; do
 done < "${INTEGTEST_TMP_DIR}/external_nlb"
 
 echo "- Delete Service and keep external NLB instance"
-sed -r \
-  -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
-  -e "s/%%EXTERNAL_NLB_ID%%/$EXTERNAL_NLB_ID/" \
-  -e "s/%%NODEPOOL_ID%%/$NODEPOOL_ID/" \
-  "${INTEGTEST_DIR}/manifests/hello-no-ingress.yml.tpl" \
-  | kubectl $KUBECTL_OPTS delete -f -
+kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_TMP_DIR}/manifests/hello-no-ingress.yml"
 _until_success "test \
   \$(exo compute load-balancer show -z \$EXOSCALE_ZONE --output-template '{{.Services|len}}' \$EXTERNAL_NLB_ID) \
   -eq 0"

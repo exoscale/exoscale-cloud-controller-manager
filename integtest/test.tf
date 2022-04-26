@@ -209,11 +209,11 @@ export KUBECONFIG="${var.tmpdir}/kubeconfig" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.certificate-authority-data}" > "${var.tmpdir}/kube-ca.crt" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.server}" > "${var.tmpdir}/cluster_endpoint" ; \
 echo '### Installing Calico' ; \
-kubectl apply -f https://docs.projectcalico.org/v3.22/manifests/calico.yaml ; \
+kubectl apply -f "${var.tmpdir}/manifests/calico.yml" ; \
 echo '### Waiting for Kubernetes control-plane to be ready' ; \
 kubectl wait --timeout 600s node/${exoscale_compute_instance.kube_master_node.name} --for=condition=Ready ; \
 echo '### Installing Exoscale Cloud-Controller Manager (CCM)' ; \
-sed -r -e "s/%%EXOSCALE_ZONE%%/${var.zone}/" ${path.cwd}/manifests/ccm.yml.tpl | kubectl apply -f - ; \
+kubectl apply -f "${var.tmpdir}/manifests/ccm.yml" ; \
 echo '### Waiting for Exoscale Cloud-Controller Manager (CCM) to be ready' ; \
 kubectl wait --timeout 600s -n kube-system --for condition=Available deployment.apps/exoscale-cloud-controller-manager
 EOF

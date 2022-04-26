@@ -19,7 +19,10 @@ make test-integration
 ## Refresh tests resources
 
 ```Shell
-# ingress-nginx
+# Calico
+wget https://projectcalico.docs.tigera.io/manifests/calico.yaml -O manifests/calico.yml
+
+# NGINX ingress
 help repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 help repo update
 helm template --namespace ingress-nginx ingress-nginx ingress-nginx/ingress-nginx > manifests/ingress-nginx.yml

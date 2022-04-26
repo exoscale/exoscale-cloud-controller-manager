@@ -7,8 +7,8 @@ source "$INTEGTEST_DIR/test-helpers.bash"
 echo ">>> TESTING CCM-MANAGED NLB INSTANCE"
 
 echo "- Deploying cluster ingress controller"
-kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_DIR}/manifests/ingress-nginx.namespace.yml"
-kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_DIR}/manifests/ingress-nginx.yml"
+kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_TMP_DIR}/manifests/ingress-nginx.namespace.yml"
+kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_TMP_DIR}/manifests/ingress-nginx.yml"
 kubectl wait --timeout 600s --for condition=Available --namespace ingress-nginx deployment.apps/ingress-nginx-controller
 # It is not possible to `kubectl wait` on an Ingress resource, so we wait until
 # we see a public IP address associated to the Service Load Balancer...
@@ -21,7 +21,7 @@ export INGRESS_NLB_ID=$(exo compute load-balancer list -z $EXOSCALE_ZONE -O text
   | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
 
 echo "- Deploying test application"
-kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_DIR}/manifests/hello-ingress.yml"
+kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_TMP_DIR}/manifests/hello-ingress.yml"
 kubectl $KUBECTL_OPTS wait --for condition=Available deployment.apps/hello
 
 ### Test the actual NLB + ingress-nginx controller + service + app chain
@@ -121,14 +121,14 @@ _until_success "test \"\$(exo compute load-balancer show \
       \$INGRESS_NLB_ID \$svcid ; done)\" == \"httphttp\""
 
 echo "- Destroying test application"
-kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_DIR}/manifests/hello-ingress.yml"
+kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_TMP_DIR}/manifests/hello-ingress.yml"
 
 ## Before handing out to the cleanup phase, delete the ingress controller Service in order
 ## to delete the managed NLB instance, otherwise it won't be possible to delete the
 ## cluster Nodepool's Instance Pool.
 echo "- Deleting ingress NLB"
-kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_DIR}/manifests/ingress-nginx.yml"
+kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_TMP_DIR}/manifests/ingress-nginx.yml"
 _until_success "test ! \$(exo compute load-balancer show -z \${EXOSCALE_ZONE} \$INGRESS_NLB_ID 2>/dev/null)"
-kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_DIR}/manifests/ingress-nginx.namespace.yml"
+kubectl $KUBECTL_OPTS delete -f "${INTEGTEST_TMP_DIR}/manifests/ingress-nginx.namespace.yml"
 
 echo "<<< PASS"

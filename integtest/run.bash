@@ -42,6 +42,7 @@ fi
 # Comment next line out to keep everything "as is" (for debugging/troubleshooting purposes)
 trap cleanup EXIT
 
+
 ## IMPORTANT: the order of the tests matter!
 . "${INTEGTEST_DIR}/test-init.bash"
 . "${INTEGTEST_DIR}/test-credentials-file-reload.bash"
