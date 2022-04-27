@@ -8,11 +8,11 @@ echo ">>> DEPLOYING TEST CLUSTER INFRASTRUCTURE"
 
 # Manifests
 mkdir -p "${INTEGTEST_TMP_DIR}/manifests"
+cp "${INTEGTEST_DIR}/manifests"/*.yml "${INTEGTEST_TMP_DIR}/manifests"/.
 sed -r \
   -e "s/%%EXOSCALE_ZONE%%/$EXOSCALE_ZONE/" \
   "${INTEGTEST_DIR}/manifests/ccm.yml.tpl" \
   > "${INTEGTEST_TMP_DIR}/manifests/ccm.yml"
-cp "${INTEGTEST_DIR}/manifests"/*.yml "${INTEGTEST_TMP_DIR}/manifests"/.
 
 # Terraform
 cd "$INTEGTEST_DIR"
@@ -54,7 +54,7 @@ echo "### Checking control-plane availability ..."
 _until_success "kubectl cluster-info"
 
 echo "### Waiting for (and approving) node CSRs ..."
-_until_success "test \$(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name | wc -l) -ge 3"
+_until_success "test \$(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name | wc -l) -ge 2"
 kubectl certificate approve $(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name)
 
 echo "<<< DONE"

@@ -190,11 +190,11 @@ resource "exoscale_compute_instance" "kube_master_node" {
     }
 
     inline = [
-      "echo '### Installing OS dependencies'",
+      "echo '### Installing OS dependencies ...'",
       "sudo apt update && sudo apt install --yes --no-install-recommends make",
-      "echo '### Building Exoscale Cloud-Controller Manager (CCM) image'",
+      "echo '### Building Exoscale Cloud-Controller Manager (CCM) image ...'",
       "git tag test ; make -f Makefile.docker docker",
-      "echo '### Bootstrapping Kubernetes control-plane'",
+      "echo '### Bootstrapping Kubernetes control-plane ...'",
       "sudo touch /etc/kubernetes/bootstrap-kubelet.conf",
       "sudo kubeadm init --config=/tmp/kubeadm-init.yml",
       "sudo cp /etc/kubernetes/admin.conf /tmp/kubeconfig && sudo chmod 644 /tmp/kubeconfig",
@@ -205,20 +205,20 @@ resource "exoscale_compute_instance" "kube_master_node" {
   provisioner "local-exec" {
     command = <<EOF
 set -e ; \
-echo '### Copying Kubernetes configuration resources' ; \
+echo '### Copying Kubernetes configuration resources ...' ; \
 scp -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i "${var.tmpdir}/id_ed25519" ${data.exoscale_compute_template.coi.username}@${exoscale_compute_instance.kube_master_node.public_ip_address}:/tmp/kubeconfig ${var.tmpdir}/ ; \
 scp -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i "${var.tmpdir}/id_ed25519" ${data.exoscale_compute_template.coi.username}@${exoscale_compute_instance.kube_master_node.public_ip_address}:/tmp/kubelet_join_token ${var.tmpdir}/ ; \
-echo '### Dumping Kubernetes control-plane resources' ; \
+echo '### Dumping Kubernetes control-plane resources ...' ; \
 export KUBECONFIG="${var.tmpdir}/kubeconfig" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.certificate-authority-data}" > "${var.tmpdir}/kube-ca.crt" ; \
 kubectl config view --raw -o jsonpath="{.clusters[].cluster.server}" > "${var.tmpdir}/cluster_endpoint" ; \
-echo '### Installing Calico' ; \
+echo '### Installing Calico ...' ; \
 kubectl apply -f "${var.tmpdir}/manifests/calico.yml" ; \
-echo '### Waiting for Kubernetes control-plane to be ready' ; \
+echo '### Waiting for Kubernetes control-plane to be ready ...' ; \
 kubectl wait --timeout 600s node/${exoscale_compute_instance.kube_master_node.name} --for=condition=Ready ; \
-echo '### Installing Exoscale Cloud-Controller Manager (CCM)' ; \
+echo '### Installing Exoscale Cloud-Controller Manager (CCM) ...' ; \
 kubectl apply -f "${var.tmpdir}/manifests/ccm.yml" ; \
-echo '### Waiting for Exoscale Cloud-Controller Manager (CCM) to be ready' ; \
+echo '### Waiting for Exoscale Cloud-Controller Manager (CCM) to be ready ...' ; \
 kubectl wait --timeout 600s -n kube-system --for condition=Available deployment.apps/exoscale-cloud-controller-manager
 EOF
   }
