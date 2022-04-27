@@ -117,17 +117,21 @@ resource "exoscale_security_group" "test" {
 
 resource "exoscale_security_group_rule" "test" {
   for_each = {
-    wide_open_sg   = { protocol = "TCP", port = "1-65535", sg = exoscale_security_group.test.id }
-    ssh_ipv4       = { protocol = "TCP", port = 22, cidr = "0.0.0.0/0" }
-    ssh_ipv6       = { protocol = "TCP", port = 22, cidr = "::/0" }
-    http_ipv4      = { protocol = "TCP", port = 80, cidr = "0.0.0.0/0" }
-    http_ipv6      = { protocol = "TCP", port = 80, cidr = "::/0" }
-    https_ipv4     = { protocol = "TCP", port = 443, cidr = "0.0.0.0/0" }
-    https_ipv6     = { protocol = "TCP", port = 443, cidr = "::/0" }
-    apiserver_ipv4 = { protocol = "TCP", port = 6443, cidr = "0.0.0.0/0" }
-    apiserver_ipv6 = { protocol = "TCP", port = 6443, cidr = "::/0" }
-    nodeports_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
-    nodeports_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
+    internal_tcp       = { protocol = "TCP", port = "1-65535", sg = exoscale_security_group.test.id }
+    internal_udp       = { protocol = "UDP", port = "1-65535", sg = exoscale_security_group.test.id }
+    internal_ipip      = { protocol = "IPIP", sg = exoscale_security_group.test.id }
+    ssh_ipv4           = { protocol = "TCP", port = 22, cidr = "0.0.0.0/0" }
+    ssh_ipv6           = { protocol = "TCP", port = 22, cidr = "::/0" }
+    http_ipv4          = { protocol = "TCP", port = 80, cidr = "0.0.0.0/0" }
+    http_ipv6          = { protocol = "TCP", port = 80, cidr = "::/0" }
+    https_ipv4         = { protocol = "TCP", port = 443, cidr = "0.0.0.0/0" }
+    https_ipv6         = { protocol = "TCP", port = 443, cidr = "::/0" }
+    apiserver_ipv4     = { protocol = "TCP", port = 6443, cidr = "0.0.0.0/0" }
+    apiserver_ipv6     = { protocol = "TCP", port = 6443, cidr = "::/0" }
+    nodeports_tcp_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
+    nodeports_udp_ipv4 = { protocol = "UDP", port = "30000-32767", cidr = "0.0.0.0/0" }
+    nodeports_tcp_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
+    nodeports_udp_ipv6 = { protocol = "UDP", port = "30000-32767", cidr = "::/0" }
   }
 
   security_group_id      = exoscale_security_group.test.id
