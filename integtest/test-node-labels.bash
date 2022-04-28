@@ -31,13 +31,13 @@ while read l; do
   [[ -z "${EXPECTED[$k]}" ]] && continue
 
   if [[ "$v" != "${EXPECTED[$k]}" ]]; then
-    echo "FAIL: Node label $k: expected \"${EXPECTED[$k]}\", got \"$v\""
+    echo "!!! FAIL: Node label $k: expected \"${EXPECTED[$k]}\", got \"$v\"" >&2
     exit 1
   fi
   (( nodepool_labels_n++ )) || true
 done < "${INTEGTEST_TMP_DIR}/nodepool_labels"
 if [[ "${nodepool_labels_n}" -ne "${#EXPECTED[*]}" ]]; then
-    echo "FAIL: Missing node labels: expected ${#EXPECTED[*]}, got ${nodepool_labels_n}"
+    echo "!!! FAIL: Missing node labels: expected ${#EXPECTED[*]}, got ${nodepool_labels_n}" >&2
     exit 1
 fi
 
@@ -66,13 +66,13 @@ while read l; do
   [[ -z "${EXPECTED[$k]}" ]] && continue
 
   if [[ "$v" != "${EXPECTED[$k]}" ]]; then
-    echo "FAIL: Node label $k: expected \"${EXPECTED[$k]}\", got \"$v\""
+    echo "!!! FAIL: Node label $k: expected \"${EXPECTED[$k]}\", got \"$v\"" >&2
     exit 1
   fi
   (( external_labels_n++ )) || true
 done < "${INTEGTEST_TMP_DIR}/external_labels"
 if [[ "${external_labels_n}" -ne "${#EXPECTED[*]}" ]]; then
-    echo "FAIL: Missing node labels: expected ${#EXPECTED[*]}, got ${external_labels_n}"
+    echo "!!! FAIL: Missing node labels: expected ${#EXPECTED[*]}, got ${external_labels_n}" >&2
     exit 1
 fi
 

@@ -12,7 +12,7 @@ kubectl $KUBECTL_OPTS apply -f "${INTEGTEST_TMP_DIR}/manifests/hello-no-ingress.
 ### Test the actual NLB + service + app chain
 echo "### Checking end-to-end requests ..."
 curl_opts="--retry 10 --retry-delay 10 --retry-connrefused --silent"
-curl $curl_opts http://${EXTERNAL_NLB_IP} > /dev/null || (echo "FAIL" ; return 1)
+curl $curl_opts http://${EXTERNAL_NLB_IP} > /dev/null || (echo "!!! FAIL" >&2 ; return 1)
 
 ### Test the external NLB instance properties
 output_template=''
@@ -32,7 +32,7 @@ while read l; do
   case "${k}" in
     Name) _assert_string_equal "$v" "$EXTERNAL_NLB_NAME" ;;
     Description) _assert_string_equal "$v" "$EXTERNAL_NLB_DESC" ;;
-    *) echo "ERROR: unexpected key \"$k\"" ; exit 1 ;;
+    *) echo "!!! ERROR: unexpected key \"$k\"" >&2 ; exit 1 ;;
   esac
 done < "${INTEGTEST_TMP_DIR}/external_nlb"
 
