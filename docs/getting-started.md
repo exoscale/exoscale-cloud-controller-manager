@@ -52,12 +52,12 @@ The following environment variables are available to configure Exoscale CCM:
 * `EXOSCALE_ZONE` [**required**]: the Exoscale zone which the cluster/CCM
   runs in; e.g. `ch-gva-2`
 
-* `EXOSCALE_API_KEY` / `EXOSCALE_API_SECRET` [**required**]: Exoscale API
+* `EXOSCALE_API_KEY` / `EXOSCALE_API_SECRET` [**required**]: actual Exoscale API
   credentials
 
 * `EXOSCALE_API_CREDENTIALS_FILE` [**optional**]: Exoscale API
   credentials (JSON) file; see further below for its format.
-  _Ignored** if actual credentials are provided_
+  _Ignored if actual credentials are provided_
 
 Which may be passed to the CCM container thanks to Kubernetes [Secrets][k8s-secrets]
 
