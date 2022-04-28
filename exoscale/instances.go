@@ -2,6 +2,7 @@ package exoscale
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"regexp"
@@ -17,18 +18,41 @@ import (
 var labelInvalidCharsRegex = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
 
 type instances struct {
-	p *cloudProvider
+	p   *cloudProvider
+	cfg *instancesConfig
 }
 
-func newInstances(provider *cloudProvider) cloudprovider.Instances {
+func newInstances(provider *cloudProvider, config *instancesConfig) cloudprovider.Instances {
 	return &instances{
-		p: provider,
+		p:   provider,
+		cfg: config,
 	}
 }
 
 // NodeAddresses returns the addresses of the specified instance.
-func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	id, err := i.InstanceID(ctx, name)
+func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+		if n := len(override.Addresses); n > 0 {
+			nodeAddresses := make([]v1.NodeAddress, n)
+			for i, a := range override.Addresses {
+				nodeAddresses[i] = v1.NodeAddress{
+					Type:    v1.NodeAddressType(a.Type),
+					Address: a.Address,
+				}
+			}
+			return nodeAddresses, nil
+		} else if override.External {
+			return []v1.NodeAddress{}, nil  // returning no address makes the stock node-controller skip address re-assignment
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return nil, fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
+	id, err := i.InstanceID(ctx, nodeName)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +66,27 @@ func (i *instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 // from the node whose nodeaddresses are being queried. i.e. local metadata
 // services cannot be used in this method to obtain nodeaddresses
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+		if n := len(override.Addresses); n > 0 {
+			nodeAddresses := make([]v1.NodeAddress, n)
+			for i, a := range override.Addresses {
+				nodeAddresses[i] = v1.NodeAddress{
+					Type:    v1.NodeAddressType(a.Type),
+					Address: a.Address,
+				}
+			}
+			return nodeAddresses, nil
+		} else if override.External {
+			return []v1.NodeAddress{}, nil  // returning no address makes the stock node-controller skip address re-assignment
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return nil, fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
 	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return nil, err
@@ -56,18 +101,53 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist, we must return ("", cloudprovider.InstanceNotFound)
 // cloudprovider.InstanceNotFound should NOT be returned for instances that exist but are stopped/sleeping
+// ADDENDUM:
+// InstanceID is used internally to build the ProviderID used in ...ByProviderID methods
+// (see GetInstanceProviderID in https://github.com/kubernetes/cloud-provider/blob/master/cloud.go)
+// TL;DR: ProviderID = "exoscale://<InstanceID>"
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+		if override.External {
+			if override.ExternalID != "" {
+				return override.ExternalID, nil
+			} else {
+				return fmt.Sprintf("external-%x", sha256.Sum256([]byte(override.Name))), nil
+			}
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return "", fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
 	node, err := i.p.kclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve node %s from the apiserver: %s", nodeName, err)
 	}
 
+	// K8s SystemUUID = Exoscale InstanceID
 	return node.Status.NodeInfo.SystemUUID, nil
 }
 
 // InstanceType returns the type of the specified instance.
-func (i *instances) InstanceType(ctx context.Context, name types.NodeName) (string, error) {
-	id, err := i.InstanceID(ctx, name)
+func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+		if override.Type != "" {
+			return override.Type, nil
+		} else if override.External {
+			return "external", nil
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return "", fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
+	id, err := i.InstanceID(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -77,6 +157,20 @@ func (i *instances) InstanceType(ctx context.Context, name types.NodeName) (stri
 
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+		if override.Type != "" {
+			return override.Type, nil
+		} else if override.External {
+			return "external", nil
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return "", fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
 	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return "", err
@@ -106,6 +200,18 @@ func (i *instances) CurrentNodeName(_ context.Context, hostname string) (types.N
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+		if override.External {
+			return true, nil
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return false, nil
+	}
+
 	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		if errors.Is(err, exoapi.ErrNotFound) {
@@ -120,6 +226,18 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
+	// first look for a statically-configured override
+	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+		if override.External {
+			return false, cloudprovider.NotImplemented
+		}
+	}
+
+	// Use Exoscale API ?
+	if i.cfg.ExternalOnly {
+		return false, fmt.Errorf("no override found (Exoscale API disabled)")
+	}
+
 	instance, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
 		return false, err

@@ -9,27 +9,12 @@ import (
 	"time"
 )
 
-var (
-	testAPIKey    = new(exoscaleCCMTestSuite).randomString(10)
-	testAPISecret = new(exoscaleCCMTestSuite).randomString(10)
-)
-
-func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_no_env() {
-	os.Unsetenv("EXOSCALE_API_KEY")
-	os.Unsetenv("EXOSCALE_API_SECRET")
-
-	_, err := newRefreshableExoscaleClient(context.Background())
+func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_no_config() {
+	_, err := newRefreshableExoscaleClient(context.Background(), &testConfig_empty.Global)
 	ts.Require().Error(err)
 }
 
-func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_env_credentials() {
-	os.Setenv("EXOSCALE_API_KEY", testAPIKey)
-	os.Setenv("EXOSCALE_API_SECRET", testAPISecret)
-	defer func() {
-		os.Unsetenv("EXOSCALE_API_KEY")
-		os.Unsetenv("EXOSCALE_API_SECRET")
-	}()
-
+func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_credentials() {
 	expected := &refreshableExoscaleClient{
 		RWMutex: &sync.RWMutex{},
 		apiCredentials: exoscaleAPICredentials{
@@ -39,7 +24,7 @@ func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_env_credential
 		apiEnvironment: defaultComputeEnvironment,
 	}
 
-	actual, err := newRefreshableExoscaleClient(context.Background())
+	actual, err := newRefreshableExoscaleClient(context.Background(), &testConfig_typical.Global)
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected.apiCredentials, actual.apiCredentials)
 	ts.Require().NotNil(actual.exo)

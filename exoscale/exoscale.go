@@ -11,6 +11,7 @@ import (
 	egoscale "github.com/exoscale/egoscale/v2"
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -26,6 +27,7 @@ const (
 )
 
 type cloudProvider struct {
+	cfg          *cloudConfig
 	ctx          context.Context
 	client       exoscaleClient
 	instances    cloudprovider.Instances
@@ -40,22 +42,33 @@ type cloudProvider struct {
 func init() {
 	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
 
-	cloudprovider.RegisterCloudProvider(ProviderName, func(io.Reader) (cloudprovider.Interface, error) {
-		return newExoscaleCloud()
+	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		cfg, err := readExoscaleConfig(config)
+		if err != nil {
+			klog.Warningf("failed to read config: %v", err)
+			return nil, err
+		}
+		p, err := newExoscaleCloud(&cfg)
+		if err != nil {
+			klog.Warningf("failed to instantiate Exoscale cloud provider: %v", err)
+			return nil, err
+		}
+		return p, nil
 	})
 }
 
-func newExoscaleCloud() (cloudprovider.Interface, error) {
+func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 	provider := &cloudProvider{
-		zone: os.Getenv("EXOSCALE_ZONE"),
+		cfg: config,
 	}
 
+	provider.zone = config.Global.Zone
 	if provider.zone == "" {
-		return nil, errors.New("zone not specified, please set the EXOSCALE_ZONE environment variable")
+		return nil, errors.New("zone not specified, please set the 'zone' in the cloud configuration file or the EXOSCALE_ZONE environment variable")
 	}
 
-	provider.instances = newInstances(provider)
-	provider.loadBalancer = newLoadBalancer(provider)
+	provider.instances = newInstances(provider, &config.Instances)
+	provider.loadBalancer = newLoadBalancer(provider, &config.LoadBalancer)
 	provider.zones = newZones(provider)
 
 	return provider, nil
@@ -72,7 +85,7 @@ func (p *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 	p.ctx = ctx
 	p.stop = cancel
 
-	client, err := newRefreshableExoscaleClient(p.ctx)
+	client, err := newRefreshableExoscaleClient(p.ctx, &p.cfg.Global)
 	if err != nil {
 		fatalf("could not create Exoscale client: %v", err)
 	}
@@ -96,13 +109,13 @@ func (p *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 // LoadBalancer returns a balancer interface.
 // Also returns true if the interface is supported, false otherwise.
 func (p *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return p.loadBalancer, true
+	return p.loadBalancer, !p.cfg.LoadBalancer.Disabled
 }
 
 // Instances returns an instances interface.
 // Also returns true if the interface is supported, false otherwise.
 func (p *cloudProvider) Instances() (cloudprovider.Instances, bool) {
-	return p.instances, true
+	return p.instances, !p.cfg.LoadBalancer.Disabled
 }
 
 // InstancesV2 is an implementation for instances and should only be implemented by external cloud providers.

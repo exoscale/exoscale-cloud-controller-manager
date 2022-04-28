@@ -316,3 +316,56 @@ func (ts *exoscaleCCMTestSuite) TestInstanceShutdownByProviderID() {
 	ts.Require().NoError(err)
 	ts.Require().True(shutdown)
 }
+
+// Statically-configured overrides
+func (ts *exoscaleCCMTestSuite) TestNodeAddresses_overrideExternal() {
+	expected := []v1.NodeAddress{
+		{Type:    v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
+		{Type:    v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
+	}
+
+	actual, err := ts.p.instances.NodeAddresses(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_overrideExternal() {
+	expected := []v1.NodeAddress{
+		{Type:    v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
+		{Type:    v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
+	}
+
+	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestInstanceID_overrideExternal() {
+	actual, err := ts.p.instances.InstanceID(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
+	ts.Require().NoError(err)
+	ts.Require().Equal(actual, testInstanceOverrideRegexpInstanceID)
+}
+
+func (ts *exoscaleCCMTestSuite) TestInstanceType_overrideExternal() {
+	actual, err := ts.p.instances.InstanceType(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
+	ts.Require().NoError(err)
+	ts.Require().Equal(actual, testInstanceOverrideExternalType)
+}
+
+func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID_overrideExternal() {
+	actual, err := ts.p.instances.InstanceTypeByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(actual, testInstanceOverrideExternalType)
+}
+
+func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID_overrideExternal() {
+	exists, err := ts.p.instances.InstanceExistsByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
+	ts.Require().NoError(err)
+	ts.Require().True(exists)
+}
+
+func (ts *exoscaleCCMTestSuite) TestInstanceShutdownByProviderID_overrideExternal() {
+	shutdown, err := ts.p.instances.InstanceShutdownByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
+	ts.Require().Equal(cloudprovider.NotImplemented, err)
+	ts.Require().False(shutdown)
+}

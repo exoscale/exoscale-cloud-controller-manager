@@ -41,27 +41,22 @@ type refreshableExoscaleClient struct {
 	*sync.RWMutex
 }
 
-func newRefreshableExoscaleClient(ctx context.Context) (*refreshableExoscaleClient, error) {
+func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*refreshableExoscaleClient, error) {
 	c := &refreshableExoscaleClient{
 		RWMutex:        &sync.RWMutex{},
 		apiEnvironment: defaultComputeEnvironment,
 	}
 
-	envAPIKey := os.Getenv("EXOSCALE_API_KEY")
-	envAPISecret := os.Getenv("EXOSCALE_API_SECRET")
-	envAPICredentialsFile := os.Getenv("EXOSCALE_API_CREDENTIALS_FILE")
-	envAPIEnvironment := os.Getenv("EXOSCALE_API_ENVIRONMENT")
-
-	if envAPIEnvironment != "" {
-		c.apiEnvironment = envAPIEnvironment
+	if config.ApiEnvironment != "" {
+		c.apiEnvironment = config.ApiEnvironment
 	}
 
-	if envAPIKey != "" && envAPISecret != "" {
-		infof("reading Exoscale API credentials from environment")
+	if config.ApiKey != "" && config.ApiSecret != "" {
+		infof("using Exoscale actual API credentials (key + secret)")
 
 		c.apiCredentials = exoscaleAPICredentials{
-			APIKey:    envAPIKey,
-			APISecret: envAPISecret,
+			APIKey:    config.ApiKey,
+			APISecret: config.ApiSecret,
 		}
 
 		exo, err := egoscale.NewClient(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
@@ -69,11 +64,11 @@ func newRefreshableExoscaleClient(ctx context.Context) (*refreshableExoscaleClie
 			return nil, err
 		}
 		c.exo = exo
-	} else if envAPICredentialsFile != "" {
-		infof("reading Exoscale API credentials from file %q", envAPICredentialsFile)
+	} else if config.ApiCredentialsFile != "" {
+		infof("reading (watching) Exoscale API credentials from file %q", config.ApiCredentialsFile)
 
-		c.refreshCredentialsFromFile(envAPICredentialsFile)
-		go c.watchCredentialsFile(ctx, envAPICredentialsFile)
+		c.refreshCredentialsFromFile(config.ApiCredentialsFile)
+		go c.watchCredentialsFile(ctx, config.ApiCredentialsFile)
 	} else {
 		return nil, errors.New("incomplete or missing Exoscale API credentials")
 	}
