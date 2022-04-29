@@ -30,6 +30,10 @@ type instancesOverrideAddressConfig struct {
 	Address string
 }
 
+func defaultInstanceOverrideExternalID(overrideName string) string {
+	return fmt.Sprintf("external-%x", sha256.Sum256([]byte(overrideName)))
+}
+
 // Return statically-configured instance override
 func (c *instancesConfig) getInstanceOverride(nodeName types.NodeName) *instancesOverrideConfig {
 	var config *instancesOverrideConfig
@@ -72,7 +76,7 @@ func (c *instancesConfig) getInstanceOverrideByProviderID(providerID string) *in
 	// then try a match on the internally-built, name-based one
 	if config == nil {
 		for _, candidate := range c.Overrides {
-			if candidate.ExternalID == "" && instanceID == fmt.Sprintf("external-%x", sha256.Sum256([]byte(candidate.Name))) {
+			if candidate.ExternalID == "" && instanceID == defaultInstanceOverrideExternalID(candidate.Name) {
 				config = &candidate
 				break
 			}

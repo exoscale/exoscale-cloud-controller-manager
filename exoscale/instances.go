@@ -2,7 +2,6 @@ package exoscale
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"regexp"
@@ -115,7 +114,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 			if override.ExternalID != "" {
 				return override.ExternalID, nil
 			} else {
-				return fmt.Sprintf("external-%x", sha256.Sum256([]byte(override.Name))), nil
+				return defaultInstanceOverrideExternalID(override.Name), nil
 			}
 		}
 	}
