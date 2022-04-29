@@ -50,7 +50,12 @@ func (c *instancesConfig) getInstanceOverride(nodeName types.NodeName) *instance
 	if config == nil {
 		for _, candidate := range c.Overrides {
 			if strings.HasPrefix(candidate.Name, "/") && strings.HasSuffix(candidate.Name, "/") {
-				if match, _ := regexp.Match(strings.Trim(candidate.Name, "/"), []byte(nodeName)); match {
+				match, err := regexp.Match(strings.Trim(candidate.Name, "/"), []byte(nodeName))
+				if err != nil {
+					errorf("invalid regular expression: %s", candidate.Name)
+					continue
+				}
+				if match {
 					config = &candidate
 					break
 				}
