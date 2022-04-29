@@ -54,7 +54,7 @@ echo "### Checking control-plane availability ..."
 _until_success "kubectl cluster-info"
 
 echo "### Waiting for (and approving) node CSRs ..."
-_until_success "test \$(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name | wc -l) -ge 2"
+_until_success "test \$(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name | wc -l) -ge 3"
 kubectl certificate approve $(kubectl get csr --field-selector spec.signerName=kubernetes.io/kubelet-serving -o name)
 
 echo "<<< DONE"

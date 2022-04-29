@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	testZone       = "ch-gva-2"
 	testSeededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
@@ -24,14 +23,15 @@ type exoscaleCCMTestSuite struct {
 
 func (ts *exoscaleCCMTestSuite) SetupTest() {
 	ts.p = &cloudProvider{
+		cfg:     &testConfig_typical,
 		ctx:     context.Background(),
 		client:  new(exoscaleClientMock),
 		kclient: fake.NewSimpleClientset(),
 		zone:    testZone,
 	}
 
-	ts.p.instances = &instances{p: ts.p}
-	ts.p.loadBalancer = &loadBalancer{p: ts.p}
+	ts.p.instances = &instances{p: ts.p, cfg: &testConfig_typical.Instances}
+	ts.p.loadBalancer = &loadBalancer{p: ts.p, cfg: &testConfig_typical.LoadBalancer}
 	ts.p.zones = &zones{p: ts.p}
 }
 

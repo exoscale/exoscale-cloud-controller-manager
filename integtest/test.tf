@@ -239,6 +239,19 @@ resource "exoscale_instance_pool" "test" {
   #depends_on = [exoscale_compute_instance.kube_master_node]
 }
 
+resource "exoscale_compute_instance" "external" {
+  zone               = var.zone
+  name               = "${local.test_prefix}-${random_string.random.result}-external"
+  type               = "standard.medium"
+  template_id        = data.exoscale_compute_template.coi.id
+  disk_size          = 15
+  security_group_ids = [exoscale_security_group.test.id]
+  ssh_key            = exoscale_ssh_key.test.name
+  user_data          = data.template_file.kubenode_userdata.rendered
+
+  #depends_on = [exoscale_compute_instance.kube_master_node]
+}
+
 resource "exoscale_nlb" "external" {
   zone        = var.zone
   name        = "${local.test_prefix}-${random_string.random.result}"
@@ -251,6 +264,8 @@ output "test_id" { value = random_string.random.result }
 output "master_node_id" { value = exoscale_compute_instance.kube_master_node.id }
 output "master_node_ip" { value = exoscale_compute_instance.kube_master_node.public_ip_address }
 output "nodepool_id" { value = exoscale_instance_pool.test.id }
+output "external_node_id" { value = exoscale_compute_instance.external.id }
+output "external_node_ip" { value = exoscale_compute_instance.external.public_ip_address }
 output "external_nlb_id" { value = exoscale_nlb.external.id }
 output "external_nlb_ip" { value = exoscale_nlb.external.ip_address }
 output "external_nlb_name" { value = exoscale_nlb.external.name }

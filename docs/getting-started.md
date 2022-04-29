@@ -37,8 +37,31 @@ Upon successful build, the resulting local image is
 > resources in the `kube-system` namespace of the target Kubernetes cluster.
 
 In order to interact with the Exoscale API, the Exoscale CCM must be configured
-with API credentials. This can be achieved using Kubernetes
-[*Secrets*][k8s-secrets], by exposing those as container environment variables.
+with API credentials. This can be achieved:
+* using Kubernetes [*Secrets*][k8s-secrets], by exposing those as container
+  environment variables
+* as a separate (JSON) credentials file, which will be watched for changes
+  (allowing API credentials to be dymically set/refreshed)
+* using the (YAML) configuration file
+  (`--cloud-config`; see below for further details)
+
+### Using Kubernetes Secrets
+
+The following environment variables are available to configure Exoscale CCM:
+
+* `EXOSCALE_ZONE` [**required**]: the Exoscale zone which the cluster/CCM
+  runs in; e.g. `ch-gva-2`
+
+* `EXOSCALE_API_KEY` / `EXOSCALE_API_SECRET` [**required**]: actual Exoscale API
+  credentials
+
+* `EXOSCALE_API_CREDENTIALS_FILE` [**optional**]: Exoscale API
+  credentials (JSON) file; see further below for its format.
+  _Ignored if actual credentials are provided_
+
+Which may be passed to the CCM container thanks to Kubernetes [Secrets][k8s-secrets]
+
+#### Helper script
 
 We provide a convenience script that generates and applies a k8s manifest
 declaring Exoscale API credentials as a k8s *Secret* in your cluster from your
@@ -69,6 +92,82 @@ successfully by running the following command:
 kubectl get secret --namespace kube-system exoscale-credentials
 ```
 
+### Using the Cloud Configuration File (--cloud-config)
+
+Exoscale CCM may be configured using the so-called (optional) Cloud Configuration File,
+specified by the `--cloud-config <path>` option when launching the CCM container.
+
+This file must be YAML-formatted and provides the following parameters (which may used _instead_
+of the environment variables mentioned above):
+
+``` yaml
+# Global (API) configuration
+global:
+  zone: "<EXOSCALE_ZONE>"
+  apiKey: "<EXOSCALE_API_KEY>"
+  apiSecret: "<EXOSCALE_API_SECRET>"
+  apiCredentialsFile: "<EXOSCALE_API_CREDENTIALS_FILE>"
+```
+
+#### Overrides
+
+The configuration files also allows to statically override (Exoscale API-derived) Instances
+metadata or support external Nodes:
+
+``` yaml
+instances:
+  overrides:
+  - name: "some-node"
+    addresses:
+    - type: "InternalIP"
+      address: "192.0.2.123"
+    region: "some-alternate-region"
+  - name: "/^some-external-/"
+    external: true
+    type: "some-external-type"
+    region: "some-external-region"
+```
+
+The following parameters are available to configure overrides:
+
+* `name` [string, **required**]: an individual node name or a `/.../`-specified regular expression
+  to match node(s) name(s)
+
+* `external` [boolean, optional]: whether the node/instance is managed
+  by the Exoscale API (`false`; the default) or not (`true`)
+
+* `externalID` [string, optional]: the external node/instance ID; ignored if `external=false`.
+  Defaults to `external-<sha256sum(name)>` if unspecified.
+
+* `type` [string, optional]: the node/instance Type (overrides the API-provided one).
+  Defaults to `external` if unspecified and `external=true`.
+
+* `addresses` [list, optional]: the node/instance addresses (overrides the API-provided one)
+
+  - `type` [string]: the address (Kubernetes `v1.NodeAddressType`) type: _Hostname_, _ExternalIP_, _InternalIP_, _ExternalDNS_, _InternalDNS_
+
+  - `address` [string]: the actual IP address or host name
+
+  If unspecified (empty) and `external=true`, Kubernetes will keep the Kubelet-registered
+  _InternalIP_ address "as is".
+
+* `region`: the node/instance Region (does _not_ override the API-provided one).
+  Defaults to `external` if unspecified and `external=true`.
+
+### Using API Credentials File
+
+Exoscale API credentials may be dynamically set/refreshed using a
+JSON-formatted file:
+
+``` json
+{
+    "api_key": "EXO<key>",
+    "api_secret": "<secret>"
+}
+```
+
+Which path is specified using the `EXOSCALE_API_CREDENTIALS_FILE` environment variable
+or `apiCredentialsFile` Cloud Configuration File parameter.
 
 ### Deploying the Exoscale Cloud Controller Manager
 

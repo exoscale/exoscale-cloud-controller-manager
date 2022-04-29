@@ -1,4 +1,19 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloud-config
+  namespace: kube-system
+data:
+  cloud-config.conf: |-
+    instances:
+      overrides:
+        - name: "/.*-external$/"
+          external: true
+          type: "externalType"
+          region: "externalRegion"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,6 +52,7 @@ spec:
         - |
           echo '{"name":"test","api_key":"xxx","api_secret":"xxx"}' > /tmp/api-creds && \
           exec /exoscale-cloud-controller-manager \
+            --cloud-config=/etc/kubernetes/config/cloud-config.conf \
             --leader-elect=true \
             --allow-untagged-cloud  \
             --v=3
@@ -47,7 +63,17 @@ spec:
             value: /tmp/api-creds
           - name: EXOSCALE_SKS_AGENT_RUNNERS
             value: node-csr-validation
-
+        volumeMounts:
+          - mountPath: /etc/kubernetes/config
+            name: cloud-config
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: cloud-config.conf
+                path: cloud-config.conf
+            name: cloud-config
+          name: cloud-config
 ---
 apiVersion: v1
 kind: ServiceAccount

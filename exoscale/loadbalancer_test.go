@@ -38,8 +38,8 @@ var (
 )
 
 func (ts *exoscaleCCMTestSuite) Test_newLoadBalancer() {
-	actual := newLoadBalancer(ts.p)
-	ts.Require().Equal(actual, &loadBalancer{p: ts.p})
+	actual := newLoadBalancer(ts.p, &testConfig_typical.LoadBalancer)
+	ts.Require().Equal(actual, &loadBalancer{p: ts.p, cfg: &testConfig_typical.LoadBalancer})
 }
 
 func (ts *exoscaleCCMTestSuite) Test_loadBalancer_isExternal() {

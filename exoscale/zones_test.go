@@ -75,3 +75,19 @@ func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName() {
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected, actual)
 }
+
+func (ts *exoscaleCCMTestSuite) TestGetZoneByProviderID_overrideExternal() {
+	expected := cloudprovider.Zone{Region: testInstanceOverrideExternalRegion}
+
+	actual, err := ts.p.zones.GetZoneByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName_overrideExternal() {
+	expected := cloudprovider.Zone{Region: testInstanceOverrideExternalRegion}
+
+	actual, err := ts.p.zones.GetZoneByNodeName(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}

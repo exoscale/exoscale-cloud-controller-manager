@@ -27,8 +27,8 @@ kubectl $KUBECTL_OPTS wait --for condition=Available deployment.apps/hello
 ### Test the actual NLB + ingress-nginx controller + service + app chain
 echo "### Checking end-to-end requests ..."
 curl_opts="--retry 10 --retry-delay 5 --retry-connrefused --silent"
-curl $curl_opts http://${INGRESS_NLB_IP} > /dev/null || (echo "FAIL" ; return 1)
-curl $curl_opts --insecure https://${INGRESS_NLB_IP} > /dev/null || (echo "FAIL" ; return 1)
+curl $curl_opts http://${INGRESS_NLB_IP} > /dev/null || (echo "!!! FAIL" >&2 ; return 1)
+curl $curl_opts --insecure https://${INGRESS_NLB_IP} > /dev/null || (echo "!!! FAIL" >&2 ; return 1)
 
 ### Test the generated NLB services' properties
 output_template=''
@@ -61,7 +61,7 @@ exo compute load-balancer show \
       export INGRESS_NLB_SERVICE_HTTPS_ID=$svcid
       ;;
     *)
-      echo "ERROR: unexpected service port $svcport, expected either 80 or 443"
+      echo "!!! ERROR: unexpected service port $svcport, expected either 80 or 443" >&2
       exit 1
       ;;
     esac
@@ -83,7 +83,7 @@ while read l; do
     HealthcheckInterval) _assert_string_equal "$v" "10s" ;;
     HealthcheckTimeout) _assert_string_equal "$v" "5s" ;;
     HealthcheckRetries) _assert_string_equal "$v" "1" ;;
-    *) echo "ERROR: unexpected key \"$k\"" ; exit 1 ;;
+    *) echo "!!! ERROR: unexpected key \"$k\"" >&2 ; exit 1 ;;
   esac
 done < "${INTEGTEST_TMP_DIR}/nlb_service_http"
 
@@ -103,7 +103,7 @@ while read l; do
     HealthcheckInterval) _assert_string_equal "$v" "10s" ;;
     HealthcheckTimeout) _assert_string_equal "$v" "5s" ;;
     HealthcheckRetries) _assert_string_equal "$v" "1" ;;
-    *) echo "ERROR: unexpected key \"$k\"" ; exit 1 ;;
+    *) echo "!!! ERROR: unexpected key \"$k\"" >&2 ; exit 1 ;;
   esac
 done < "${INTEGTEST_TMP_DIR}/nlb_service_https"
 

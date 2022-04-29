@@ -44,7 +44,8 @@ var (
 var errLoadBalancerNotFound = errors.New("load balancer not found")
 
 type loadBalancer struct {
-	p *cloudProvider
+	p   *cloudProvider
+	cfg *loadBalancerConfig
 }
 
 // isExternal returns true if the NLB instance is marked as "external" in the
@@ -53,8 +54,11 @@ func (l loadBalancer) isExternal(service *v1.Service) bool {
 	return strings.ToLower(*getAnnotation(service, annotationLoadBalancerExternal, "false")) == "true"
 }
 
-func newLoadBalancer(provider *cloudProvider) cloudprovider.LoadBalancer {
-	return &loadBalancer{p: provider}
+func newLoadBalancer(provider *cloudProvider, config *loadBalancerConfig) cloudprovider.LoadBalancer {
+	return &loadBalancer{
+		p:   provider,
+		cfg: config,
+	}
 }
 
 // GetLoadBalancer returns whether the specified load balancer exists, and
