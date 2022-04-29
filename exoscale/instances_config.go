@@ -36,7 +36,7 @@ func (c *instancesConfig) getInstanceOverride(nodeName types.NodeName) *instance
 
 	// first try an exact match on name
 	for _, candidate := range c.Overrides {
-		if len(candidate.Name) != 0 && nodeName == types.NodeName(candidate.Name) {
+		if candidate.Name != "" && nodeName == types.NodeName(candidate.Name) {
 			config = &candidate
 			break
 		}
@@ -63,7 +63,7 @@ func (c *instancesConfig) getInstanceOverrideByProviderID(providerID string) *in
 
 	// first try an exact match on externalID
 	for _, candidate := range c.Overrides {
-		if len(candidate.ExternalID) != 0 && instanceID == candidate.ExternalID {
+		if candidate.ExternalID != "" && instanceID == candidate.ExternalID {
 			config = &candidate
 			break
 		}
@@ -72,7 +72,7 @@ func (c *instancesConfig) getInstanceOverrideByProviderID(providerID string) *in
 	// then try a match on the internally-built, name-based one
 	if config == nil {
 		for _, candidate := range c.Overrides {
-			if len(candidate.ExternalID) == 0 && instanceID == fmt.Sprintf("external-%x", sha256.Sum256([]byte(candidate.Name))) {
+			if candidate.ExternalID == "" && instanceID == fmt.Sprintf("external-%x", sha256.Sum256([]byte(candidate.Name))) {
 				config = &candidate
 				break
 			}

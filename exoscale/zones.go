@@ -39,7 +39,7 @@ func (z *zones) GetZoneByProviderID(_ context.Context, providerID string) (cloud
 	// first look for a statically-configured override
 	if override := z.p.cfg.Instances.getInstanceOverrideByProviderID(providerID); override != nil {
 		if override.External {
-			if len(override.Region) != 0 {
+			if override.Region != "" {
 				return cloudprovider.Zone{Region: override.Region}, nil
 			} else {
 				return cloudprovider.Zone{Region: "external"}, nil
@@ -63,7 +63,7 @@ func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) 
 	// first look for a statically-configured override
 	if override := z.p.cfg.Instances.getInstanceOverride(nodeName); override != nil {
 		if override.External {
-			if len(override.Region) != 0 {
+			if override.Region != "" {
 				return cloudprovider.Zone{Region: override.Region}, nil
 			} else {
 				return cloudprovider.Zone{Region: "external"}, nil
