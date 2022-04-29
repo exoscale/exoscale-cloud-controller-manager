@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+
+### Features
+
+* Add cloud-config (file) and instances override support
+* Build with Go 1.17
+
 ## 0.9.0
 
 ### Features
