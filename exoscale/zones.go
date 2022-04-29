@@ -37,7 +37,8 @@ func (z zones) GetZone(_ context.Context) (cloudprovider.Zone, error) {
 // must be done outside the kubelets.
 func (z *zones) GetZoneByProviderID(_ context.Context, providerID string) (cloudprovider.Zone, error) {
 	// first look for a statically-configured override
-	if override := z.p.cfg.Instances.getInstanceOverrideByProviderID(providerID); override != nil {
+	override := z.p.cfg.Instances.getInstanceOverrideByProviderID(providerID)
+	if override != nil {
 		if override.External {
 			if override.Region != "" {
 				return cloudprovider.Zone{Region: override.Region}, nil
@@ -61,7 +62,8 @@ func (z *zones) GetZoneByProviderID(_ context.Context, providerID string) (cloud
 // be done outside the kubelets.
 func (z *zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
 	// first look for a statically-configured override
-	if override := z.p.cfg.Instances.getInstanceOverride(nodeName); override != nil {
+	override := z.p.cfg.Instances.getInstanceOverride(nodeName)
+	if override != nil {
 		if override.External {
 			if override.Region != "" {
 				return cloudprovider.Zone{Region: override.Region}, nil

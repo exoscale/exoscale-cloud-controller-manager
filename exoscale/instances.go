@@ -32,7 +32,8 @@ func newInstances(provider *cloudProvider, config *instancesConfig) cloudprovide
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+	override := i.cfg.getInstanceOverride(nodeName)
+	if override != nil {
 		if n := len(override.Addresses); n > 0 {
 			nodeAddresses := make([]v1.NodeAddress, n)
 			for i, a := range override.Addresses {
@@ -67,7 +68,8 @@ func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) 
 // services cannot be used in this method to obtain nodeaddresses
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+	override := i.cfg.getInstanceOverrideByProviderID(providerID)
+	if override != nil {
 		if n := len(override.Addresses); n > 0 {
 			nodeAddresses := make([]v1.NodeAddress, n)
 			for i, a := range override.Addresses {
@@ -107,7 +109,8 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 // TL;DR: ProviderID = "exoscale://<InstanceID>"
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+	override := i.cfg.getInstanceOverride(nodeName)
+	if override != nil {
 		if override.External {
 			if override.ExternalID != "" {
 				return override.ExternalID, nil
@@ -134,7 +137,8 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverride(nodeName); override != nil {
+	override := i.cfg.getInstanceOverride(nodeName)
+	if override != nil {
 		if override.Type != "" {
 			return override.Type, nil
 		} else if override.External {
@@ -158,7 +162,8 @@ func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+	override := i.cfg.getInstanceOverrideByProviderID(providerID)
+	if override != nil {
 		if override.Type != "" {
 			return override.Type, nil
 		} else if override.External {
@@ -201,7 +206,8 @@ func (i *instances) CurrentNodeName(_ context.Context, hostname string) (types.N
 // This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+	override := i.cfg.getInstanceOverrideByProviderID(providerID)
+	if override != nil {
 		if override.External {
 			return true, nil
 		}
@@ -227,7 +233,8 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
 	// first look for a statically-configured override
-	if override := i.cfg.getInstanceOverrideByProviderID(providerID); override != nil {
+	override := i.cfg.getInstanceOverrideByProviderID(providerID)
+	if override != nil {
 		if override.External {
 			return false, cloudprovider.NotImplemented
 		}
