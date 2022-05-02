@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.1
+
+### Bug Fixes
+
+* Fix `standard_init_linux.go:228: exec user process caused: permission denied` when launching container
+
 ## 0.10.0
 
 ### Features
