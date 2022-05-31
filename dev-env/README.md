@@ -179,3 +179,7 @@ before running it. This will add something like in logs:
 # I0531 15:34:53.867454  120931 log.go:16] exoscale-ccm: sks-agent: CSR csr-7mzx2 approved
 # I0531 15:34:54.154227  120931 log.go:16] exoscale-ccm: sks-agent: CSR csr-zg5zl approved
 ```
+
+## Cleaning up resources
+
+Cleaning resources from exoscale account and removing generated assets is simple as running `terraform destroy`.

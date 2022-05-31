@@ -84,9 +84,9 @@ resource "null_resource" "manifests" {
   depends_on = [exoscale_sks_kubeconfig.client]
 
   triggers = {
-    apply_command = "kubectl apply -f ./manifests/ccm-rbac.yaml"
+    apply_command  = "kubectl apply -f ./manifests/ccm-rbac.yaml"
     delete_command = "kubectl delete -f ./manifests/ccm-rbac.yaml"
-    kubeconfig = local_sensitive_file.cluster_client["operator"].filename
+    kubeconfig     = local_sensitive_file.cluster_client["operator"].filename
   }
 
   provisioner "local-exec" {
@@ -97,7 +97,7 @@ resource "null_resource" "manifests" {
   }
 
   provisioner "local-exec" {
-    when = destroy
+    when    = destroy
     command = self.triggers.delete_command
     environment = {
       KUBECONFIG = self.triggers.kubeconfig
