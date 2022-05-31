@@ -84,8 +84,8 @@ resource "null_resource" "manifests" {
   depends_on = [exoscale_sks_kubeconfig.client]
 
   triggers = {
-    apply_command  = "kubectl apply -f ./manifests/ccm-rbac.yaml"
-    delete_command = "kubectl delete -f ./manifests/ccm-rbac.yaml"
+    apply_command  = "kubectl apply -f ../docs/examples/cloud-controller-manager-rbac.yml"
+    delete_command = "kubectl delete -f ../docs/examples/cloud-controller-manager-rbac.yml"
     kubeconfig     = local_sensitive_file.cluster_client["operator"].filename
   }
 
