@@ -66,15 +66,15 @@ terraform apply
 Once terraform completed provisioning tasks (it takes usually about 2mn), you have:
 - an SKS cluster without CCM in your Exoscale account
 - a `.env` file in this directory
-- the operator kubeconfig file (`operator.kubeconfig`) for use with kubectl
-- the ccm kubeconfig for use by the CCM (`ccm.kubeconfig`).
+- the operator Kubeconfig file (`operator.kubeconfig`) for use with kubectl
+- the ccm Kubeconfig for use by the CCM (`ccm.kubeconfig`).
 
-You can source the `.env` file to setup some useful environment variables and aliases:
-- `EXOSCALE_ZONE` environment variable: required for the CCM to work properly, this variable expose the zone in which the
+You can source the `.env` file to set up some useful environment variables and aliases:
+- `EXOSCALE_ZONE` environment variable: required for the CCM to work properly, this variable exposes the zone in which the
 development cluster was deployed
 - `KUBECONFIG` environment variable: allows interaction with the cluster, using `system:master` privileges
-- `approve-csr` alias: automatically approve all pending CSR. This can be used in rare situations for troubleshooting, because one of the features of the CCM is to automatically approve CSRs.
-- `go-run-ccm` alias: this alias call `go run` on your current code base and authenticates directly to the target development infrastructure.
+- `approve-csr` alias: automatically approve all pending CSR. This can be used in rare situations for troubleshooting because one of the features of the CCM is to automatically approve CSRs.
+- `go-run-ccm` alias: this alias calls `go run` on your current code base and authenticates directly to the target development infrastructure.
 
 The CCM will also require credentials as well (you need to provide them in environment variables too):
 - `EXOSCALE_API_KEY`
@@ -82,7 +82,7 @@ The CCM will also require credentials as well (you need to provide them in envir
 
 ## Interacting with the development infrastructure
 
-Go to the this directory, then source the `.env` file:
+Go to this directory, then source the `.env` file:
 
 ```bash
 source .env
@@ -117,12 +117,12 @@ kubectl get nodes,csr,pods -A
 # kube-system   pod/metrics-server-875d768c4-sks45            0/1     Running   0          103s
 ```
 
-NOTE: You can see in above output that the metrics-server Pod is not ready. This is because CSR must be approved to allow
+NOTE: You can see in the above output that the metrics-server Pod is not ready. This is because CSR must be approved to allow
 it to run properly.
 
 ## Running the CCM locally
 
-Go to the this directory, then source the `.env` file:
+Go to this directory, then source the `.env` file:
 
 ```bash
 source .env
@@ -182,4 +182,4 @@ before running it. This will add something like in logs:
 
 ## Cleaning up resources
 
-Cleaning resources from exoscale account and removing generated assets is simple as running `terraform destroy`.
+Cleaning resources from your Exoscale account and removing generated assets is as simple as running `terraform destroy`.
