@@ -6,3 +6,5 @@ tmp/
 .terraform.*
 terraform.tfvars
 terraform.tfstate*
+dev-env/*.kubeconfig
+dev-env/.env

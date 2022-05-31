@@ -175,10 +175,11 @@ or `apiCredentialsFile` Cloud Configuration File parameter.
 > Controller Managers administration][k8s-ccm-admin] to learn how your cluster
 > nodes must be configured to leverage an external Cloud Controller Manager.
 
-To deploy the Exoscale CCM on your Kubernetes cluster, you can use the manifest
+To deploy the Exoscale CCM on your Kubernetes cluster, you can use manifests
 provided as example:
 
 ```
+kubectl apply -f ./docs/examples/cloud-controller-manager-rbac.yml
 kubectl apply -f ./docs/examples/cloud-controller-manager.yml
 ```
 
