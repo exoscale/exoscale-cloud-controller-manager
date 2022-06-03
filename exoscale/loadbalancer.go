@@ -341,16 +341,15 @@ func (l *loadBalancer) fetchLoadBalancer(
 ) (*egoscale.NetworkLoadBalancer, error) {
 	if lbID := getAnnotation(service, annotationLoadBalancerID, ""); lbID != nil {
 		nlb, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, *lbID)
-		switch err {
-		case nil:
-			return nlb, nil
+		if err != nil {
+			if errors.Is(err, exoapi.ErrNotFound) {
+				return nil, errLoadBalancerNotFound
+			}
 
-		case exoapi.ErrNotFound:
-			return nil, errLoadBalancerNotFound
-
-		default:
 			return nil, err
 		}
+
+		return nlb, nil
 	}
 
 	return nil, errLoadBalancerNotFound
