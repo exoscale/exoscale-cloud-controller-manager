@@ -42,6 +42,7 @@ var (
 )
 
 var errLoadBalancerNotFound = errors.New("load balancer not found")
+var errLoadBalancerIDAnnotationNotFound = errors.New("load balancer ID annotation not found")
 
 type loadBalancer struct {
 	p   *cloudProvider
@@ -241,6 +242,11 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 	nlbUpdate, err := buildLoadBalancerFromAnnotations(service)
 	if err != nil {
 		return err
+	}
+
+
+	if nlbUpdate.ID == nil {
+		return errLoadBalancerIDAnnotationNotFound
 	}
 
 	nlbCurrent, err := l.p.client.GetNetworkLoadBalancer(ctx, l.p.zone, *nlbUpdate.ID)
