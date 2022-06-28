@@ -6,5 +6,10 @@ tmp/
 .terraform.*
 terraform.tfvars
 terraform.tfstate*
-dev-env/*.kubeconfig
-dev-env/.env
+*.kubeconfig
+.env
+
+test/api-creds*
+test/**/id_*
+test/*.log
+test/*.pid

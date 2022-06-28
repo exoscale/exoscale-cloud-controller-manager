@@ -1,12 +1,16 @@
-# Cloud Controller Manager: Development environment
+# Cloud Controller Manager: Development & Test environment
 
 The purpose of this subdirectory is to allow the deployment of a simple
-development environment for the Exoscale Cloud Controller Manager.
+development & test environment for the Exoscale Cloud Controller Manager.
 
 Required tools are:
 - `terraform`
 - `kubectl`
 - `go`
+
+There is two possible test environments:
+- `terraform-kubeadm`: An "unmanaged" Kubernetes cluster, provisioned using kubeadm on top of Ubuntu instances.
+- `terraform-sks`: A managed SKS environment, deployed without the default/integrated Cloud Controller Manager instance.
 
 ## Provisioning the development infrastructure
 
@@ -52,20 +56,15 @@ terraform apply
 #
 # ... truncated ...
 #
-# null_resource.manifests: Provisioning with 'local-exec'...
-# null_resource.manifests (local-exec): Executing: ["/bin/sh" "-c" "kubectl apply -f ./manifests/ccm-rbac.yaml"]
-# null_resource.manifests (local-exec): serviceaccount/cloud-controller-manager created
-# null_resource.manifests (local-exec): clusterrole.rbac.authorization.k8s.io/system:cloud-controller-manager created
-# null_resource.manifests (local-exec): clusterrolebinding.rbac.authorization.k8s.io/system:cloud-controller-manager created
-# null_resource.manifests: Creation complete after 2s [id=525762864139274692]
-# exoscale_sks_nodepool.cluster: Creation complete after 7s [id=1f0ea5f0-1248-490b-851a-61f3e64b6dba]
+# exoscale_nlb.external: Creating...
+# exoscale_nlb.external: Still creating... [10s elapsed]
+# exoscale_nlb.external: Creation complete after 19s [id=8cda6823-8d96-42d5-8516-cbacc19ba150]
 #
-# Apply complete! Resources: 13 added, 0 changed, 0 destroyed.
+# Apply complete! Resources: 34 added, 0 changed, 0 destroyed.
 ```
 
-Once terraform completed provisioning tasks (it takes usually about 2mn), you have:
-- an SKS cluster without CCM in your Exoscale account
-- a `.env` file in this directory
+Once terraform completed provisioning tasks (it takes usually about 3mn), you have:
+- a Kubernetes cluster (without CCM) in your Exoscale account
 - the operator Kubeconfig file (`operator.kubeconfig`) for use with kubectl
 - the ccm Kubeconfig for use by the CCM (`ccm.kubeconfig`).
 
@@ -82,10 +81,16 @@ The CCM will also require credentials as well (you need to provide them in envir
 
 ## Interacting with the development infrastructure
 
-Go to this directory, then source the `.env` file:
+Move to this directory, then source the `.env` file:
 
 ```bash
-source .env
+source terraform-kubeadm/.env
+```
+
+or
+
+```bash
+source terraform-sks/.env
 ```
 
 Alternatively, you can just export a `KUBECONFIG` environment variable with the full path to `operator.kubeconfig`.
@@ -122,10 +127,16 @@ it to run properly.
 
 ## Running the CCM locally
 
-Go to this directory, then source the `.env` file:
+Move to this directory, then source the `.env` file:
 
 ```bash
-source .env
+source terraform-kubeadm/.env
+```
+
+or
+
+```bash
+source terraform-sks/.env
 ```
 
 As already mentioned, the CCM will require Exoscale credentials to validate instances. You have to export them
@@ -182,4 +193,5 @@ before running it. This will add something like in logs:
 
 ## Cleaning up resources
 
-Cleaning resources from your Exoscale account and removing generated assets is as simple as running `terraform destroy`.
+Cleaning resources from your Exoscale account and removing generated assets is as simple as running `terraform destroy` in the
+`terraform-kubeadm` or `terraform-sks` directory.
