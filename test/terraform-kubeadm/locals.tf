@@ -1,11 +1,12 @@
 locals {
   cluster_security_groups = {
-    ssh               = { protocol = "TCP", port = 22 } # /for testing purposes
-    kube_apiserver    = { protocol = "TCP", port = 6443 },
-    kubelet_logs      = { protocol = "TCP", port = 10250 },
-    kubelet_nodeports = { protocol = "TCP", port = "30000-32767" }
-    calico_bgp        = { protocol = "TCP", port = 179 }
-    calico_ipip       = { protocol = "IPIP" }
+    ssh                    = { protocol = "TCP", port = 22, cidr = "0.0.0.0/0" }
+    kube_apiserver         = { protocol = "TCP", port = 6443, cidr = "0.0.0.0/0" },
+    kubelet_logs           = { protocol = "TCP", port = 10250, cidr = "0.0.0.0/0" },
+    kubelet_nodeports_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
+    kubelet_nodeports_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
+    calico_bgp             = { protocol = "TCP", port = 179, sg = exoscale_security_group.cluster.id }
+    calico_ipip            = { protocol = "IPIP", sg = exoscale_security_group.cluster.id }
   }
 
   name = "${var.name}-${random_string.test_id.result}"
@@ -98,12 +99,12 @@ mkdir -p /etc/systemd/system/kubelet.service.d/
 
 cat > /etc/systemd/system/kubelet.service.d/99-override.conf <<EOF
 [Service]
-EnvironmentFile=-/etc/default/kubelet
 ExecStart=
 ExecStart=/usr/bin/kubelet \\
-  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf \
-  --kubeconfig=/etc/kubernetes/kubelet.conf \
-  --container-runtime-endpoint="unix:///run/containerd/containerd.sock" \
+  --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf \\
+  --kubeconfig=/etc/kubernetes/kubelet.conf \\
+  --cloud-provider=external \\
+  --container-runtime-endpoint="unix:///run/containerd/containerd.sock" \\
   --config=/etc/kubernetes/config.yaml
 
 EOF
@@ -289,10 +290,6 @@ write_files:
   encoding: b64
   owner: root:root
   permissions: '0600'
-- path: /etc/default/kubelet
-  content: "KUBELET_OPTS='--cloud-provider=external'"
-  owner: root:root
-  permissions: '0644'
 - path: /etc/modprobe.d/kubernetes-blacklist.conf
   content: ${base64encode(local.kubernetes_module_blacklist)}
   encoding: b64
@@ -316,6 +313,49 @@ runcmd:
 - [sudo, setup-kubelet]
 - [sudo, systemctl, restart, kubelet]
 
+EOT
+
+  generated_manifest_hello_no_ingress = <<EOT
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  labels:
+    app: hello
+spec:
+  selector:
+    matchLabels:
+      app: hello
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - name: nginx
+        image: nginxdemos/hello:plain-text
+        ports:
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "${var.zone}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "${exoscale_nlb.external.id}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "${var.pool_size > 0 ? exoscale_instance_pool.test[0].id : "nop"}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval: "5s"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout: "2s"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries: "1"
+spec:
+  selector:
+    app: hello
+  type: LoadBalancer
+  ports:
+    - port: 80
 EOT
 
 }

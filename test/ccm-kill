@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -euo pipefail
+cd "$(dirname "$(readlink -e "${0}")")"
+
+source "lib/ccm-helpers.bash"
+
+exoscale_ccm_kill

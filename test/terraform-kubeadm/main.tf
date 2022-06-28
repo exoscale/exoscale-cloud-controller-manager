@@ -89,10 +89,6 @@ resource "tls_locally_signed_cert" "certificate" {
 
 # Exoscale Infrastructure
 
-data "http" "local_ip" {
-  url = "http://ipconfig.me"
-}
-
 resource "random_string" "test_id" {
   length  = 5
   upper   = false
@@ -101,7 +97,6 @@ resource "random_string" "test_id" {
 
 resource "exoscale_security_group" "cluster" {
   name             = local.name
-  external_sources = ["${chomp(data.http.local_ip.body)}/32"]
 }
 
 resource "exoscale_security_group_rule" "cluster" {
@@ -114,7 +109,8 @@ resource "exoscale_security_group_rule" "cluster" {
   icmp_code              = try(each.value.icmp_code, null)
   start_port             = try(split("-", each.value.port)[0], each.value.port, null)
   end_port               = try(split("-", each.value.port)[1], each.value.port, null)
-  user_security_group_id = exoscale_security_group.cluster.id
+  user_security_group_id = try(each.value.sg, null)
+  cidr                   = try(each.value.cidr, null)
 }
 
 resource "exoscale_anti_affinity_group" "cluster" {
@@ -284,4 +280,9 @@ resource "local_file" "sks_dev_env" {
     --v=3"
   EOT
   filename = ".env"
+}
+
+resource "local_file" "manifest_hello_no_ingress" {
+  content  = local.generated_manifest_hello_no_ingress
+  filename = "manifests/hello-no-ingress.yml"
 }
