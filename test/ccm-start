@@ -3,7 +3,6 @@
 set -euo pipefail
 cd "$(dirname "$(readlink -e "${0}")")"
 
-export TARGET_CLUSTER=kubeadm
 export KUBECONFIG="./terraform-${TARGET_CLUSTER}/ccm.kubeconfig"
 
 # Credentials: initial credential file (test case: credential file reloading)

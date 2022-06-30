@@ -1,7 +1,3 @@
-data "http" "local_ip" {
-  url = "http://ipconfig.me"
-}
-
 resource "random_string" "test_id" {
   length  = 5
   upper   = false
@@ -10,7 +6,6 @@ resource "random_string" "test_id" {
 
 resource "exoscale_security_group" "cluster" {
   name             = local.name
-  external_sources = ["${chomp(data.http.local_ip.body)}/32"]
 }
 
 resource "exoscale_security_group_rule" "cluster" {
@@ -23,7 +18,8 @@ resource "exoscale_security_group_rule" "cluster" {
   icmp_code              = try(each.value.icmp_code, null)
   start_port             = try(split("-", each.value.port)[0], each.value.port, null)
   end_port               = try(split("-", each.value.port)[1], each.value.port, null)
-  user_security_group_id = exoscale_security_group.cluster.id
+  user_security_group_id = try(each.value.sg, null)
+  cidr                   = try(each.value.cidr, null)
 }
 
 resource "exoscale_anti_affinity_group" "cluster" {
@@ -97,6 +93,14 @@ resource "exoscale_sks_nodepool" "pool" {
   security_group_ids      = [exoscale_security_group.cluster.id]
 }
 
+resource "exoscale_nlb" "external" {
+  zone        = var.zone
+  name        = "${var.name}-${random_string.test_id.result}"
+  description = "${var.name}-${random_string.test_id.result} description"
+
+  depends_on = [exoscale_sks_nodepool.pool]
+}
+
 resource "null_resource" "manifests" {
   for_each   = var.manifests
   depends_on = [exoscale_sks_kubeconfig.client]
@@ -113,4 +117,9 @@ resource "null_resource" "manifests" {
       KUBECONFIG = self.triggers.kubeconfig
     }
   }
+}
+
+resource "local_file" "manifest_hello_no_ingress" {
+  content  = local.generated_manifest_hello_no_ingress
+  filename = "manifests/hello-no-ingress.yml"
 }
