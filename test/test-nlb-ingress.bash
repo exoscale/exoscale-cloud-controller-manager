@@ -17,19 +17,18 @@ kubectl wait --timeout 600s --for condition=Available --namespace ingress-nginx 
 _until_success "test -n \"\$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[].ip}')\""
 
 export INGRESS_NLB_IP=$(kubectl --namespace ingress-nginx get svc/ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[].ip}')
-export INGRESS_NLB_ID=$(exo compute load-balancer list -z $EXOSCALE_ZONE -O text | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
+export INGRESS_NLB_ID=$(exo compute load-balancer list -z "$EXOSCALE_ZONE" -O text | awk "/${INGRESS_NLB_IP}/ { print \$1 }")
 export NODEPOOL_ID=$(cd "terraform-${TARGET_CLUSTER}" && terraform output -raw node_pool_id)
 
 echo "### Deploying test application ..."
 kubectl apply -f "manifests/hello-ingress.yml" > /dev/null
-kubectl wait --for condition=Available deployment.apps/hello > /dev/null
+kubectl wait --timeout 600s --for condition=Available deployment.apps/hello > /dev/null
 
 ### Test the actual NLB + ingress-nginx controller + service + app chain
 echo "### Checking end-to-end requests ..."
 
-curl_opts="--retry 10 --retry-delay 5 --retry-connrefused --silent"
-curl $curl_opts http://$INGRESS_NLB_IP > /dev/null || (echo "!!! FAIL" >&2 && false)
-curl $curl_opts --insecure https://$INGRESS_NLB_IP > /dev/null || (echo "!!! FAIL" >&2 && false)
+curl --retry 10 --retry-delay 5 --retry-connrefused -s "http://$INGRESS_NLB_IP" > /dev/null || (echo "!!! FAIL" >&2 && false)
+curl --retry 10 --retry-delay 5 --retry-connrefused -sk "https://$INGRESS_NLB_IP" > /dev/null || (echo "!!! FAIL" >&2 && false)
 
 
 ### Test the generated NLB services' properties
@@ -46,20 +45,20 @@ output_template+='HealthcheckRetries={{ println .Healthcheck.Retries }}'
 
 exo compute load-balancer show \
   --output-template '{{range .Services}}{{println .ID}}{{end}}' \
-  -z ${EXOSCALE_ZONE} $INGRESS_NLB_ID | while read svcid; do
+  -z "$EXOSCALE_ZONE" "$INGRESS_NLB_ID" | while read -r svcid; do
     exo compute load-balancer service show \
-      -z $EXOSCALE_ZONE \
+      -z "$EXOSCALE_ZONE" \
       --output-template "$output_template" \
-      $INGRESS_NLB_ID $svcid > "$TARGET_CLUSTER/nlb_service_${svcid}"
+      "$INGRESS_NLB_ID" "$svcid" > "terraform-$TARGET_CLUSTER/nlb_service_${svcid}"
 
-    svcport=$(awk -F= '$1 == "Port" {print $2}' < "$TARGET_CLUSTER/nlb_service_${svcid}")
+    svcport=$(awk -F= '$1 == "Port" {print $2}' < "terraform-$TARGET_CLUSTER/nlb_service_${svcid}")
     case $svcport in
     80)
-      mv "$TARGET_CLUSTER/nlb_service_${svcid}" "$TARGET_CLUSTER/nlb_service_http"
+      mv "terraform-$TARGET_CLUSTER/nlb_service_${svcid}" "terraform-$TARGET_CLUSTER/nlb_service_http"
       export INGRESS_NLB_SERVICE_HTTP_ID=$svcid
       ;;
     443)
-      mv "$TARGET_CLUSTER/nlb_service_${svcid}" "$TARGET_CLUSTER/nlb_service_https"
+      mv "terraform-$TARGET_CLUSTER/nlb_service_${svcid}" "terraform-$TARGET_CLUSTER/nlb_service_https"
       export INGRESS_NLB_SERVICE_HTTPS_ID=$svcid
       ;;
     *)
@@ -71,7 +70,7 @@ done
 
 ## HTTP service
 echo "### Checking ingress HTTP NLB service properties ..."
-while read l; do
+while read -r l; do
   # Split "k=v" formatted line into variables $k and $v
   k=${l%=*} v=${l#*=}
 
@@ -87,11 +86,11 @@ while read l; do
     HealthcheckRetries) _assert_string_equal "$v" "1" ;;
     *) echo "!!! ERROR: unexpected key \"$k\"" >&2 ; exit 1 ;;
   esac
-done < "$TARGET_CLUSTER/nlb_service_http"
+done < "terraform-$TARGET_CLUSTER/nlb_service_http"
 
 ## HTTPS service
 echo "### Checking ingress HTTPS NLB service properties ..."
-while read l; do
+while read -r l; do
   # Split "k=v" formatted line into variables $k and $v
   k=${l%=*} v=${l#*=}
 
@@ -107,7 +106,7 @@ while read l; do
     HealthcheckRetries) _assert_string_equal "$v" "1" ;;
     *) echo "!!! ERROR: unexpected key \"$k\"" >&2 ; exit 1 ;;
   esac
-done < "$TARGET_CLUSTER/nlb_service_https"
+done < "terraform-$TARGET_CLUSTER/nlb_service_https"
 
 ## Updating ingress controller Service to switch NLB service health checking to "http" mode
 echo "### Updating ingress NLB services ..."
@@ -116,11 +115,8 @@ patch+='"service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mo
 patch+='"service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri":"/"'
 patch+='}}}'
 kubectl -n ingress-nginx patch svc ingress-nginx-controller -p "$patch" > /dev/null
-_until_success "test \"\$(exo compute load-balancer show \
-  --output-template '{{range .Services}}{{println .ID}}{{end}}' \
-  -z $EXOSCALE_ZONE $INGRESS_NLB_ID | while read svcid; do
-    exo compute load-balancer service show -z $EXOSCALE_ZONE --output-template '{{.Healthcheck.Mode}}' \
-      $INGRESS_NLB_ID \$svcid ; done)\" == \"httphttp\""
+_until_success "test \"\$(exo compute load-balancer show --output-template '{{range .Services}}{{println .ID}}{{end}}' -z $EXOSCALE_ZONE $INGRESS_NLB_ID | while read svcid; do
+    exo compute load-balancer service show -z $EXOSCALE_ZONE --output-template '{{.Healthcheck.Mode}}' $INGRESS_NLB_ID \$svcid ; done)\" == \"httphttp\""
 
 echo "### Destroying test application ..."
 kubectl delete -f "manifests/hello-ingress.yml" > /dev/null

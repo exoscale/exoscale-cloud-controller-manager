@@ -96,7 +96,7 @@ resource "random_string" "test_id" {
 }
 
 resource "exoscale_security_group" "cluster" {
-  name             = local.name
+  name = local.name
 }
 
 resource "exoscale_security_group_rule" "cluster" {

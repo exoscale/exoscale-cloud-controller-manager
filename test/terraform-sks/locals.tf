@@ -3,7 +3,7 @@ locals {
     kubelet_logs           = { protocol = "TCP", port = 10250, cidr = "0.0.0.0/0" },
     kubelet_nodeports_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
     kubelet_nodeports_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
-    calico_vxlan           = { protocol = "UDP", port = 4789, sg = exoscale_security_group.cluster.id  }
+    calico_vxlan           = { protocol = "UDP", port = 4789, sg = exoscale_security_group.cluster.id }
   }
 
   name = "${var.name}-${random_string.test_id.result}"

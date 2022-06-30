@@ -5,7 +5,7 @@ resource "random_string" "test_id" {
 }
 
 resource "exoscale_security_group" "cluster" {
-  name             = local.name
+  name = local.name
 }
 
 resource "exoscale_security_group_rule" "cluster" {
@@ -82,12 +82,13 @@ resource "local_sensitive_file" "cluster_client" {
 }
 
 resource "exoscale_sks_nodepool" "pool" {
-  count         = var.pool_size > 0 ? 1 : 0
-  zone          = var.zone
-  cluster_id    = exoscale_sks_cluster.cluster.id
-  name          = local.name
-  instance_type = "standard.medium"
-  size          = var.pool_size
+  count           = var.pool_size > 0 ? 1 : 0
+  zone            = var.zone
+  cluster_id      = exoscale_sks_cluster.cluster.id
+  name            = local.name
+  instance_type   = "standard.medium"
+  instance_prefix = "${var.name}-${random_string.test_id.result}-pool"
+  size            = var.pool_size
 
   anti_affinity_group_ids = [exoscale_anti_affinity_group.cluster.id]
   security_group_ids      = [exoscale_security_group.cluster.id]

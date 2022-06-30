@@ -11,6 +11,6 @@ terraform.tfstate*
 
 test/api-creds*
 test/**/id_*
-test/nlb_service_*
+test/**/nlb_service_*
 *.log
 *.pid

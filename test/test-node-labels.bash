@@ -10,7 +10,7 @@ echo "### Checking instance pool node labels ..."
 
 export NODEPOOL_INSTANCE_NAME=$(kubectl get nodes -o name | sed -nE 's|^node/(test-\S*-pool-.*)$|\1|p;T next;q;:next')
 
-ACTUAL_LABELS=$(kubectl get node ${NODEPOOL_INSTANCE_NAME} -o=go-template='{{range $k, $v := .metadata.labels}}{{$k}}={{println $v}}{{end}}')
+ACTUAL_LABELS=$(kubectl get node "${NODEPOOL_INSTANCE_NAME}" -o=go-template='{{range $k, $v := .metadata.labels}}{{$k}}={{println $v}}{{end}}')
 
 unset EXPECTED_LABELS
 declare -A EXPECTED_LABELS
@@ -21,7 +21,7 @@ EXPECTED_LABELS[failure-domain.beta.kubernetes.io/region]="$EXOSCALE_ZONE"
 EXPECTED_LABELS[topology.kubernetes.io/region]="$EXOSCALE_ZONE"
 
 nodepool_labels_n=0
-while IFS= read l; do
+while IFS= read -r l; do
   # Split "k=v" formatted line into variables $k and $v
   k=${l%=*} v=${l#*=}
 
@@ -50,7 +50,7 @@ echo "### Checking external node labels ..."
 
 export EXTERNAL_INSTANCE_NAME=$(kubectl get nodes -o name | sed -nE 's|^node/(test-\S*-external)$|\1|p;T next;q;:next')
 
-ACTUAL_LABELS="$(kubectl get node ${EXTERNAL_INSTANCE_NAME} -o=go-template='{{range $k, $v := .metadata.labels}}{{$k}}={{println $v}}{{end}}')"
+ACTUAL_LABELS="$(kubectl get node "${EXTERNAL_INSTANCE_NAME}" -o=go-template='{{range $k, $v := .metadata.labels}}{{$k}}={{println $v}}{{end}}')"
 
 unset EXPECTED_LABELS
 declare -A EXPECTED_LABELS
@@ -61,7 +61,7 @@ EXPECTED_LABELS[failure-domain.beta.kubernetes.io/region]="externalRegion"
 EXPECTED_LABELS[topology.kubernetes.io/region]="externalRegion"
 
 external_labels_n=0
-while IFS= read l; do
+while IFS= read -r l; do
   # Split "k=v" formatted line into variables $k and $v
   k=${l%=*} v=${l#*=}
 
