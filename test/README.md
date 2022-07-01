@@ -63,7 +63,7 @@ terraform apply
 # Apply complete! Resources: 34 added, 0 changed, 0 destroyed.
 ```
 
-Once terraform completed provisioning tasks (it takes usually about 3mn), you have:
+Once terraform completed provisioning tasks (it usually takes around 3mn), you have:
 - a Kubernetes cluster (without CCM) in your Exoscale account
 - the operator Kubeconfig file (`operator.kubeconfig`) for use with kubectl
 - the ccm Kubeconfig for use by the CCM (`ccm.kubeconfig`).
