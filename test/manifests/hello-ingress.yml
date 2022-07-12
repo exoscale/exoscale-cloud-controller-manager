@@ -41,6 +41,7 @@ metadata:
   labels:
     app: hello
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:

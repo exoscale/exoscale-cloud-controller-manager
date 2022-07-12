@@ -25,11 +25,23 @@ variable "zone" {
 variable "name" {
   description = "Base name of the test infrastructure"
   type        = string
-  default     = "ccm-dev"
+  default     = "test-ccm-sks"
 }
 
 variable "sks_version" {
   description = "Version of Kubernetes (default is latest)"
   type        = string
   default     = null
+}
+
+variable "manifests" {
+  description = "Manifests to deploy automatically. Manifests are expected to be present in the manifest subdirectory."
+  type        = set(string)
+  default     = ["cloud-controller-manager-rbac"]
+}
+
+variable "pool_size" {
+  description = "Pool for CSR/expunge tests"
+  type        = number
+  default     = 1
 }

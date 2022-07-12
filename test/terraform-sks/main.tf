@@ -1,10 +1,11 @@
-data "http" "my_ip" {
-  url = "http://ipconfig.me"
+resource "random_string" "test_id" {
+  length  = 5
+  upper   = false
+  special = false
 }
 
 resource "exoscale_security_group" "cluster" {
-  name             = var.name
-  external_sources = ["${chomp(data.http.my_ip.body)}/32"]
+  name = local.name
 }
 
 resource "exoscale_security_group_rule" "cluster" {
@@ -17,16 +18,17 @@ resource "exoscale_security_group_rule" "cluster" {
   icmp_code              = try(each.value.icmp_code, null)
   start_port             = try(split("-", each.value.port)[0], each.value.port, null)
   end_port               = try(split("-", each.value.port)[1], each.value.port, null)
-  user_security_group_id = exoscale_security_group.cluster.id
+  user_security_group_id = try(each.value.sg, null)
+  cidr                   = try(each.value.cidr, null)
 }
 
 resource "exoscale_anti_affinity_group" "cluster" {
-  name = var.name
+  name = local.name
 }
 
 resource "exoscale_sks_cluster" "cluster" {
   zone    = var.zone
-  name    = var.name
+  name    = local.name
   version = try(var.sks_version, null)
 
   cni            = "calico"
@@ -50,14 +52,24 @@ resource "exoscale_sks_kubeconfig" "client" {
 
 resource "local_file" "sks_dev_env" {
   content  = <<-EOT
-  export KUBECONFIG="./${local_sensitive_file.cluster_client["operator"].filename}"
+  export KUBECONFIG="${abspath(local_sensitive_file.cluster_client["operator"].filename)}"
+  export CCM_KUBECONFIG="${abspath(local_sensitive_file.cluster_client["operator"].filename)}"
   export EXOSCALE_ZONE="${var.zone}"
+  export EXOSCALE_SKS_AGENT_RUNNERS=node-csr-validation
+  export EXOSCALE_API_CREDENTIALS_FILE=${abspath("../api-creds")}
 
   # Helper alias to approve pending CSRs from Kubelets
   alias approve-csr="kubectl get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{\"\\n\"}}{{end}}{{end}}' | xargs kubectl certificate approve"
 
   # Helper alias to run CCM from local env on the remote cluster
-  alias go-run-ccm="go run ../cmd/exoscale-cloud-controller-manager/main.go --kubeconfig=ccm.kubeconfig --authentication-kubeconfig=ccm.kubeconfig --authorization-kubeconfig=ccm.kubeconfig --allow-untagged-cloud"
+  alias go-run-ccm="go run ${abspath("../../cmd/exoscale-cloud-controller-manager/main.go")} \
+    --kubeconfig=$CCM_KUBECONFIG \
+    --authentication-kubeconfig=$CCM_KUBECONFIG \
+    --authorization-kubeconfig=$CCM_KUBECONFIG \
+    --cloud-config=${abspath("../cloud-config.conf")} \
+    --leader-elect=true \
+    --allow-untagged-cloud  \
+    --v=3"
   EOT
   filename = ".env"
 }
@@ -69,24 +81,35 @@ resource "local_sensitive_file" "cluster_client" {
   file_permission = "0600"
 }
 
-resource "exoscale_sks_nodepool" "cluster" {
-  zone          = var.zone
-  cluster_id    = exoscale_sks_cluster.cluster.id
-  name          = var.name
-  instance_type = "standard.medium"
-  size          = 2
+resource "exoscale_sks_nodepool" "pool" {
+  count           = var.pool_size > 0 ? 1 : 0
+  zone            = var.zone
+  cluster_id      = exoscale_sks_cluster.cluster.id
+  name            = local.name
+  instance_type   = "standard.medium"
+  instance_prefix = "${var.name}-${random_string.test_id.result}-pool"
+  size            = var.pool_size
 
   anti_affinity_group_ids = [exoscale_anti_affinity_group.cluster.id]
   security_group_ids      = [exoscale_security_group.cluster.id]
 }
 
+resource "exoscale_nlb" "external" {
+  zone        = var.zone
+  name        = "${var.name}-${random_string.test_id.result}"
+  description = "${var.name}-${random_string.test_id.result} description"
+
+  depends_on = [exoscale_sks_nodepool.pool]
+}
+
 resource "null_resource" "manifests" {
+  for_each   = var.manifests
   depends_on = [exoscale_sks_kubeconfig.client]
 
   triggers = {
-    apply_command  = "kubectl apply -f ../docs/examples/cloud-controller-manager-rbac.yml"
-    delete_command = "kubectl delete -f ../docs/examples/cloud-controller-manager-rbac.yml"
-    kubeconfig     = local_sensitive_file.cluster_client["operator"].filename
+    hash          = sha256(file("./manifests/${each.value}.yml"))
+    apply_command = "kubectl apply -f ./manifests/${each.value}.yml"
+    kubeconfig    = local_sensitive_file.cluster_client["operator"].filename
   }
 
   provisioner "local-exec" {
@@ -95,12 +118,9 @@ resource "null_resource" "manifests" {
       KUBECONFIG = self.triggers.kubeconfig
     }
   }
+}
 
-  provisioner "local-exec" {
-    when    = destroy
-    command = self.triggers.delete_command
-    environment = {
-      KUBECONFIG = self.triggers.kubeconfig
-    }
-  }
+resource "local_file" "manifest_hello_no_ingress" {
+  content  = local.generated_manifest_hello_no_ingress
+  filename = "manifests/hello-no-ingress.yml"
 }

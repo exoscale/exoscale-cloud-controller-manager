@@ -1,10 +1,4 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: cloud-controller-manager
-  namespace: kube-system
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -113,6 +107,6 @@ roleRef:
   kind: ClusterRole
   name: system:cloud-controller-manager
 subjects:
-- kind: ServiceAccount
+- kind: User
   name: cloud-controller-manager
   namespace: kube-system
