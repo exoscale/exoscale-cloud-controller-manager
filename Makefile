@@ -19,13 +19,3 @@ include go.mk/public.mk
 
 # Docker
 include Makefile.docker
-
-# Tests
-
-.PHONY: test-integration
-test-integration: ## Runs integration tests (requires valid Exoscale API credentials)
-	@INCLUDE_PATH=$(PWD) ./integtest/run.bash
-
-# Clean
-clean::
-	@INCLUDE_PATH=$(PWD) ./integtest/run.bash clean
