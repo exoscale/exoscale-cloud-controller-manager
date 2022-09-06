@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0
+
+* Upgrade Kubernetes SDK to 1.25.0, egoscale to 0.90.0 and Go to 1.19
+
 ## 0.11.1
 
 * Fix bug with manually deleted NLB
