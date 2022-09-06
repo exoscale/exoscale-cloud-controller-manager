@@ -19,10 +19,12 @@ jobs:
         go-version: '~1.19'
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v2
-      with:
-        version: v1.49
+    # NOTE: golangci-lint is disabled as we now rely on Go 1.19 and 
+    # the tooling is not yet up-to-date to handle it.
+    # - name: Run golangci-lint
+    #   uses: golangci/golangci-lint-action@v2
+    #   with:
+    #     version: v1.49
     - name: Run tests
       run: make test-verbose
 
