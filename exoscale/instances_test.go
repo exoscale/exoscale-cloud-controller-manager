@@ -10,30 +10,35 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/utils/pointer"
 )
 
 var (
-	testInstanceID                     = new(exoscaleCCMTestSuite).randomID()
-	testInstanceName                   = new(exoscaleCCMTestSuite).randomString(10)
-	testInstancePublicIPAddress        = "1.2.3.4"
-	testInstancePublicIPAddressP       = net.ParseIP(testInstancePublicIPAddress)
-	testInstanceTypeAuthorized         = true
-	testInstanceTypeCPUs         int64 = 2
-	testInstanceTypeFamily             = "standard"
-	testInstanceTypeID                 = new(exoscaleCCMTestSuite).randomID()
-	testInstanceTypeMemory       int64 = 4294967296
-	testInstanceTypeSize               = "medium"
+	testInstanceID                   = new(exoscaleCCMTestSuite).randomID()
+	testInstanceName                 = new(exoscaleCCMTestSuite).randomString(10)
+	testInstancePublicIPv4           = "1.2.3.4"
+	testInstancePublicIPv6           = "fd00::123:4"
+	testInstancePublicIPv4P          = net.ParseIP(testInstancePublicIPv4)
+	testInstancePublicIPv6P          = net.ParseIP(testInstancePublicIPv6)
+	testInstanceTypeAuthorized       = true
+	testInstanceTypeCPUs       int64 = 2
+	testInstanceTypeFamily           = "standard"
+	testInstanceTypeID               = new(exoscaleCCMTestSuite).randomID()
+	testInstanceTypeMemory     int64 = 4294967296
+	testInstanceTypeSize             = "medium"
 )
 
 func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
+	resp := &egoscale.Instance{
+		ID:              &testInstanceID,
+		Name:            &testInstanceName,
+		PublicIPAddress: &testInstancePublicIPv4P,
+	}
+
 	ts.p.client.(*exoscaleClientMock).
 		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
 		Return(
-			&egoscale.Instance{
-				ID:              &testInstanceID,
-				Name:            &testInstanceName,
-				PublicIPAddress: &testInstancePublicIPAddressP,
-			},
+			resp,
 			nil,
 		)
 
@@ -52,14 +57,62 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 		},
 	})
 
-	expected := []v1.NodeAddress{{
-		Type:    v1.NodeExternalIP,
-		Address: testInstancePublicIPAddress,
-	}}
+	for _, tt := range []struct {
+		name     string
+		egoscale egoscale.Instance
+		expected []v1.NodeAddress
+	}{
+		{
+			name: "PublicIPv4",
+			egoscale: egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPv4P,
+			},
+			expected: []v1.NodeAddress{{
+				Type:    v1.NodeExternalIP,
+				Address: testInstancePublicIPv4,
+			}},
+		},
+		{
+			name: "PublicIPv6",
+			egoscale: egoscale.Instance{
+				ID:          &testInstanceID,
+				Name:        &testInstanceName,
+				IPv6Address: &testInstancePublicIPv6P,
+				IPv6Enabled: pointer.Bool(true),
+			},
+			expected: []v1.NodeAddress{{
+				Type:    v1.NodeExternalIP,
+				Address: testInstancePublicIPv6,
+			}},
+		},
+		{
+			name: "DualStack",
+			egoscale: egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPv4P,
+				IPv6Address:     &testInstancePublicIPv6P,
+				IPv6Enabled:     pointer.Bool(true),
+			},
+			expected: []v1.NodeAddress{{
+				Type:    v1.NodeExternalIP,
+				Address: testInstancePublicIPv4,
+			}, {
+				Type:    v1.NodeExternalIP,
+				Address: testInstancePublicIPv6,
+			}},
+		},
+	} {
+		ts.Run(tt.name, func() {
+			*resp = tt.egoscale
 
-	actual, err := ts.p.instances.NodeAddresses(ts.p.ctx, types.NodeName(testInstanceName))
-	ts.Require().NoError(err)
-	ts.Require().Equal(expected, actual)
+			actual, err := ts.p.instances.NodeAddresses(ts.p.ctx, types.NodeName(testInstanceName))
+			ts.Require().NoError(err)
+			ts.Require().Equal(tt.expected, actual)
+		})
+	}
 }
 
 func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
@@ -69,7 +122,7 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 			&egoscale.Instance{
 				ID:              &testInstanceID,
 				Name:            &testInstanceName,
-				PublicIPAddress: &testInstancePublicIPAddressP,
+				PublicIPAddress: &testInstancePublicIPv4P,
 			},
 			nil,
 		)
@@ -91,7 +144,7 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 
 	expected := []v1.NodeAddress{{
 		Type:    v1.NodeExternalIP,
-		Address: testInstancePublicIPAddress,
+		Address: testInstancePublicIPv4,
 	}}
 
 	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
@@ -320,8 +373,8 @@ func (ts *exoscaleCCMTestSuite) TestInstanceShutdownByProviderID() {
 // Statically-configured overrides
 func (ts *exoscaleCCMTestSuite) TestNodeAddresses_overrideExternal() {
 	expected := []v1.NodeAddress{
-		{Type:    v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
-		{Type:    v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
+		{Type: v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
+		{Type: v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
 	}
 
 	actual, err := ts.p.instances.NodeAddresses(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
@@ -331,8 +384,8 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses_overrideExternal() {
 
 func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_overrideExternal() {
 	expected := []v1.NodeAddress{
-		{Type:    v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
-		{Type:    v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
+		{Type: v1.NodeInternalIP, Address: testInstanceOverrideAddress_internal},
+		{Type: v1.NodeExternalIP, Address: testInstanceOverrideAddress_external},
 	}
 
 	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
