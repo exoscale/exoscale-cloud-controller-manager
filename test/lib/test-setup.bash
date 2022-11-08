@@ -14,10 +14,10 @@ terraform_create(){
 
 	cd "terraform-${TARGET_CLUSTER}" || exit
 	echo "### Initializing Terraform (plugins and providers)"
-  echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-init.log')"
+	echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-init.log')"
 	terraform init -upgrade > terraform-init.log
 	echo "### Terraforming the test infrastructure"
-  echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-apply.log')"
+	echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-apply.log')"
 	terraform apply -auto-approve > terraform-create.log
 	cd - > /dev/null || exit
 }
@@ -27,7 +27,7 @@ terraform_destroy() {
 
 	cd "terraform-${TARGET_CLUSTER}" || exit
 	echo "### Destroying Terraformed test infrastructure"
-  echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-destroy.log')"
+	echo "  # (see 'terraform-${TARGET_CLUSTER}/terraform-destroy.log')"
 	terraform destroy -auto-approve > terraform-destroy.log
 	cd - > /dev/null || exit
 }
