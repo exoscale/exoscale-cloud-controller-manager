@@ -4,14 +4,14 @@ PID_FILE="terraform-${TARGET_CLUSTER}/ccm.pid"
 
 exoscale_ccm_start() {
 	if [ -f "$PID_FILE" ]; then
-		echo "CCM is already running (PID file is present: $PID_FILE)"
+		echo "!!! WARNING: CCM appears to be already running (PID file is present: $PID_FILE)"
 		exit 1
 	fi
 
-	echo " > Exoscale-CCM: Building initial environment"
+	echo "### Exoscale-CCM: Building initial environment"
 	. "terraform-${TARGET_CLUSTER}/.env"
-	
-	echo " > Exoscale-CCM: Starting"
+
+	echo "### Exoscale-CCM: Starting"
 	go run ../cmd/exoscale-cloud-controller-manager/main.go \
 		--kubeconfig="$CCM_KUBECONFIG" \
 		--authentication-kubeconfig="$CCM_KUBECONFIG" \
@@ -22,16 +22,16 @@ exoscale_ccm_start() {
 		--v=3 > ccm.log 2>&1 &
 
 	CCM_PID=$!
-	echo " > Exoscale-CCM: Started (PID=$CCM_PID)"
+	echo "### Exoscale-CCM: Started (PID=$CCM_PID)"
 	echo "$CCM_PID" > "$PID_FILE"
 }
 
 exoscale_ccm_kill() {
 	if [ -f "$PID_FILE" ]; then
 		CCM_PID="$(cat "$PID_FILE")"
-		echo " > Exoscale-CCM: Killing (PID=$CCM_PID)"
+		echo "### Exoscale-CCM: Killing (PID=$CCM_PID)"
 		pkill -P "$CCM_PID"
-		echo " > Exoscale-CCM: Killed"
+		echo "### Exoscale-CCM: Killed"
 		rm "$PID_FILE"
 	fi
 }
