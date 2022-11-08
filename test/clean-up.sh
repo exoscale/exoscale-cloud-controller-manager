@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 cd "$(dirname "$(realpath -e "${0}")")" || exit
 rm -v \
   api-creds* \
