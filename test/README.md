@@ -12,6 +12,15 @@ There is two possible test environments:
 - `terraform-kubeadm`: An "unmanaged" Kubernetes cluster, provisioned using kubeadm on top of Ubuntu instances.
 - `terraform-sks`: A managed SKS environment, deployed without the default/integrated Cloud Controller Manager instance.
 
+## Run the integration/acceptance tests
+
+Simply execute either `./run-kubeadm-tests.sh` or `./run-sks-tests.sh`.
+
+**Everything** (Terraform, CCM launch, tests, etc.) will be automatically handled for you.
+
+Once done and confident no resources linger behind, you may run `./clean-up.sh` (recommended before
+running another test).
+
 ## Provisioning the development infrastructure
 
 You will need an Exoscale API key and secret. You can provide them as environment variables:
