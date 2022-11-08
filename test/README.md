@@ -16,7 +16,7 @@ There is two possible test environments:
 
 Simply execute either `./run-kubeadm-tests.sh` or `./run-sks-tests.sh`.
 
-**Everything** (Terraform, CCM launch, tests, etc.) will be automatically be handled for you.
+**Everything** (Terraform, CCM launch, tests, etc.) will be automatically handled for you.
 
 Once done and confident no resources linger behind, you may run `./clean-up.sh` (recommended before
 running another test).
