@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
+	cloudproviderapi "k8s.io/cloud-provider/api"
 )
 
 var labelInvalidCharsRegex = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
@@ -43,7 +44,7 @@ func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) 
 			}
 			return nodeAddresses, nil
 		} else if override.External {
-			return []v1.NodeAddress{}, nil  // returning no address makes the stock node-controller skip address re-assignment
+			return []v1.NodeAddress{}, nil // returning no address makes the stock node-controller skip address re-assignment
 		}
 	}
 
@@ -79,7 +80,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 			}
 			return nodeAddresses, nil
 		} else if override.External {
-			return []v1.NodeAddress{}, nil  // returning no address makes the stock node-controller skip address re-assignment
+			return []v1.NodeAddress{}, nil // returning no address makes the stock node-controller skip address re-assignment
 		}
 	}
 
@@ -93,10 +94,34 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	return []v1.NodeAddress{{
-		Type:    v1.NodeExternalIP,
-		Address: instance.PublicIPAddress.String(),
-	}}, nil
+	addresses := []v1.NodeAddress{}
+
+	if instance.PublicIPAddress != nil {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.PublicIPAddress.String()},
+		)
+	}
+
+	if i.p.client != nil && instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
+		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, *instance.Name, metav1.GetOptions{}); node != nil {
+			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
+				addresses = append(
+					addresses,
+					v1.NodeAddress{Type: v1.NodeInternalIP, Address: providedIP},
+				)
+			}
+		}
+	}
+
+	if instance.IPv6Enabled != nil && *instance.IPv6Enabled {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.IPv6Address.String()},
+		)
+	}
+
+	return addresses, nil
 }
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.

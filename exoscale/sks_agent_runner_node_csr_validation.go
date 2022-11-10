@@ -10,8 +10,9 @@ import (
 	k8scertv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8swatch "k8s.io/apimachinery/pkg/watch"
+	cloudproviderapi "k8s.io/cloud-provider/api"
+	"k8s.io/utils/strings/slices"
 )
 
 const (
@@ -44,7 +45,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 		watcher, err := r.p.kclient.
 			CertificatesV1().
 			CertificateSigningRequests().
-			Watch(ctx, v1.ListOptions{
+			Watch(ctx, metav1.ListOptions{
 				Watch:          true,
 				TimeoutSeconds: &watchTimeoutSeconds, // Default timeout: 20 minutes.
 			})
@@ -104,10 +105,6 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 					errorf("sks-agent: expected 1 certificate Subject Alternate Name DNS Name value, got %d", l)
 					continue
 				}
-				if l := len(parsedCSR.IPAddresses); l != 1 {
-					errorf("sks-agent: expected 1 certificate Subject Alternate Name IP Address value, got %d", l)
-					continue
-				}
 
 				instances, err := r.p.client.ListInstances(ctx, r.p.zone)
 				if err != nil {
@@ -115,19 +112,41 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 					continue
 				}
 
+				csrOK := false
 				for _, instance := range instances {
 					if *instance.Name == parsedCSR.DNSNames[0] {
-						if instance.PublicIPAddress.Equal(parsedCSR.IPAddresses[0]) {
-							ok = true
-							break
+						var nodeAddrs []string
+
+						if instance.PublicIPAddress != nil {
+							nodeAddrs = append(nodeAddrs, instance.PublicIPAddress.String())
 						}
 
-						errorf("sks-agent: CSR %s Node IP address doesn't match corresponding "+
-							"Compute instance public interface IP address", csr.Name)
-						continue
+						if instance.IPv6Enabled != nil && *instance.IPv6Enabled {
+							nodeAddrs = append(nodeAddrs, instance.IPv6Address.String())
+						}
+
+						if instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
+							if node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, *instance.Name, metav1.GetOptions{}); node != nil {
+								if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
+									nodeAddrs = append(nodeAddrs, providedIP)
+								}
+							}
+						}
+
+						csrOK = true
+
+						for _, ip := range parsedCSR.IPAddresses {
+							if !slices.Contains(nodeAddrs, ip.String()) {
+								errorf("sks-agent: CSR %s Node IP addresses don't match corresponding "+
+									"Compute instance IP addresses %q, got %q", csr.Name, nodeAddrs, parsedCSR.IPAddresses)
+
+								csrOK = false
+								break
+							}
+						}
 					}
 				}
-				if !ok {
+				if !csrOK {
 					errorf("sks-agent: CSR %s doesn't match any Compute instance", csr.Name)
 					continue
 				}
