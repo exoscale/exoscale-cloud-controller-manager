@@ -1,0 +1,22 @@
+---
+# (!!! To be templated by Terraform !!!)
+kind: InitConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+bootstrapTokens:
+  - token: "${bootstrap_token}"
+    ttl: 24h0m0s
+    groups:
+      - system:bootstrappers:kubeadm:default-node-token
+    usages:
+      - signing
+      - authentication
+nodeRegistration:
+  kubeletExtraArgs:
+    cloud-provider: external
+---
+kind: ClusterConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+networking:
+  dnsDomain: "${dns_domain}"
+  serviceSubnet: "${service_subnet}"
+  podSubnet: "${pod_subnet}"

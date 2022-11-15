@@ -1,0 +1,113 @@
+#cloud-config
+---
+# (!!! To be templated by Terraform !!!)
+
+## stage: init
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#write-files (once-per-instance)
+write_files:
+  # System configuration
+  # (APT)
+  - path: /etc/apt/apt.conf.d/99-no-apt-daily
+    permissions: "0644"
+    owner: root:root
+    content: |
+      // Disable APT Daily run (/usr/lib/apt/apt.systemd.daily)
+      APT::Periodic::Enable "0";
+  # (modules)
+  - path: /etc/modprobe.d/kubernetes-blacklist.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, modprobe_kubernetes_blacklist)}
+  - path: /etc/modules-load.d/kubernetes-networking.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, modules_kubernetes)}
+  # (networking)
+  - path: /etc/sysctl.d/99-kubernetes-networking.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, sysctl_kubernetes_networking)}
+  - path: /etc/netplan/eth1.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          eth1:
+            dhcp4: true
+  # (containerd)
+  - path: /etc/containerd/config.toml
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, containerd_config)}
+  # (kubelet)
+  - path: /etc/systemd/system/kubelet.service.d/bootstrap.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, kubelet_systemd_bootstrap)}
+  # Kubernetes configuration
+  # (kubelet)
+  - path: /etc/kubernetes/kubelet/bootstrap.kubeconfig
+    content: |
+      ${indent(6, kubelet_bootstrap_config)}
+    owner: root:root
+    permissions: "0600"
+  - path: /etc/kubernetes/kubelet/config.yaml
+    content: |
+      ${indent(6, kubelet_config)}
+    owner: root:root
+    permissions: "0644"
+  # TLS
+  # (control plane)
+  - path: /etc/kubernetes/pki/ca.crt
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_kubernetes_cert)}
+
+
+## stage: config
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#apt-configure (once-per-instance)
+apt:
+  sources:
+    "docker":
+      # REF: https://docs.docker.com/engine/install/ubuntu/#set-up-the-repository
+      source: "deb [arch=amd64] https://download.docker.com/linux/${distribution} ${codename} stable"
+      key: |
+        ${indent(8, apt_key_docker)}
+    "kubernetes":
+      # REF: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+      # (NB: "kubernetes-xenial" is not a typo)
+      source: "deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main"
+      key: |
+        ${indent(8, apt_key_kubernetes)}
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd (once-per-instance)
+runcmd:
+  # Apply system configuration
+  - [sysctl, --system]
+  - [systemctl, restart, systemd-modules-load.service]
+  # Wait for APT Daily lock
+  - [flock, /var/lib/apt/daily_lock, /bin/true]
+  # PrivNet (eth1) setup
+  - [netplan, apply]
+
+
+## stage: final
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#package-update-upgrade-install (once-per-instance)
+packages:
+  # source: docker
+  - containerd.io
+  # source: kubernetes
+  - kubelet
+  - cri-tools
+package_update: true
+package_upgrade: true
+package_reboot_if_required: false

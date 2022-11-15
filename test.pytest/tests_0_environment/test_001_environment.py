@@ -1,0 +1,57 @@
+import json
+import os
+
+import pytest
+
+from helpers import kubectl, exocli, execForeground
+
+
+@pytest.mark.environment
+def test_exoscale_credentials():
+    api_key = os.getenv("EXOSCALE_API_KEY", "unset")
+    if api_key == "unset" or api_key == "":
+        pytest.exit("Missing/empty EXOSCALE_API_KEY environment variable")
+    api_secret = os.getenv("EXOSCALE_API_SECRET", "unset")
+    if api_secret == "unset" or api_secret == "":
+        pytest.exit("Missing/empty EXOSCALE_API_SECRET environment variable")
+
+
+@pytest.mark.environment
+def test_executable_terraform(test, logger):
+    (iExit, sStdOut, sStdErr) = execForeground(
+        [
+            os.getenv("TERRAFORM", "terraform"),
+            "version",
+            "-json",
+        ],
+        pyexit=True,
+    )
+    output = json.loads(sStdOut)
+    version = output["terraform_version"]
+    logger.debug(f"Terraform version: {version}")
+
+
+@pytest.mark.environment
+def test_executable_kubectl(test, logger):
+    (iExit, sStdOut, sStdErr) = kubectl(
+        [
+            "--output=json",
+            "version",
+            "--client=true",
+        ],
+        pyexit=True,
+    )
+    output = json.loads(sStdOut)
+    version = output["clientVersion"]["gitVersion"]
+    logger.debug(f"kubectl version: {version}")
+
+
+@pytest.mark.environment
+def test_executable_exocli(test, logger):
+    (iExit, sStdOut, sStdErr) = exocli(
+        [
+            "version",
+        ],
+        pyexit=True,
+    )
+    logger.debug(f"Exoscale CLI version: {sStdOut}")

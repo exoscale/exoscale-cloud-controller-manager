@@ -1,0 +1,45 @@
+---
+# (!!! To be templated by Terraform !!!)
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: hello-external
+  labels:
+    app.kubernetes.io/name: hello-external
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-external
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-external
+    spec:
+      containers:
+        - name: nginx
+          image: nginxdemos/hello:plain-text
+          ports:
+            - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello-external
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "${exoscale_zone}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "${exoscale_nlb_id}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-strategy: "round-robin"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "${exoscale_instance_pool_id}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode: "http"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri: "/"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-interval: "5s"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-timeout: "2s"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-retries: "2"
+spec:
+  selector:
+    app.kubernetes.io/name: hello-external
+  type: LoadBalancer
+  ports:
+    - port: 80

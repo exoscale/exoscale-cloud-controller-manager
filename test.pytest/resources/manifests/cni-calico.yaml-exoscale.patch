@@ -1,0 +1,21 @@
+--- cni-calico.yaml.orig	2022-11-30 14:13:31.832895799 +0100
++++ cni-calico.yaml	2022-11-30 14:14:17.649416202 +0100
+@@ -1,4 +1,8 @@
+ ---
++# REFs:
++# - https://projectcalico.docs.tigera.io/getting-started/kubernetes/self-managed-onprem/onpremises#install-calico-with-kubernetes-api-datastore-50-nodes-or-less
++# - https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/calico.yaml
++
+ # Source: calico/templates/calico-kube-controllers.yaml
+ # This manifest creates a Pod Disruption Budget for Controller to allow K8s Cluster Autoscaler to evict
+ 
+@@ -4518,6 +4522,9 @@
+             # Auto-detect the BGP IP address.
+             - name: IP
+               value: "autodetect"
++            # Exoscale: make sure to use the Public IP addresses (not the PrivNet's)
++            - name: IP_AUTODETECTION_METHOD
++              value: "interface=eth0"
+             # Enable IPIP
+             - name: CALICO_IPV4POOL_IPIP
+               value: "Always"

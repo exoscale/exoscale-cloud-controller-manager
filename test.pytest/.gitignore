@@ -1,0 +1,12 @@
+# Terraform artefacts
+.terraform*
+*.tfstate*
+
+# PyTest artefacts
+output
+__pycache__
+.pytest_cache
+.tftest_cache
+
+# Kubernetes artfacts
+.kube
