@@ -39,7 +39,7 @@ var (
 
 func (ts *exoscaleCCMTestSuite) Test_newLoadBalancer() {
 	actual := newLoadBalancer(ts.p, &testConfig_typical.LoadBalancer)
-	ts.Require().Equal(actual, &loadBalancer{p: ts.p, cfg: &testConfig_typical.LoadBalancer})
+	ts.Require().Equal(&loadBalancer{p: ts.p, cfg: &testConfig_typical.LoadBalancer}, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_loadBalancer_isExternal() {
@@ -457,7 +457,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_GetLoadBalancer() {
 			},
 		},
 	})
-	ts.Require().Equal(actualStatus, expectedStatus)
+	ts.Require().Equal(expectedStatus, actualStatus)
 	ts.Require().True(exists)
 	ts.Require().NoError(err)
 
@@ -547,7 +547,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_fetchLoadBalancer() {
 			},
 		},
 	})
-	ts.Require().Equal(actual, expected)
+	ts.Require().Equal(expected, actual)
 	ts.Require().NoError(err)
 
 	// Non-existent NLB

@@ -1,6 +1,7 @@
 package exoscale
 
 import (
+	"fmt"
 	"net"
 
 	egoscale "github.com/exoscale/egoscale/v2"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	cloudprovider "k8s.io/cloud-provider"
+
 	"k8s.io/utils/pointer"
 )
 
@@ -170,7 +172,7 @@ func (ts *exoscaleCCMTestSuite) TestInstanceID() {
 
 	actual, err := ts.p.instances.InstanceID(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceID)
+	ts.Require().Equal(testInstanceID, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceType() {
@@ -214,9 +216,10 @@ func (ts *exoscaleCCMTestSuite) TestInstanceType() {
 		},
 	})
 
+	testInstanceTypeName := getInstanceTypeName(testInstanceTypeFamily, testInstanceTypeSize)
 	actual, err := ts.p.instances.InstanceType(ts.p.ctx, types.NodeName(testInstanceName))
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceTypeSize)
+	ts.Require().Equal(testInstanceTypeName, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID() {
@@ -259,10 +262,11 @@ func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID() {
 			},
 		},
 	})
-
+	testInstanceTypeName := getInstanceTypeName(testInstanceTypeFamily, testInstanceTypeSize)
+	fmt.Println(testInstanceTypeName)
 	actual, err := ts.p.instances.InstanceTypeByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceTypeSize)
+	ts.Require().Equal(testInstanceTypeName, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) AddSSHKeyToAllInstances() {
@@ -287,7 +291,7 @@ func (ts *exoscaleCCMTestSuite) TestCurrentNodeName() {
 
 	actual, err := ts.p.instances.CurrentNodeName(ts.p.ctx, testInstanceName)
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, types.NodeName(testInstanceName))
+	ts.Require().Equal(types.NodeName(testInstanceName), actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID() {
@@ -396,19 +400,19 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_overrideExternal()
 func (ts *exoscaleCCMTestSuite) TestInstanceID_overrideExternal() {
 	actual, err := ts.p.instances.InstanceID(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceOverrideRegexpInstanceID)
+	ts.Require().Equal(testInstanceOverrideRegexpInstanceID, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceType_overrideExternal() {
 	actual, err := ts.p.instances.InstanceType(ts.p.ctx, types.NodeName(testInstanceOverrideRegexpNodeName))
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceOverrideExternalType)
+	ts.Require().Equal(testInstanceOverrideExternalType, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceTypeByProviderID_overrideExternal() {
 	actual, err := ts.p.instances.InstanceTypeByProviderID(ts.p.ctx, testInstanceOverrideRegexpProviderID)
 	ts.Require().NoError(err)
-	ts.Require().Equal(actual, testInstanceOverrideExternalType)
+	ts.Require().Equal(testInstanceOverrideExternalType, actual)
 }
 
 func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID_overrideExternal() {
