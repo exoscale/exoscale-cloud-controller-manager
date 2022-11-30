@@ -3,7 +3,19 @@ import os
 
 import pytest
 
-from helpers import kubectl, exocli, execForeground
+from helpers import (
+    TEST_CCM_TYPE,
+    TEST_CCM_EXEC_TERRAFORM,
+    execForeground,
+    kubectl,
+    exocli,
+)
+
+
+@pytest.mark.environment
+def test_type():
+    if TEST_CCM_TYPE not in ["sks", "kubeadm"]:
+        pytest.exit(f"Invalid test type ({TEST_CCM_TYPE})")
 
 
 @pytest.mark.environment
@@ -20,7 +32,7 @@ def test_exoscale_credentials():
 def test_executable_terraform(test, logger):
     (iExit, sStdOut, sStdErr) = execForeground(
         [
-            os.getenv("TERRAFORM", "terraform"),
+            TEST_CCM_EXEC_TERRAFORM,
             "version",
             "-json",
         ],
