@@ -39,7 +39,7 @@ def test():
                 "refresh_api_credentials": 30,
                 "invalid_api_credentials": 30,
                 "csr_approve": 60,
-                "node_qualify": 60,
+                "node_init": 60,
                 "the_end": 60,
             },
             "node": {

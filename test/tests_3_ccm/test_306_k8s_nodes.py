@@ -1,11 +1,9 @@
-import re
 from time import time, sleep
 
 import pytest
 
 from helpers import (
     TEST_CCM_TYPE,
-    ioMatch,
     k8sGetNodes,
     reUUID,
     reIPv4,
@@ -16,36 +14,10 @@ from helpers import (
 
 
 @pytest.mark.ccm
-def test_k8s_nodes_init(test, tf_nodes, ccm, logger):
-    nodes_count_delta = test["state"]["nodes"]["all"]["count_delta"]
-    nodes_initialized = list()
-    reNode = re.compile(
-        "Successfully initialized node (\\S+) with cloud provider", re.IGNORECASE
-    )
-    for _ in range(nodes_count_delta):
-        (lines, match, unmatch) = ioMatch(
-            ccm,
-            matches=["re:/Successfully initialized node \\S+ with cloud provider/i"],
-            timeout=test["timeout"]["ccm"]["csr_approve"],
-            logger=logger,
-        )
-        assert lines > 0
-        assert match is not None
-        assert unmatch is None
-        node = reNode.search(match)
-        assert node is not None
-        node = node[1]
-
-        nodes_initialized.append(node)
-
-    logger.info("[K8s] Initialized nodes: " + ", ".join(nodes_initialized))
-
-
-@pytest.mark.ccm
 def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
-    until = time() + test["timeout"]["ccm"]["node_qualify"]
+    until = time() + test["timeout"]["ccm"]["node_init"]
     while time() <= until:
         nodes = k8sGetNodes(
             kubeconfig=tf_control_plane["kubeconfig_admin"],
@@ -98,12 +70,12 @@ def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
 @pytest.mark.ccm
 @pytest.mark.xfail(
     TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: error checking if node is shutdown: provider ID cannot be empty",
+    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
 )
 def test_k8s_nodes_spec(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
-    until = time() + test["timeout"]["ccm"]["node_qualify"]
+    until = time() + test["timeout"]["ccm"]["node_init"]
     while time() <= until:
         nodes = k8sGetNodes(
             kubeconfig=tf_control_plane["kubeconfig_admin"],
@@ -139,7 +111,7 @@ def test_k8s_nodes_spec(test, tf_control_plane, tf_nodes, logger):
 def test_k8s_nodes_addresses(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
-    until = time() + test["timeout"]["ccm"]["node_qualify"]
+    until = time() + test["timeout"]["ccm"]["node_init"]
     while time() <= until:
         nodes = k8sGetNodes(
             kubeconfig=tf_control_plane["kubeconfig_admin"],

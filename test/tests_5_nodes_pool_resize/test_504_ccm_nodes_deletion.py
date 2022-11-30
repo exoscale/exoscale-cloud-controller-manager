@@ -11,7 +11,7 @@ from helpers import TEST_CCM_TYPE, ioMatch
 @pytest.mark.nodes_pool_resize
 @pytest.mark.xfail(
     TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: error checking if node is shutdown: provider ID cannot be empty",
+    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
 )
 def test_ccm_node_deletion(test, tf_nodes_pool_resize, ccm, logger):
     nodes_count_delta = test["state"]["nodes"]["all"]["count_delta"]
