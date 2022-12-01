@@ -159,6 +159,9 @@ Some enviroment variables are also available to fine-tune the tests behavior:
 
 * `export TEST_CCM_NO_NLB_TEARDOWN=yes`: do not "tear down" (destroy) the NLB resources
 
+You may need also to get familiar with [Kubernetes Cloud Controler](https://kubernetes.io/docs/concepts/architecture/cloud-controller/)
+concepts in order to keep track with the CCM output (logs).
+
 
 ## When tests turn awry
 
@@ -260,6 +263,13 @@ SCOPES/ITEMS:
   exo (cli)
     [sks_]cluster[s], [sks_]nodepool[s], instancepool[s], instance[s],
     loadbalancer[s] (nlb[s]), service
+```
+
+* logging into the control plane or worker nodes (only for `kubeadm` test type):
+
+``` bash
+# Log into node (obtain its IP address using "instances" commands above)
+ssh -i terraform/kubeadm/control-plane/output/ssh.id_ed25519 ubuntu@<node-ip-address>
 ```
 
 ### Clean-up the tests environment
