@@ -21,6 +21,11 @@ def tf_nodes_reset(request, test, tf_control_plane, tf_nodes, ccm, logger):
 
 ## Tests
 @pytest.mark.nodes_pool_resize
+def test_cni_started(test, cni_started, logger):
+    assert test["state"]["cni"]["started"] is True
+
+
+@pytest.mark.nodes_pool_resize
 def test_ccm_started(test, ccm_started, logger):
     assert test["state"]["ccm"]["started"] is True
 

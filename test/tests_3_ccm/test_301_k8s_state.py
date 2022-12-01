@@ -2,11 +2,6 @@ import pytest
 
 
 @pytest.mark.ccm
-def test_cni_started(test, cni_started, logger):
-    assert test["state"]["cni"]["started"] is True
-
-
-@pytest.mark.ccm
 def test_k8s_nodes(test, tf_nodes, logger):
     nodes = test["state"]["k8s"]["nodes"]
     logger.info(
