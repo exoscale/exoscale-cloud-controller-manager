@@ -293,6 +293,6 @@ source ./cleanup
   short of (kubectl-)_deleting_ the node and restarting kubelet will make Kubernetes update the node
   `spec`.
 
-* As of Kubernets 1.25.4, the `--cloud-provider=external` _must_ still be specified in the kubelet
+* As of Kubernets 1.25.4, `--cloud-provider=external` _must_ still be specified in the kubelet
   [command-line options](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/)
   (although deprecated)
