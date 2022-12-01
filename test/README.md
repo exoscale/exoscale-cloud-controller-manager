@@ -110,6 +110,8 @@ OPTIONS:
     - debug (D):  deep-dive into the tests process
 ```
 
+Expect the tests to take **20 to 25 minutes** to run (for each type).
+
 
 ## Troubleshoot the tests
 
