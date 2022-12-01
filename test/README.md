@@ -33,7 +33,7 @@ Donwload and install `terraform` from its [release/download](https://releases.ha
 You may point to an out-of-`PATH` version using the ad-hoc environment variable:
 
 ``` bash
-export TERRAFORM='/path/to/terraform
+export TERRAFORM='/path/to/terraform'
 ```
 
 ### kubectl
@@ -53,7 +53,7 @@ Donwload and install `exo` (CLI) from its [release/download](https://github.com/
 You may point to an out-of-`PATH` version using the ad-hoc environment variable:
 
 ``` bash
-export EXOCLI='/path/to/exo
+export EXOCLI='/path/to/exo'
 ```
 
 ### pytest
@@ -283,3 +283,16 @@ When certain no resources (especially Terraformed) linger around:
 # Clean-up the shell environment (variables and aliases)
 source ./cleanup
 ```
+
+
+## Notes and gotchas
+
+* Exoscale CCM requires the `providerID: exoscale://<instance-uuid>` to be set in the kubelet
+  [config.yaml](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/#kubelet-config-k8s-io-v1beta1-KubeletConfiguration)
+  _before_ it starts. Please note that once a node/kubelet has been successfully registered, nothing
+  short of (kubectl-)_deleting_ the node and restarting kubelet will make Kubernetes update the node
+  `spec`.
+
+* As of Kubernets 1.25.4, the `--cloud-provider=external` _must_ still be specified in the kubelet
+  [command-line options](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/)
+  (although deprecated)
