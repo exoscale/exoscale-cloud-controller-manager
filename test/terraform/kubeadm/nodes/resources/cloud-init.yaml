@@ -1,6 +1,11 @@
+## template: jinja
 #cloud-config
 ---
 # (!!! To be templated by Terraform !!!)
+
+## Instance data (<-> jinja)
+#  REF: https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html#using-instance-data
+
 
 ## stage: init
 
@@ -78,7 +83,7 @@ apt:
   sources:
     "docker":
       # REF: https://docs.docker.com/engine/install/ubuntu/#set-up-the-repository
-      source: "deb [arch=amd64] https://download.docker.com/linux/${distribution} ${codename} stable"
+      source: "deb [arch=amd64] https://download.docker.com/linux/{{ v1.distro }} {{ v1.distro_release }} stable"
       key: |
         ${indent(8, apt_key_docker)}
     "kubernetes":
@@ -87,16 +92,6 @@ apt:
       source: "deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main"
       key: |
         ${indent(8, apt_key_kubernetes)}
-
-# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd (once-per-instance)
-runcmd:
-  # Apply system configuration
-  - [sysctl, --system]
-  - [systemctl, restart, systemd-modules-load.service]
-  # Wait for APT Daily lock
-  - [flock, /var/lib/apt/daily_lock, /bin/true]
-  # PrivNet (eth1) setup
-  - [netplan, apply]
 
 
 ## stage: final
@@ -111,3 +106,21 @@ packages:
 package_update: true
 package_upgrade: true
 package_reboot_if_required: false
+
+# REFs:
+# - https://cloudinit.readthedocs.io/en/latest/topics/modules.html#scripts-user (once-per-instance)
+# - https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd (once-per-instance)
+runcmd:
+  # Apply system configuration
+  - [sysctl, --system]
+  - [systemctl, daemon-reload]
+  - [systemctl, restart, systemd-modules-load.service]
+  # PrivNet (eth1) setup
+  - [netplan, apply]
+  # Kubelet
+  # (providerID)%{ if kubelet_set_provider_id }
+  - [sed, -Ei, "s|#?providerID:.*$|providerID: exoscale://{{ ds.meta_data.instance_id }}|", /etc/kubernetes/kubelet/config.yaml] #%{ else }
+  # - not applicable -%{ endif }
+  # (enable)
+  - [touch, /etc/kubernetes/kubelet/enable]
+  - [systemctl, restart, kubelet]

@@ -10,12 +10,10 @@ data "cloudinit_config" "user_data" {
   # cloud-config
   part {
     filename     = "init.cfg"
-    content_type = "text/cloud-config"
+    content_type = "text/jinja2"
     content = templatefile(
       "./resources/cloud-init.yaml",
       {
-        distribution = local.template[var.exoscale_instance_template]["distribution"]
-        codename     = local.template[var.exoscale_instance_template]["codename"]
         # System setup
         # (APT)
         apt_key_docker     = file("${local.system_config_path}/apt-key.docker.gpg")

@@ -12,12 +12,10 @@ data "cloudinit_config" "user_data" {
   # cloud-config
   part {
     filename     = "init.cfg"
-    content_type = "text/cloud-config"
+    content_type = "text/jinja2"
     content = templatefile(
       "./resources/cloud-init.yaml",
       {
-        distribution = local.template[var.exoscale_instance_template]["distribution"]
-        codename     = local.template[var.exoscale_instance_template]["codename"]
         # System setup
         # (APT)
         apt_key_docker     = file("${local.system_config_path}/apt-key.docker.gpg")
@@ -33,11 +31,11 @@ data "cloudinit_config" "user_data" {
         kubelet_systemd_bootstrap = templatefile(
           "./resources/kubelet.systemd-bootstrap.conf",
           {
-            set_provider_id = each.key == "external" ? false : true
-            set_node_ip     = each.key == "external" ? false : true
+            set_node_ip = each.key == "external" ? false : true
         })
         # Kubernetes configuration
         # (kubelet)
+        kubelet_set_provider_id = each.key == "external" ? false : true
         kubelet_bootstrap_config = templatefile(
           "./resources/kubelet.bootstrap-kubeconfig.yaml",
           {

@@ -11,8 +11,8 @@ authentication:
 cgroupDriver: "systemd"
 clusterDNS:
   - ${cluster_dns}
+#providerID: <set-by-cloud-init-runcmd>
 resolvConf: "/run/systemd/resolve/resolv.conf"
-serverTLSBootstrap: true
 registerNode: true
 %{ if length(taints) > 0 ~}
 registerWithTaints:
@@ -22,3 +22,4 @@ registerWithTaints:
     effect: ${split(":", taint)[2]}
 %{ endfor ~}
 %{ endif ~}
+serverTLSBootstrap: true

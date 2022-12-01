@@ -14,6 +14,43 @@ from helpers import (
 
 
 @pytest.mark.ccm
+@pytest.mark.xfail(
+    TEST_CCM_TYPE == "sks",
+    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
+)
+def test_k8s_nodes_spec(test, tf_control_plane, tf_nodes, logger):
+    nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
+    nodes_qualified = list()
+    until = time() + test["timeout"]["ccm"]["node_init"]
+    while time() <= until:
+        nodes = k8sGetNodes(
+            kubeconfig=tf_control_plane["kubeconfig_admin"],
+        )
+        for node, meta in nodes.items():
+            if node in nodes_qualified:
+                continue
+            spec = meta["spec"]
+            logger.debug(f"[K8s] Asserting Node: {node} <-> {spec}")
+            try:
+                if not node.endswith("external"):
+                    assert "providerID" in spec
+                    assert spec["providerID"].startswith("exoscale://")
+                    assert reUUID.match(spec["providerID"].split("/")[-1])
+
+                nodes_qualified.append(node)
+
+            except AssertionError as e:
+                logger.debug(f"[K8s] Node assertion failed: {node} <-> {str(e)}")
+
+        if set(nodes_qualified) == nodes_expected:
+            break
+
+        sleep(1.0)
+
+    assert set(nodes_qualified) == nodes_expected
+
+
+@pytest.mark.ccm
 def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
@@ -53,43 +90,6 @@ def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
                         labels["node.exoscale.net/nodepool-id"]
                         == tf_nodes["nodepool_id"]
                     )
-
-                nodes_qualified.append(node)
-
-            except AssertionError as e:
-                logger.debug(f"[K8s] Node assertion failed: {node} <-> {str(e)}")
-
-        if set(nodes_qualified) == nodes_expected:
-            break
-
-        sleep(1.0)
-
-    assert set(nodes_qualified) == nodes_expected
-
-
-@pytest.mark.ccm
-@pytest.mark.xfail(
-    TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
-)
-def test_k8s_nodes_spec(test, tf_control_plane, tf_nodes, logger):
-    nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
-    nodes_qualified = list()
-    until = time() + test["timeout"]["ccm"]["node_init"]
-    while time() <= until:
-        nodes = k8sGetNodes(
-            kubeconfig=tf_control_plane["kubeconfig_admin"],
-        )
-        for node, meta in nodes.items():
-            if node in nodes_qualified:
-                continue
-            spec = meta["spec"]
-            logger.debug(f"[K8s] Asserting Node: {node} <-> {spec}")
-            try:
-                if not node.endswith("external"):
-                    assert "providerID" in spec
-                    assert spec["providerID"].startswith("exoscale://")
-                    assert reUUID.match(spec["providerID"].split("/")[-1])
 
                 nodes_qualified.append(node)
 
