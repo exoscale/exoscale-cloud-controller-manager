@@ -30,7 +30,7 @@ resource "local_sensitive_file" "kubeconfig" {
   filename        = abspath("${path.module}/output/${each.key}.kubeconfig")
   file_permission = "0600"
   content = templatefile(
-    "./resources/kubeconfig.yaml",
+    "${path.module}/resources/kubeconfig.yaml",
     {
       username        = each.value.user
       server          = exoscale_compute_instance.control_plane.public_ip_address

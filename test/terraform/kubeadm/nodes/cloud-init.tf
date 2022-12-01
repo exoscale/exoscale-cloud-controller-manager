@@ -14,7 +14,7 @@ data "cloudinit_config" "user_data" {
     filename     = "init.cfg"
     content_type = "text/jinja2"
     content = templatefile(
-      "./resources/cloud-init.yaml",
+      "${path.module}/resources/cloud-init.yaml",
       {
         # System setup
         # (APT)
@@ -29,7 +29,7 @@ data "cloudinit_config" "user_data" {
         containerd_config = file("${local.system_config_path}/containerd.config.toml")
         # (kubelet)
         kubelet_systemd_bootstrap = templatefile(
-          "./resources/kubelet.systemd-bootstrap.conf",
+          "${path.module}/resources/kubelet.systemd-bootstrap.conf",
           {
             set_node_ip = each.key == "external" ? false : true
         })
@@ -37,14 +37,14 @@ data "cloudinit_config" "user_data" {
         # (kubelet)
         kubelet_set_provider_id = each.key == "external" ? false : true
         kubelet_bootstrap_config = templatefile(
-          "./resources/kubelet.bootstrap-kubeconfig.yaml",
+          "${path.module}/resources/kubelet.bootstrap-kubeconfig.yaml",
           {
             cluster_endpoint = var.test_control_plane_endpoint
             cluster_ca       = file("../control-plane/output/kubernetes-ca.pem")
             bootstrap_token  = var.test_nodes_bootstrap_token
         })
         kubelet_config = templatefile(
-          "./resources/kubelet.config.yaml",
+          "${path.module}/resources/kubelet.config.yaml",
           {
             cluster_dns = local.k8s_dns_address
             taints      = each.key == "external" ? ["node.exoscale.net/external:true:NoSchedule"] : []

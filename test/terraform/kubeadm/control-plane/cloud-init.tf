@@ -12,7 +12,7 @@ data "cloudinit_config" "user_data" {
     filename     = "init.cfg"
     content_type = "text/jinja2"
     content = templatefile(
-      "./resources/cloud-init.yaml",
+      "${path.module}/resources/cloud-init.yaml",
       {
         # System setup
         # (APT)
@@ -28,7 +28,7 @@ data "cloudinit_config" "user_data" {
         # Kubernetes configuration
         # (kubeadm)
         kubeadm_init_config = templatefile(
-          "./resources/kubeadm.init-config.yaml",
+          "${path.module}/resources/kubeadm.init-config.yaml",
           {
             bootstrap_token = "${random_string.bootstrap_token_id.result}.${random_string.bootstrap_token_secret.result}"
             dns_domain      = local.k8s_dns_domain
