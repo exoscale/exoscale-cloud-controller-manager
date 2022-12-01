@@ -33,7 +33,7 @@ resource "tls_self_signed_cert" "tls_ca" {
 resource "local_file" "tls_ca" {
   for_each = resource.tls_self_signed_cert.tls_ca
 
-  filename = abspath("./output/${each.key}-ca.pem")
+  filename = abspath("${path.module}/output/${each.key}-ca.pem")
   content  = tls_self_signed_cert.tls_ca[each.key].cert_pem
 }
 

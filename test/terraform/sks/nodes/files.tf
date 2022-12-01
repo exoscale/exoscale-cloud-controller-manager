@@ -15,7 +15,7 @@ resource "local_file" "app_manifest" {
     "hello-ingress" = {}
   }
 
-  filename = abspath("./output/manifests/${each.key}.yaml")
+  filename = abspath("${path.module}/output/manifests/${each.key}.yaml")
   content = templatefile(
     "${local.k8s_manifests_path}/${each.key}.yaml",
     try(each.value.variables, {})

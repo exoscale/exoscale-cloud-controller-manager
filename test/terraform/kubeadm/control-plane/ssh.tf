@@ -6,7 +6,7 @@ resource "tls_private_key" "ssh_key" {
 }
 
 resource "local_sensitive_file" "ssh_key" {
-  filename        = abspath("./output/ssh.id_ed25519")
+  filename        = abspath("${path.module}/output/ssh.id_ed25519")
   content         = tls_private_key.ssh_key.private_key_openssh
   file_permission = "0600"
 }

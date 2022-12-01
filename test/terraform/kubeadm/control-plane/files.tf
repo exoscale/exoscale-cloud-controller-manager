@@ -6,7 +6,7 @@
 resource "local_sensitive_file" "shared_tfvars" {
   # We use JSON such as to prevent 'terraform fmt' errors when the file doesn't exist
   # and the '../nodes/terraform.tfvars.json' symlink is broken
-  filename        = abspath("./output/shared.tfvars.json")
+  filename        = abspath("${path.module}/output/shared.tfvars.json")
   file_permission = "0600"
   content         = <<-EOT
   {
@@ -27,7 +27,7 @@ resource "local_sensitive_file" "kubeconfig" {
     "ccm"   = { user = "ccm-${random_string.test_id.result}" }
   }
 
-  filename        = abspath("./output/${each.key}.kubeconfig")
+  filename        = abspath("${path.module}/output/${each.key}.kubeconfig")
   file_permission = "0600"
   content = templatefile(
     "./resources/kubeconfig.yaml",
@@ -43,7 +43,7 @@ resource "local_sensitive_file" "kubeconfig" {
 
 # (CCM)
 resource "local_file" "ccm_rbac" {
-  filename = abspath("./output/ccm-rbac.yaml")
+  filename = abspath("${path.module}/output/ccm-rbac.yaml")
   content = templatefile(
     local.ccm_rbac_path,
     {
@@ -53,7 +53,7 @@ resource "local_file" "ccm_rbac" {
 }
 
 resource "local_file" "ccm_cloud_config" {
-  filename = abspath("./output/cloud-config.yaml")
+  filename = abspath("${path.module}/output/cloud-config.yaml")
   content = templatefile(
     local.ccm_cloud_config_path,
     {
@@ -65,7 +65,7 @@ resource "local_file" "ccm_cloud_config" {
 
 # (shell environment)
 resource "local_file" "shell_environment" {
-  filename = abspath("./output/shell.env")
+  filename = abspath("${path.module}/output/shell.env")
   content = templatefile(
     local.shell_environment_path,
     {

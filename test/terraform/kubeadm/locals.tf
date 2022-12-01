@@ -10,13 +10,13 @@ locals {
   ## System setup
 
   # Configuration
-  system_config_path = abspath("../../../resources/system")
+  system_config_path = abspath("${path.module}/../../../resources/system")
 
 
   ## Kubernetes parameters
 
   # Manifests
-  k8s_manifests_path = abspath("../../../resources/manifests")
+  k8s_manifests_path = abspath("${path.module}/../../../resources/manifests")
 
   # DNS
   k8s_dns_domain  = "cluster.local"

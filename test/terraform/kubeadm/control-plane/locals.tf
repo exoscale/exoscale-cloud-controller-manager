@@ -8,17 +8,17 @@ locals {
   ## CCM
 
   # API credentials file
-  ccm_api_credentials_path = abspath("./output/api-credentials.json")
+  ccm_api_credentials_path = abspath("${path.module}/output/api-credentials.json")
 
   # Source and executable
-  ccm_main_path = abspath("../../../../cmd/exoscale-cloud-controller-manager/main.go")
-  ccm_exe_path  = abspath("./output/ccm")
+  ccm_main_path = abspath("${path.module}/../../../../cmd/exoscale-cloud-controller-manager/main.go")
+  ccm_exe_path  = abspath("${path.module}/output/ccm")
 
   # Configuration
-  ccm_rbac_path         = abspath("../../../resources/manifests/ccm-rbac.yaml")
-  ccm_cloud_config_path = abspath("../../../resources/cloud-config.yaml")
+  ccm_rbac_path         = abspath("${path.module}/../../../resources/manifests/ccm-rbac.yaml")
+  ccm_cloud_config_path = abspath("${path.module}/../../../resources/cloud-config.yaml")
 
 
   ## Helpers
-  shell_environment_path = abspath("../../../resources/shell.env")
+  shell_environment_path = abspath("${path.module}/../../../resources/shell.env")
 }
