@@ -16,19 +16,19 @@ data "cloudinit_config" "user_data" {
       {
         # System setup
         # (APT)
-        apt_key_docker     = file("${local.system_config_path}/apt-key.docker.gpg")
-        apt_key_kubernetes = file("${local.system_config_path}/apt-key.kubernetes.gpg")
+        apt_key_docker     = file("${local.system_config_path}/etc/apt/trusted.gpg.d/docker.gpg")
+        apt_key_kubernetes = file("${local.system_config_path}/etc/apt/trusted.gpg.d/kubernetes.gpg")
         # (modules)
-        modprobe_kubernetes_blacklist = file("${local.system_config_path}/modprobe.kubernetes-blacklist.conf")
-        modules_kubernetes            = file("${local.system_config_path}/modules.kubernetes.conf")
+        modprobe_kubernetes_blacklist = file("${local.system_config_path}/etc/modprobe.d/kubernetes-blacklist.conf")
+        modules_kubernetes            = file("${local.system_config_path}/etc/modules-load.d/kubernetes.conf")
         # (networking)
-        sysctl_kubernetes_networking = file("${local.system_config_path}/sysctl.kubernetes-networking.conf")
+        sysctl_kubernetes_networking = file("${local.system_config_path}/etc/sysctl.d/99-kubernetes-networking.conf")
         # (containerd)
-        containerd_config = file("${local.system_config_path}/containerd.config.toml")
+        containerd_config = file("${local.system_config_path}/etc/containerd/config.toml")
         # Kubernetes configuration
         # (kubeadm)
         kubeadm_init_config = templatefile(
-          "${path.module}/resources/kubeadm.init-config.yaml",
+          "${path.module}/resources/system/etc/kubernetes/kubeadm/init-config.yaml",
           {
             bootstrap_token = "${random_string.bootstrap_token_id.result}.${random_string.bootstrap_token_secret.result}"
             dns_domain      = local.k8s_dns_domain

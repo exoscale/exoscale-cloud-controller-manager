@@ -18,18 +18,18 @@ data "cloudinit_config" "user_data" {
       {
         # System setup
         # (APT)
-        apt_key_docker     = file("${local.system_config_path}/apt-key.docker.gpg")
-        apt_key_kubernetes = file("${local.system_config_path}/apt-key.kubernetes.gpg")
+        apt_key_docker     = file("${local.system_config_path}/etc/apt/trusted.gpg.d/docker.gpg")
+        apt_key_kubernetes = file("${local.system_config_path}/etc/apt/trusted.gpg.d/kubernetes.gpg")
         # (modules)
-        modprobe_kubernetes_blacklist = file("${local.system_config_path}/modprobe.kubernetes-blacklist.conf")
-        modules_kubernetes            = file("${local.system_config_path}/modules.kubernetes.conf")
+        modprobe_kubernetes_blacklist = file("${local.system_config_path}/etc/modprobe.d/kubernetes-blacklist.conf")
+        modules_kubernetes            = file("${local.system_config_path}/etc/modules-load.d/kubernetes.conf")
         # (networking)
-        sysctl_kubernetes_networking = file("${local.system_config_path}/sysctl.kubernetes-networking.conf")
+        sysctl_kubernetes_networking = file("${local.system_config_path}/etc/sysctl.d/99-kubernetes-networking.conf")
         # (containerd)
-        containerd_config = file("${local.system_config_path}/containerd.config.toml")
+        containerd_config = file("${local.system_config_path}/etc/containerd/config.toml")
         # (kubelet)
         kubelet_systemd_bootstrap = templatefile(
-          "${path.module}/resources/kubelet.systemd-bootstrap.conf",
+          "${path.module}/resources/system/etc/systemd/system/kubelet.service.d/bootstrap.conf",
           {
             set_node_ip = each.key == "external" ? false : true
         })
@@ -37,14 +37,14 @@ data "cloudinit_config" "user_data" {
         # (kubelet)
         kubelet_set_provider_id = each.key == "external" ? false : true
         kubelet_bootstrap_config = templatefile(
-          "${path.module}/resources/kubelet.bootstrap-kubeconfig.yaml",
+          "${path.module}/resources/system/etc/kubernetes/kubelet/bootstrap-kubeconfig.yaml",
           {
             cluster_endpoint = var.test_control_plane_endpoint
             cluster_ca       = file("../control-plane/output/kubernetes-ca.pem")
             bootstrap_token  = var.test_nodes_bootstrap_token
         })
         kubelet_config = templatefile(
-          "${path.module}/resources/kubelet.config.yaml",
+          "${path.module}/resources/system/etc/kubernetes/kubelet/config.yaml",
           {
             cluster_dns = local.k8s_dns_address
             taints      = each.key == "external" ? ["node.exoscale.net/external:true:NoSchedule"] : []

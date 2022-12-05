@@ -9,4 +9,4 @@ ignore: |
   ingress-nginx*.yaml
   cni-calico*.yaml
   # Terraform templates
-  kubelet.config.yaml
+  **/kubelet/config.yaml
