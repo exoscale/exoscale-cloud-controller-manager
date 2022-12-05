@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 
 import pytest
 
@@ -392,7 +391,6 @@ def ccm_started(test, ccm, logger):
     reflectors_expected = set(["Node", "Service"])
     reflectors_regexp = "|".join(reflectors_expected)
     reflectors_started = list()
-    reReflector = re.compile("\\*v1\\.(\\S+)", re.IGNORECASE)
     try:
         for reflector in reflectors_expected:
             (lines, match, unmatch) = ioMatch(
@@ -407,9 +405,7 @@ def ccm_started(test, ccm, logger):
             assert lines > 0
             assert unmatch is None
             assert match is not None
-            reflector = reReflector.search(match)
-            assert reflector is not None
-            reflector = reflector[1]
+            reflector = match[1]
             reflectors_started.append(reflector)
         assert set(reflectors_started) == reflectors_expected
     except AssertionError:

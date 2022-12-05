@@ -1,5 +1,4 @@
 import json
-import re
 from time import sleep, time
 
 import pytest
@@ -37,22 +36,19 @@ def test_ccm_hello_external_services(test, ccm, nlb_hello_external, logger):
     if nlb_name is None:
         pytest.skip("Nodes NLB preliminary test has not run (or has failed)")
     for port in [80]:
-        reService = re.compile(
-            f"/(\\S+-{port}) created successfully \\(ID: ([^)]+)\\)", re.IGNORECASE
-        )
         (lines, match, unmatch) = ioMatch(
             ccm,
-            matches=[f"re:/NLB service {nlb_name}/\\S+-{port} created successfully/i"],
+            matches=[
+                f"re:/NLB service {nlb_name}/(\\S+-{port}) created successfully \\(ID: ([^)]+)\\)/i"
+            ],
             timeout=test["timeout"]["nlb"]["service"]["start"],
             logger=logger,
         )
         assert lines > 0
         assert unmatch is None
         assert match is not None
-        service = reService.search(match)
-        assert service is not None
-        service_name = service[1]
-        service_id = service[2]
+        service_name = match[1]
+        service_id = match[2]
 
         # State (update)
         test["state"]["nlb"]["external"]["services"][port] = {

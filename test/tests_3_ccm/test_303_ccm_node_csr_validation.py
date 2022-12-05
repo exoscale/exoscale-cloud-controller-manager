@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from helpers import ioMatch
@@ -11,12 +9,11 @@ def test_ccm_node_csrs_approved(test, tf_nodes, ccm, logger):
     csrs_pending = {k: v for k, v in csrs.items() if not v["approved"]}
     csrs_approved = list()
     csrs_invalid = list()
-    reCSR = re.compile("CSR (\\S+) (approved|doesn't match)", re.IGNORECASE)
     while len(csrs_pending) > 0:
         (lines, match, unmatch) = ioMatch(
             ccm,
             matches=[
-                "re:/exoscale-ccm: sks-agent: CSR \\S+ (approved|doesn't match)/i"
+                "re:/exoscale-ccm: sks-agent: CSR (\\S+) (approved|doesn't match)/i"
             ],
             timeout=test["timeout"]["ccm"]["csr_approve"],
             logger=logger,
@@ -24,10 +21,8 @@ def test_ccm_node_csrs_approved(test, tf_nodes, ccm, logger):
         assert lines > 0
         assert match is not None
         assert unmatch is None
-        csr = reCSR.search(match)
-        assert csr is not None
-        event = csr[2]
-        csr = csr[1]
+        event = match[2]
+        csr = match[1]
 
         if event == "approved":
             csrs_approved.append(csr)

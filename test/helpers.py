@@ -107,10 +107,16 @@ def ioMatch(
             line_LC = line.lower()
             lines += 1
             for match in matches:
-                if reMatch(match, line) or match.lower() in line_LC:
+                reMatchObject = reMatch(match, line)
+                if reMatchObject:
+                    return (lines, reMatchObject, None)
+                elif match.lower() in line_LC:
                     return (lines, line, None)
             for match in unmatches:
-                if reMatch(match, line) or match.lower() in line_LC:
+                reMatchObject = reMatch(match, line)
+                if reMatchObject:
+                    return (lines, None, reMatchObject)
+                elif match.lower() in line_LC:
                     return (lines, None, line)
         sleep(0.01)
     return (lines, None, None)

@@ -1,5 +1,4 @@
 import json
-import re
 from time import sleep, time
 
 import pytest
@@ -30,22 +29,17 @@ def test_k8s_ingress_nginx(test, tf_control_plane, nlb_ingress_nginx, logger):
 
 @pytest.mark.nlb
 def test_ccm_ingress_nginx(test, ccm, nlb_ingress_nginx, logger):
-    reNLB = re.compile(
-        'NLB "(k8s-[-0-9a-f]+)" created successfully \\(ID: ([^)]+)\\)', re.IGNORECASE
-    )
     (lines, match, unmatch) = ioMatch(
         ccm,
-        matches=['re:/NLB "k8s-[-0-9a-f]+" created successfully/i'],
+        matches=['re:/NLB "(k8s-[-0-9a-f]+)" created successfully \\(ID: ([^)]+)\\)/i'],
         timeout=test["timeout"]["nlb"]["start"],
         logger=logger,
     )
     assert lines > 0
     assert unmatch is None
     assert match is not None
-    nlb = reNLB.search(match)
-    assert nlb is not None
-    nlb_name = nlb[1]
-    nlb_id = nlb[2]
+    nlb_name = match[1]
+    nlb_id = match[2]
 
     # State (update)
     test["state"]["nlb"]["k8s"]["id"] = nlb_id
@@ -91,14 +85,10 @@ def test_ccm_ingress_nginx_services(test, ccm, nlb_ingress_nginx, logger):
     ports_regexp = "|".join(map(str, ports_expected))
     ports_configured = list()
     for port in ports_expected:
-        reService = re.compile(
-            f"/(\\S+-({ports_regexp})) created successfully \\(ID: ([^)]+)\\)",
-            re.IGNORECASE,
-        )
         (lines, match, unmatch) = ioMatch(
             ccm,
             matches=[
-                f"re:/NLB service {nlb_name}/\\S+-({ports_regexp}) created successfully/i"
+                f"re:/NLB service {nlb_name}/(\\S+-({ports_regexp})) created successfully \\(ID: ([^)]+)\\)/i"
             ],
             timeout=test["timeout"]["nlb"]["service"]["start"],
             logger=logger,
@@ -106,10 +96,8 @@ def test_ccm_ingress_nginx_services(test, ccm, nlb_ingress_nginx, logger):
         assert lines > 0
         assert unmatch is None
         assert match is not None
-        service = reService.search(match)
-        assert service is not None
-        service_name = service[1]
-        service_id = service[3]
+        service_name = match[1]
+        service_id = match[3]
 
         ports_configured.append(port)
 

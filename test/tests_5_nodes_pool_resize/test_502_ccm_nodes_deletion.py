@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from helpers import TEST_CCM_TYPE, ioMatch
@@ -18,23 +16,19 @@ def test_ccm_node_deletion(test, tf_nodes_pool_resize, ccm, logger):
     if nodes_count_delta >= 0:
         pytest.skip("No existing node is expected to be deleted")
     nodes = list()
-    reNode = re.compile(
-        "deleting node since it is no longer present in cloud provider: (\\S+)",
-        re.IGNORECASE,
-    )
     for _ in range(-nodes_count_delta):
         (lines, match, unmatch) = ioMatch(
             ccm,
-            matches=["deleting node since it is no longer present in cloud provider"],
+            matches=[
+                "re:/deleting node since it is no longer present in cloud provider: (\\S+)/i"
+            ],
             timeout=test["timeout"]["node"]["delete"],
             logger=logger,
         )
         assert lines > 0
         assert match is not None
         assert unmatch is None
-        node = reNode.search(match)
-        assert node is not None
-        node = node[1]
+        node = match[1]
 
         nodes.append(node)
 
