@@ -34,7 +34,7 @@ reMatch_compiled = dict()
 
 def reMatch(needle: str, haystack: str):
     if needle[:4] != "re:/":
-        return False
+        return (False, None)
     reHash = hash(needle)
     if reHash not in reMatch_compiled:
         flags = 0
@@ -45,7 +45,7 @@ def reMatch(needle: str, haystack: str):
             if flag == "i":
                 flags |= re.IGNORECASE
         reMatch_compiled[reHash] = re.compile("/".join(needle[1:-1]), flags)
-    return reMatch_compiled[reHash].search(haystack)
+    return (True, reMatch_compiled[reHash].search(haystack))
 
 
 # Shell
@@ -107,15 +107,17 @@ def ioMatch(
             line_LC = line.lower()
             lines += 1
             for match in matches:
-                reMatchObject = reMatch(match, line)
-                if reMatchObject:
-                    return (lines, reMatchObject, None)
+                (isRegExp, reMatchObject) = reMatch(match, line)
+                if isRegExp:
+                    if reMatchObject:
+                        return (lines, reMatchObject, None)
                 elif match.lower() in line_LC:
                     return (lines, line, None)
             for match in unmatches:
-                reMatchObject = reMatch(match, line)
-                if reMatchObject:
-                    return (lines, None, reMatchObject)
+                (isRegExp, reMatchObject) = reMatch(match, line)
+                if isRegExp:
+                    if reMatchObject:
+                        return (lines, None, reMatchObject)
                 elif match.lower() in line_LC:
                     return (lines, None, line)
         sleep(0.01)

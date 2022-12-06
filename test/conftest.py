@@ -408,8 +408,8 @@ def ccm_started(test, ccm, logger):
             reflector = match[1]
             reflectors_started.append(reflector)
         assert set(reflectors_started) == reflectors_expected
-    except AssertionError:
-        pytest.exit("CCM daemon did not start properly")
+    except AssertionError as e:
+        pytest.exit(f"CCM daemon did not start properly; {str(e)}")
 
     logger.info("[CCM] CCM daemon started successfully")
     test["state"]["ccm"]["started"] = True
