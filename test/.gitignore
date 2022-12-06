@@ -1,9 +1,9 @@
 # Terraform artefacts
+output
 .terraform*
 *.tfstate*
 
 # PyTest artefacts
-output
 __pycache__
 .pytest_cache
 .tftest_cache
