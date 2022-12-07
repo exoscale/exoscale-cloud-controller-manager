@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from pty import openpty
@@ -20,6 +21,22 @@ TEST_CCM_ZONE = os.getenv("TEST_CCM_ZONE", "ch-gva-2")
 TEST_CCM_EXEC_TERRAFORM = os.getenv("TERRAFORM", "terraform")
 TEST_CCM_EXEC_KUBECTL = os.getenv("KUBECTL", "kubectl")
 TEST_CCM_EXEC_EXOCLI = os.getenv("EXOCLI", "exo")
+
+
+# Logging
+class LoggersMuted:
+    def __init__(self, loggers: list):
+        self.loggers = loggers
+
+    def __enter__(self):
+        for logger in self.loggers:
+            logger.propagate = False
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        for logger in self.loggers:
+            logger.propagate = True
+
 
 # RegExps
 reUUID = re.compile("^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
@@ -130,18 +147,19 @@ def tfControlPlane(test, logger):
     logger.info(
         "[Terraform] Creating the control-plane infrastructure (this may take some time) ..."
     )
-    tf = tftest.TerraformTest(
-        tfdir=os.path.join(test["type"], "control-plane"),
-        basedir=test["terraform"]["directory"],
-        binary=TEST_CCM_EXEC_TERRAFORM,
-    )
-    # (no clean-up; give the user the possibility to teardown manually if needs be)
-    tf.setup(cleanup_on_exit=False)
-    tf_vars = {
-        "exoscale_zone": TEST_CCM_ZONE,
-    }
-    tf.apply(tf_vars=tf_vars)
-    outputs = tf.output()
+    with LoggersMuted([logging.getLogger("tftest")]):
+        tf = tftest.TerraformTest(
+            tfdir=os.path.join(test["type"], "control-plane"),
+            basedir=test["terraform"]["directory"],
+            binary=TEST_CCM_EXEC_TERRAFORM,
+        )
+        # (no clean-up; give the user the possibility to teardown manually if needs be)
+        tf.setup(cleanup_on_exit=False)
+        tf_vars = {
+            "exoscale_zone": TEST_CCM_ZONE,
+        }
+        tf.apply(tf_vars=tf_vars)
+        outputs = tf.output()
 
     # State
     nodes = k8sGetNodes(

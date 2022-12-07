@@ -18,7 +18,7 @@ from helpers import (
 ## Logging
 
 # tftest
-logging.getLogger("tftest").setLevel(logging.ERROR)
+# logging.getLogger("tftest").setLevel(logging.ERROR)
 
 
 ## Fixtures
