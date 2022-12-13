@@ -437,7 +437,7 @@ def nlb_hello_external(test, tf_control_plane, tf_nodes, ccm, logger):
     # Teardown
     if not os.getenv("TEST_CCM_NO_NLB_TEARDOWN"):
         logger.info(
-            "[K8s] Deleting NGINX-hello (external NLB) application manifest ..."
+            "[K8s] Deleting NGINX-hello (external NLB) application manifest (this may take some time) ..."
         )
         kubectl(
             [
@@ -455,7 +455,7 @@ def nlb_ingress_nginx(test, tf_control_plane, ccm, logger):
     )
 
     # Create NGINX Ingress
-    logger.info("[K8s] Applying NGINX Ingress manifest ...")
+    logger.info("[K8s] Applying NGINX Ingress manifest (this may take some time) ...")
     kubectl(
         [
             "apply",
@@ -470,7 +470,9 @@ def nlb_ingress_nginx(test, tf_control_plane, ccm, logger):
 
     # Teardown
     if not os.getenv("TEST_CCM_NO_NLB_TEARDOWN"):
-        logger.info("[K8s] Deleting NGINX Ingress manifest ...")
+        logger.info(
+            "[K8s] Deleting NGINX Ingress manifest (this may take some time) ..."
+        )
         kubectl(
             [
                 "delete",
@@ -500,7 +502,9 @@ def nlb_hello_ingress(test, tf_control_plane, tf_nodes, nlb_ingress_nginx, logge
 
     # Teardown
     if not os.getenv("TEST_CCM_NO_NLB_TEARDOWN"):
-        logger.info("[K8s] Deleting NGINX-hello (Ingress-ed) application manifest ...")
+        logger.info(
+            "[K8s] Deleting NGINX-hello (Ingress-ed) application manifest (this may take some time) ..."
+        )
         kubectl(
             [
                 "delete",
