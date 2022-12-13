@@ -1,0 +1,25 @@
+## Upstream configuration
+
+# Runtime defaults
+#root = "/var/lib/containerd"
+#state = "/run/containerd"
+#subreaper = true
+#oom_score = 0
+
+# Exoscale: make sure the CRI plugin is enabled
+# (upstreams disables it default)
+#disabled_plugins = ["cri"]
+
+
+# Enabled by default
+#[grpc]
+#  address = "/run/containerd/containerd.sock"
+#  uid = 0
+#  gid = 0
+
+# Uncomment to enable
+#[debug]
+#  address = "/run/containerd/debug.sock"
+#  uid = 0
+#  gid = 0
+#  level = "info"

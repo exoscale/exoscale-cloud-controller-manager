@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+SCRIPT="${0##*/}"
+
+## Source invocation ?
+if [ "${BASH_LINENO[0]}" -ne 0 ]; then
+  # Environment variables
+  echo "INFO[${SCRIPT}]: Unsetting environment variables ..."
+  unset KUBECONFIG
+  unset CCM_KUBECONFIG
+  unset EXOSCALE_ZONE
+  unset EXOSCALE_SKS_AGENT_RUNNERS
+  unset EXOSCALE_API_CREDENTIALS_FILE
+
+  # Aliases
+  echo "INFO[${SCRIPT}]: Unsetting aliases ..."
+  unalias approve-csr
+  unalias go-run-ccm
+else
+  set -e
+  SCRIPT_DIR="$(dirname "$(realpath -e "${0}")")"
+
+  # Files/directories
+  echo "INFO[${SCRIPT}]: Removing files/directories ..."
+  cd "${SCRIPT_DIR}"
+  rm -rfv \
+     ./terraform/*/*/output \
+     ./terraform/*/*/*.tfstate* \
+     ./terraform/*/*/.terraform* \
+     ./__pycache__ \
+     ./*/__pycache__ \
+     ./.pytest_cache \
+     ./*/.pytest_cache \
+     ./*/*/.pytest_cache \
+     ./.tftest_cache \
+     ./.kube
+fi

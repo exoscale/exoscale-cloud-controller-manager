@@ -1,0 +1,11 @@
+---
+# (!!! To be templated by Terraform !!!)
+global:
+  zone: "${exoscale_zone}"
+  apiCredentialsFile: "${api_credentials_path}"
+instances:
+  overrides:
+    - name: "/.*-external$/"
+      external: true
+      type: "externalType"
+      region: "externalRegion"

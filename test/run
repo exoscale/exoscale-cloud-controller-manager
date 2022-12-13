@@ -1,0 +1,78 @@
+#!/bin/bash
+SCRIPT="${0##*/}"
+
+
+## Usage
+__USAGE() {
+  cat >&2 <<EOF
+USAGE: ${SCRIPT} [<options>] [-- [<pytest arguments> ...]]
+
+SYNOPSIS:
+  Run the Exoscale CCM acceptance tests.
+
+OPTIONS:
+
+  -t, --type {sks|kubeadm}
+    Tests type (may be specified multiple times; defaults: all)
+
+  -l, --level <level>
+    Verbosity level:
+    - default:    be brief (please use in Pull-Requests)
+    - 1-line (1): show individual tests (1 per line)
+    - info (I):   peak into the tests process
+    - debug (D):  deep-dive into the tests process
+
+EOF
+}
+
+
+# Arguments
+__OPTION() {
+  if [[ "${1}" =~ = ]]; then
+    echo "${1#*=}"
+    return 0
+  elif [ -n "${2}" ]; then
+    echo "${2}"
+    return 1
+  fi
+  echo "ERROR[${SCRIPT}]: Missing option parameter (${1})" >&2
+  exit 1
+}
+MY_types=()
+MY_level='default'
+while [ -n "${1}" ]; do
+  case "${1}" in
+    'help'|'--help'|'-h')
+      __USAGE; exit 1;;
+    '-l'|'-l='*|'--level'|'--level='*)
+      MY_level="$(__OPTION "${@}")" || shift;;
+    '-t'|'-t='*|'--type'|'--type='*)
+      MY_type="$(__OPTION "${@}")" || shift
+      MY_types+=("${MY_type}");;
+    --)
+      shift; break;;
+    -*)
+      echo "ERROR[${SCRIPT}]: Invalid option (${1})" >&2 && exit 1;;
+    *)
+      echo "ERROR[${SCRIPT}]: Invalid argument (${1})" >&2 && exit 1;;
+  esac
+  shift
+done
+[ -z "${MY_types[*]}" ] && MY_types=("sks" "kubeadm")
+
+
+## Main
+for MY_type in "${MY_types[@]}"; do
+  export TEST_CCM_TYPE="${MY_type}"
+  echo "INFO[${SCRIPT}]: Running test type '${MY_type}'"
+  case "${MY_level}" in
+    'D'|'debug')
+      pytest -v --log-cli-level=DEBUG "${@}";;
+    'I'|'info')
+      pytest -v --log-cli-level=INFO -m 'not the_end' "${@}";;
+    '1'|'1-line')
+      pytest -v -m 'not the_end' "${@}";;
+    *)
+      pytest -m 'not the_end' "${@}";;
+  esac
+done

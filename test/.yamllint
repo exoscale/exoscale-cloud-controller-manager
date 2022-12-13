@@ -1,0 +1,12 @@
+---
+extends: default
+rules:
+  line-length: disable
+  comments: disable
+  comments-indentation: disable
+ignore: |
+  # Upstream-provided
+  ingress-nginx*.yaml
+  cni-calico*.yaml
+  # Terraform templates
+  **/kubelet/config.yaml

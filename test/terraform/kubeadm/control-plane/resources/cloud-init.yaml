@@ -1,0 +1,136 @@
+## template: jinja
+#cloud-config
+---
+# (!!! To be templated by Terraform !!!)
+
+## Instance data (<-> jinja)
+#  REF: https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html#using-instance-data
+
+
+## stage: init
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#write-files (once-per-instance)
+write_files:
+  # System configuration
+  # (APT)
+  - path: /etc/apt/apt.conf.d/99-no-apt-daily
+    permissions: "0644"
+    owner: root:root
+    content: |
+      // Disable APT Daily run (/usr/lib/apt/apt.systemd.daily)
+      APT::Periodic::Enable "0";
+  # (modules)
+  - path: /etc/modprobe.d/kubernetes-blacklist.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, modprobe_kubernetes_blacklist)}
+  - path: /etc/modules-load.d/kubernetes-networking.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, modules_kubernetes)}
+  # (networking)
+  - path: /etc/sysctl.d/99-kubernetes-networking.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, sysctl_kubernetes_networking)}
+  # (containerd)
+  - path: /etc/containerd/config.toml
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, containerd_config)}
+  # Kubernetes configuration
+  # (kubeadm)
+  - path: /etc/kubernetes/kubeadm/init-config.yaml
+    content: |
+      ${indent(6, kubeadm_init_config)}
+    owner: root:root
+    permissions: "0644"
+  # TLS
+  # WARNING: Pathes and DNs must match what kubeadm expects!
+  # (control plane)
+  - path: /etc/kubernetes/pki/ca.crt
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_kubernetes_cert)}
+  - path: /etc/kubernetes/pki/ca.key
+    permissions: "0600"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_kubernetes_key)}
+  - path: /etc/kubernetes/pki/sa.pub
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_service_account_pub)}
+  - path: /etc/kubernetes/pki/sa.key
+    permissions: "0600"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_service_account_key)}
+  # (etcd)
+  - path: /etc/kubernetes/pki/etcd/ca.crt
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_etcd_cert)}
+  - path: /etc/kubernetes/pki/etcd/ca.key
+    permissions: "0600"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_etcd_key)}
+  # (front-proxy)
+  - path: /etc/kubernetes/pki/front-proxy-ca.crt
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_front_proxy_cert)}
+  - path: /etc/kubernetes/pki/front-proxy-ca.key
+    permissions: "0600"
+    owner: root:root
+    content: |
+      ${indent(6, tls_ca_front_proxy_key)}
+
+
+## stage: config
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#apt-configure (once-per-instance)
+apt:
+  sources:
+    "docker":
+      # REF: https://docs.docker.com/engine/install/ubuntu/#set-up-the-repository
+      source: "deb [arch=amd64] https://download.docker.com/linux/{{ v1.distro }} {{ v1.distro_release }} stable"
+      key: |
+        ${indent(8, apt_key_docker)}
+    "kubernetes":
+      # REF: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+      # (NB: "kubernetes-xenial" is not a typo)
+      source: "deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main"
+      key: |
+        ${indent(8, apt_key_kubernetes)}
+
+
+## stage: final
+
+# REF: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#package-update-upgrade-install (once-per-instance)
+packages:
+  # source: docker
+  - containerd.io
+  # source: kubernetes
+  - kubeadm
+  - cri-tools
+package_update: true
+package_upgrade: true
+package_reboot_if_required: false
+
+# REFs:
+# - https://cloudinit.readthedocs.io/en/latest/topics/modules.html#scripts-user (once-per-instance)
+# - https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd (once-per-instance)
+runcmd:
+  # Apply system configuration
+  - [sysctl, --system]
+  - [systemctl, restart, systemd-modules-load.service]
