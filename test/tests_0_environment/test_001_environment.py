@@ -40,7 +40,7 @@ def test_executable_terraform(test, logger):
     )
     output = json.loads(sStdOut)
     version = output["terraform_version"]
-    logger.debug(f"Terraform version: {version}")
+    logger.info(f"Terraform version: {version}")
 
 
 @pytest.mark.environment
@@ -55,7 +55,7 @@ def test_executable_kubectl(test, logger):
     )
     output = json.loads(sStdOut)
     version = output["clientVersion"]["gitVersion"]
-    logger.debug(f"kubectl version: {version}")
+    logger.info(f"kubectl version: {version}")
 
 
 @pytest.mark.environment
@@ -66,4 +66,4 @@ def test_executable_exocli(test, logger):
         ],
         pyexit=True,
     )
-    logger.debug(f"Exoscale CLI version: {sStdOut}")
+    logger.info(f"Exoscale CLI version: {sStdOut}")
