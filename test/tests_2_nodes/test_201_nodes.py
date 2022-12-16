@@ -34,6 +34,7 @@ def test_nodes_outputs(test, tf_nodes):
         assert reIPv4.match(tf_nodes["external_node_ipv4"])
         assert "external_node_ipv6" in tf_nodes
         assert reIPv6.match(tf_nodes["external_node_ipv6"])
+        assert "external_node_kubeconfig" in tf_nodes
 
     # Load balancer (NLB)
     assert "external_nlb_id" in tf_nodes

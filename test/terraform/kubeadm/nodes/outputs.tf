@@ -44,6 +44,9 @@ output "external_node_ipv4" {
 output "external_node_ipv6" {
   value = exoscale_compute_instance.external_node.ipv6_address
 }
+output "external_node_kubeconfig" {
+  value = local_sensitive_file.kubeconfig["external-node"].filename
+}
 
 # Load balancer (NLB)
 output "external_nlb_id" {

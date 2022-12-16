@@ -3,7 +3,7 @@ import os
 import re
 from pty import openpty
 from subprocess import Popen, PIPE
-from sys import stdout, stderr
+from sys import stdin, stdout, stderr
 from time import sleep, time
 
 import pytest
@@ -64,10 +64,21 @@ def execEnvironment(inherit: bool = True, add: dict = None, unset: list = None):
 
 
 def execForeground(
-    commands: list, cwd: str = None, env: dict = None, pyexit: bool = False
+    commands: list, cwd: str = None, env: dict = None, input=None, pyexit: bool = False
 ):
-    oPopen = Popen(commands, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
-    (bStdOut, bStdErr) = oPopen.communicate()
+    if input:
+        if isinstance(input, str):
+            # TODO: if input[:5] == "file:":
+            input = input.encode(stdin.encoding or "utf-8")
+    oPopen = Popen(
+        commands,
+        cwd=cwd,
+        env=env,
+        stdin=PIPE if input else None,
+        stdout=PIPE,
+        stderr=PIPE,
+    )
+    (bStdOut, bStdErr) = oPopen.communicate(input)
     iExit = oPopen.returncode
     if iExit and pyexit:
         commands = " ".join(commands)
@@ -254,8 +265,9 @@ def tfNodes(test, tf_control_plane, pool_size, logger):
 
 
 # Kubernetes (kubectl)
-def kubectl(commands: list, kubeconfig: str = None, pyexit: bool = False):
-    kubeconfig = os.getenv("KUBECONFIG", kubeconfig)
+def kubectl(commands: list, kubeconfig: str = None, input=None, pyexit: bool = False):
+    if kubeconfig is None:
+        kubeconfig = os.getenv("KUBECONFIG")
     if kubeconfig is not None:
         env = execEnvironment(add={"KUBECONFIG": kubeconfig})
     else:
@@ -265,6 +277,7 @@ def kubectl(commands: list, kubeconfig: str = None, pyexit: bool = False):
     return execForeground(
         kubectl,
         env=env,
+        input=input,
         pyexit=pyexit,
     )
 

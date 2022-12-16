@@ -33,6 +33,6 @@ def test_ccm_node_csrs_approved(test, tf_nodes, ccm, logger):
         else:
             logger.warning(f"[K8s] Unexpected CSR: {csr}")
 
-    logger.info("[K8s] Approved CSRs: " + ", ".join(csrs_approved))
-    logger.debug("[K8s] Invalid (ignored) CSRs: " + ", ".join(csrs_invalid))
+    logger.info("[CCM] Approved CSRs: " + ", ".join(csrs_approved))
+    logger.debug("[CCM] Invalid (ignored) CSRs: " + ", ".join(csrs_invalid))
     assert len(csrs_pending) == 0

@@ -8,7 +8,7 @@ from helpers import tfNodes
 # Nodes (0-sized)
 # (make sure we start up/down-sizing nodes with a clean slate)
 @pytest.fixture(scope="module")
-def tf_nodes_reset(request, test, tf_control_plane, tf_nodes, ccm, logger):
+def tf_nodes_reset(test, tf_control_plane, tf_nodes, ccm, logger):
     # Initialize and apply the Terraform configuration
     tf = tfNodes(test, tf_control_plane, 0, logger)
 
