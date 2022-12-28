@@ -33,7 +33,7 @@ resource "local_sensitive_file" "kubeconfig" {
     "${path.module}/resources/kubeconfig.yaml",
     {
       username        = each.value.user
-      server          = exoscale_compute_instance.control_plane.public_ip_address
+      server          = "https://${exoscale_compute_instance.control_plane.public_ip_address}:6443"
       tls_ca          = base64encode(tls_self_signed_cert.tls_ca["kubernetes"].cert_pem)
       tls_client_cert = base64encode(tls_locally_signed_cert.tls_client[each.key].cert_pem)
       tls_client_key  = base64encode(tls_private_key.tls_client[each.key].private_key_pem)

@@ -10,8 +10,8 @@ resource "tls_private_key" "tls_ca" {
     "front-proxy",
   ])
 
-  algorithm = "RSA"
-  rsa_bits  = 4096
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P256"
 }
 
 resource "tls_self_signed_cert" "tls_ca" {
@@ -36,6 +36,13 @@ resource "local_file" "tls_ca" {
   filename = abspath("${path.module}/output/${each.key}-ca.pem")
   content  = tls_self_signed_cert.tls_ca[each.key].cert_pem
 }
+resource "local_sensitive_file" "tls_ca" {
+  for_each = resource.tls_self_signed_cert.tls_ca
+
+  filename        = abspath("${path.module}/output/${each.key}-key.pem")
+  file_permission = "0600"
+  content         = tls_private_key.tls_ca[each.key].private_key_pem
+}
 
 # Client certificates
 resource "tls_private_key" "tls_client" {
@@ -44,8 +51,8 @@ resource "tls_private_key" "tls_client" {
     "ccm",
   ])
 
-  algorithm = "RSA"
-  rsa_bits  = 4096
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P256"
 }
 
 resource "tls_cert_request" "tls_client" {
