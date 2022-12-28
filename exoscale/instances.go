@@ -15,7 +15,9 @@ import (
 	cloudproviderapi "k8s.io/cloud-provider/api"
 )
 
-var labelInvalidCharsRegex = regexp.MustCompile(`([^A-Za-z0-9][^-A-Za-z0-9_.]*)?[^A-Za-z0-9]`)
+// Label value must be '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
+// Invalid characters will be removed
+var labelInvalidCharsRegex = regexp.MustCompile(`^[^A-Za-z0-9]|[^A-Za-z0-9]$|([^-A-Za-z0-9_.])`)
 
 type instances struct {
 	p   *cloudProvider
@@ -210,7 +212,7 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(*instanceType.Size, ""), nil
+	return labelInvalidCharsRegex.ReplaceAllString(getInstanceTypeName(*instanceType.Family, *instanceType.Size), ""), nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
@@ -311,4 +313,9 @@ func (c *refreshableExoscaleClient) ListInstances(
 		zone,
 		opts...,
 	)
+}
+
+// Instance Type name is <family>.<size>
+func getInstanceTypeName(family string, size string) string {
+	return family + "." + size
 }

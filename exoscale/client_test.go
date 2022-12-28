@@ -85,6 +85,6 @@ func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_watchCredentialsF
 
 	client.RLock()
 	defer client.RUnlock()
-	ts.Require().Equal(client.apiCredentials, testAPICredentials)
+	ts.Require().Equal(testAPICredentials, client.apiCredentials)
 	ts.Require().NotNil(client.exo)
 }
