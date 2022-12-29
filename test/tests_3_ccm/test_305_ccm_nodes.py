@@ -1,13 +1,9 @@
 import pytest
 
-from helpers import TEST_CCM_TYPE, ioMatch
+from helpers import ioMatch
 
 
 @pytest.mark.ccm
-@pytest.mark.xfail(
-    TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
-)
 def test_ccm_nodes_init(test, tf_nodes, ccm, logger):
     nodes_count_delta = test["state"]["nodes"]["all"]["count_delta"]
     nodes_initialized = list()

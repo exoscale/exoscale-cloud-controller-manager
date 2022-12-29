@@ -1,16 +1,12 @@
 import pytest
 
-from helpers import TEST_CCM_TYPE, ioMatch
+from helpers import ioMatch
 
 # Make sure to request (package-scoped, parameterized) 'tf_nodes_pool_resize' fixture,
 # such as to trigger each test on each (nodes quantity) update
 
 
 @pytest.mark.nodes_pool_resize
-@pytest.mark.xfail(
-    TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
-)
 def test_ccm_node_deletion(test, tf_nodes_pool_resize, ccm, logger):
     nodes_count_delta = test["state"]["nodes"]["all"]["count_delta"]
     if nodes_count_delta >= 0:

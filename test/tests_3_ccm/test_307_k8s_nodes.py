@@ -3,7 +3,6 @@ from time import time, sleep
 import pytest
 
 from helpers import (
-    TEST_CCM_TYPE,
     k8sGetNodes,
     reUUID,
     reIPv4,
@@ -14,10 +13,6 @@ from helpers import (
 
 
 @pytest.mark.ccm
-@pytest.mark.xfail(
-    TEST_CCM_TYPE == "sks",
-    reason="TODO/BUG[58670]: CCM: provider ID cannot be empty",
-)
 def test_k8s_nodes_spec(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
@@ -65,25 +60,21 @@ def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
             labels = meta["metadata"]["labels"]
             logger.debug(f"[K8s] Asserting Node: {node} <-> {labels}")
             try:
-                if test["type"] not in ["sks"]:
-                    # TODO: Investigate why those labels do not show up on SKS
-                    if not node.endswith("external"):
-                        assert "node.kubernetes.io/instance-type" in labels
-                        assert labels["node.kubernetes.io/instance-type"] == "small"
-                        assert "topology.kubernetes.io/region" in labels
-                        assert (
-                            labels["topology.kubernetes.io/region"]
-                            == tf_nodes["exoscale_zone"]
-                        )
-                    else:
-                        assert "node.kubernetes.io/instance-type" in labels
-                        assert (
-                            labels["node.kubernetes.io/instance-type"] == "externalType"
-                        )
-                        assert "topology.kubernetes.io/region" in labels
-                        assert (
-                            labels["topology.kubernetes.io/region"] == "externalRegion"
-                        )
+                if not node.endswith("external"):
+                    assert "node.kubernetes.io/instance-type" in labels
+                    assert (
+                        labels["node.kubernetes.io/instance-type"] == "standard.small"
+                    )
+                    assert "topology.kubernetes.io/region" in labels
+                    assert (
+                        labels["topology.kubernetes.io/region"]
+                        == tf_nodes["exoscale_zone"]
+                    )
+                else:
+                    assert "node.kubernetes.io/instance-type" in labels
+                    assert labels["node.kubernetes.io/instance-type"] == "externalType"
+                    assert "topology.kubernetes.io/region" in labels
+                    assert labels["topology.kubernetes.io/region"] == "externalRegion"
                 if tf_nodes["nodepool_id"] != "n/a":
                     assert "node.exoscale.net/nodepool-id" in labels
                     assert (
@@ -105,9 +96,6 @@ def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
 
 
 @pytest.mark.ccm
-@pytest.mark.xfail(
-    TEST_CCM_TYPE == "sks", reason="TODO: Investigate why this fails on SKS"
-)
 def test_k8s_nodes_addresses(test, tf_control_plane, tf_nodes, logger):
     nodes_expected = set(test["state"]["k8s"]["nodes"].keys())
     nodes_qualified = list()
