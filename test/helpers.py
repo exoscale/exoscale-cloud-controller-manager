@@ -141,10 +141,22 @@ def tfControlPlane(test, logger):
     logger.info(
         "[Terraform] Creating the control-plane infrastructure (this may take some time) ..."
     )
+
+    # In preprod, temporarily disable parallelism (sc-60786)
+    if (
+        os.getenv("TF_VAR_exoscale_environment", "") == "preprod"
+        or os.getenv("EXOSCALE_API_ENVIRONMENT", "") == "ppapi"
+    ):
+        terraform_parallelism = 1
+    else:
+        # default value
+        terraform_parallelism = 10
+
     tf = tftest.TerraformTest(
         tfdir=os.path.join(test["type"], "control-plane"),
         basedir=test["terraform"]["directory"],
         binary=TEST_CCM_EXEC_TERRAFORM,
+        env={"TF_CLI_ARGS_apply": f"-parallelism={terraform_parallelism}"},
     )
     # (no clean-up; give the user the possibility to teardown manually if needs be)
     tf.setup(cleanup_on_exit=False)
