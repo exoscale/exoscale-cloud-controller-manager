@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	egoscale "github.com/exoscale/egoscale/v2"
+
 	"gopkg.in/fsnotify.v1"
 )
 
