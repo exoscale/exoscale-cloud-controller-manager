@@ -11,15 +11,15 @@ import (
 
 var (
 	// Overrides
-	testInstanceOverrideType = "testInstanceType"
+	testInstanceOverrideType             = "testInstanceType"
 	testInstanceOverrideAddress_internal = "192.0.2.42"
 	testInstanceOverrideAddress_external = "203.0.113.42"
-	testInstanceOverrideExternalName = "testOverrideInstanceExternal"
-	testInstanceOverrideExternalID = "testInstanceExternalID"
-	testInstanceOverrideExternalType = "testInstanceTypeExternal"
-	testInstanceOverrideExternalRegion = "testInstanceRegionExternal"
-	testInstanceOverrideRegexpName = "/^testOverrideInstanceRegexp.*/"
-	testInstanceOverrideRegexpNodeName = "testOverrideInstanceRegexpF00b@r"
+	testInstanceOverrideExternalName     = "testOverrideInstanceExternal"
+	testInstanceOverrideExternalID       = "testInstanceExternalID"
+	testInstanceOverrideExternalType     = "testInstanceTypeExternal"
+	testInstanceOverrideExternalRegion   = "testInstanceRegionExternal"
+	testInstanceOverrideRegexpName       = "/^testOverrideInstanceRegexp.*/"
+	testInstanceOverrideRegexpNodeName   = "testOverrideInstanceRegexpF00b@r"
 	testInstanceOverrideRegexpInstanceID = fmt.Sprintf("external-%x", sha256.Sum256([]byte(testInstanceOverrideRegexpName)))
 	testInstanceOverrideRegexpProviderID = fmt.Sprintf("%s://%s", ProviderName, testInstanceOverrideRegexpInstanceID)
 

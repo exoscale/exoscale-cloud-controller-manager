@@ -244,7 +244,6 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		return err
 	}
 
-
 	if nlbUpdate.ID == nil {
 		return errLoadBalancerIDAnnotationNotFound
 	}
