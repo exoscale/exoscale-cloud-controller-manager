@@ -41,7 +41,7 @@ func (c *instancesConfig) getInstanceOverride(nodeName types.NodeName) *instance
 	// first try an exact match on name
 	for _, candidate := range c.Overrides {
 		if candidate.Name != "" && nodeName == types.NodeName(candidate.Name) {
-			config = &candidate
+			config = &candidate //nolint:exportloopref
 			break
 		}
 	}
@@ -56,7 +56,7 @@ func (c *instancesConfig) getInstanceOverride(nodeName types.NodeName) *instance
 					continue
 				}
 				if match {
-					config = &candidate
+					config = &candidate //nolint:exportloopref
 					break
 				}
 			}

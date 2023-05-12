@@ -51,7 +51,7 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 		c.apiEnvironment = config.ApiEnvironment
 	}
 
-	if config.ApiKey != "" && config.ApiSecret != "" {
+	if config.ApiKey != "" && config.ApiSecret != "" { //nolint:gocritic
 		infof("using Exoscale actual API credentials (key + secret)")
 
 		c.apiCredentials = exoscaleAPICredentials{

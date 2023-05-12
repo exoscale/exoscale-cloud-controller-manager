@@ -30,7 +30,7 @@ func (ts *exoscaleCCMTestSuite) generateK8sCSR(nodeName string, nodeIPAddresses 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	ts.Require().NoError(err, "failed to generate RSA private key")
 
-	var ipAddresses []net.IP
+	ipAddresses := make([]net.IP, 0, len(nodeIPAddresses))
 	for _, ip := range nodeIPAddresses {
 		ipAddresses = append(ipAddresses, net.ParseIP(ip))
 	}

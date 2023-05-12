@@ -54,7 +54,7 @@ func main() {
 	})
 
 	if err := command.Execute(); err != nil {
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic
 	}
 }
 
