@@ -24,7 +24,7 @@ jobs:
         run: make test-verbose
 
   build:
-    needs: unit-tests
+    needs: unit-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -34,7 +34,7 @@ jobs:
         run: make build
 
   docker-build:
-    needs: unit-tests
+    needs: unit-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
