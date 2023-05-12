@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - '**'
+    paths-ignore:
+    - '**.md'
+    tags-ignore:
+    - 'v**' # Don't run CI tests on release tags
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      # Setup
+      - uses: actions/checkout@v3
+      - run: git submodule update --init --recursive go.mk
+      - uses: ./go.mk/.github/actions/setup
+
+      - uses: ./go.mk/.github/actions/pre-check
+
+      - name: Run tests
+        run: make test-verbose
+
+  build:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: git submodule update --init --recursive go.mk
+      - uses: ./go.mk/.github/actions/setup
+      - name: Build
+        run: make build
+
+  docker-build:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: git submodule update --init --recursive go.mk
+      - uses: ./go.mk/.github/actions/setup
+      - name: Build Docker image
+        run: make docker
