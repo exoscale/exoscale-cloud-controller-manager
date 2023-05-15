@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	egoscale "github.com/exoscale/egoscale/v2"
 	"github.com/stretchr/testify/mock"
 	k8scertv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +23,8 @@ import (
 	certificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	fakecertificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1/fake"
 	"k8s.io/utils/pointer"
+
+	egoscale "github.com/exoscale/egoscale/v2"
 )
 
 func (ts *exoscaleCCMTestSuite) generateK8sCSR(nodeName string, nodeIPAddresses []string) []byte {
