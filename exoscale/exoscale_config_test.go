@@ -22,11 +22,11 @@ var (
 			ApiKey:    testAPIKey,
 			ApiSecret: testAPISecret,
 		},
-		Instances:    instancesConfig{
+		Instances: instancesConfig{
 			Overrides: []instancesOverrideConfig{{
-				Name: testInstanceOverrideRegexpName,
+				Name:     testInstanceOverrideRegexpName,
 				External: true,
-				Type: testInstanceOverrideExternalType,
+				Type:     testInstanceOverrideExternalType,
 				Addresses: []instancesOverrideAddressConfig{
 					{Type: "InternalIP", Address: testInstanceOverrideAddress_internal},
 					{Type: "ExternalIP", Address: testInstanceOverrideAddress_external},

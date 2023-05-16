@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	egoscale "github.com/exoscale/egoscale/v2"
+
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
