@@ -1,6 +1,6 @@
 module github.com/exoscale/exoscale-cloud-controller-manager
 
-go 1.18
+go 1.20
 
 require (
 	github.com/exoscale/egoscale v0.100.1

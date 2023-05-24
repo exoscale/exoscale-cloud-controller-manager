@@ -2,7 +2,7 @@ package exoscale
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	v1 "k8s.io/api/core/v1"
@@ -34,7 +34,7 @@ func (ts *exoscaleCCMTestSuite) TestGetZone() {
 			ProtoMajor:    1,
 			ProtoMinor:    1,
 			Header:        http.Header{},
-			Body:          ioutil.NopCloser(bytes.NewBufferString(testZone)),
+			Body:          io.NopCloser(bytes.NewBufferString(testZone)),
 			ContentLength: int64(len(testZone)),
 		},
 	}}

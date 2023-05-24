@@ -3,7 +3,7 @@ package exoscale
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -36,7 +36,7 @@ func queryInstanceMetadata(key string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	value, err := ioutil.ReadAll(resp.Body)
+	value, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

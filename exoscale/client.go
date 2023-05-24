@@ -131,7 +131,6 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 		return
 	}
 
-
 	client, err := egoscale.NewClient(apiCredentials.APIKey, apiCredentials.APISecret)
 	if err != nil {
 		infof("failed to initialize Exoscale client: %v", err)
