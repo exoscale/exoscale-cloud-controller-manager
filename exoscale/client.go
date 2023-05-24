@@ -119,23 +119,28 @@ func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, pa
 }
 
 func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
-	c.Lock()
-	defer c.Unlock()
-
 	f, err := os.Open(path)
 	if err != nil {
 		fatalf("failed to read credentials file %q: %v", path, err)
 	}
+	defer f.Close()
 
-	if err = json.NewDecoder(f).Decode(&c.apiCredentials); err != nil {
-		fatalf("failed to decode credentials file %q: %v", path, err)
+	var apiCredentials exoscaleAPICredentials
+	if err = json.NewDecoder(f).Decode(&apiCredentials); err != nil {
+		infof("failed to decode credentials file %q: %v", path, err)
+		return
 	}
-	_ = f.Close()
 
-	c.exo, err = egoscale.NewClient(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
+	client, err := egoscale.NewClient(apiCredentials.APIKey, apiCredentials.APISecret)
 	if err != nil {
-		fatalf("failed to initialize Exoscale client: %v", err)
+		infof("failed to initialize Exoscale client: %v", err)
+		return
 	}
+
+	c.Lock()
+	c.exo = client
+	c.apiCredentials = apiCredentials
+	c.Unlock()
 
 	infof(
 		"Exoscale API credentials refreshed, now using %s (%s)",
