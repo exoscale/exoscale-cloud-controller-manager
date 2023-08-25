@@ -88,8 +88,7 @@ apt:
         ${indent(8, apt_key_docker)}
     "kubernetes":
       # REF: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
-      # (NB: "kubernetes-xenial" is not a typo)
-      source: "deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main"
+      source: "deb [arch=amd64] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
       key: |
         ${indent(8, apt_key_kubernetes)}
 
