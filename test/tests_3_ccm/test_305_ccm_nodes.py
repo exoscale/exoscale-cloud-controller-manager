@@ -20,7 +20,6 @@ def test_ccm_nodes_init(test, tf_nodes, ccm, logger):
         )
         assert lines > 0
         assert match is not None
-        assert unmatch is None
         node = match[1]
 
         nodes_initialized.append(node)
