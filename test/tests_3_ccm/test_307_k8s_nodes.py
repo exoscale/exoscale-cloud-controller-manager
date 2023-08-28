@@ -69,7 +69,7 @@ def test_k8s_nodes_labels(test, tf_control_plane, tf_nodes, logger):
                     # TODO: Investigate why those labels do not show up on SKS
                     if not node.endswith("external"):
                         assert "node.kubernetes.io/instance-type" in labels
-                        assert labels["node.kubernetes.io/instance-type"] == "small"
+                        assert labels["node.kubernetes.io/instance-type"] == "standard.small"
                         assert "topology.kubernetes.io/region" in labels
                         assert (
                             labels["topology.kubernetes.io/region"]
