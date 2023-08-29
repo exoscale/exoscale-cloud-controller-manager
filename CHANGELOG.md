@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0
+
+* Upgrade Kubernetes SDK to 1.28.1, egoscale to 0.100.3
+
 ## 0.13.0
 
 * Fix a rare bug happening on tests when trying to reload configuration
