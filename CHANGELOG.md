@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.0 (NOT YET RELEASED)
+## 0.14.0
 
 * Upgrade Kubernetes SDK to 1.28.1, egoscale to 0.100.3
 
