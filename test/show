@@ -3,6 +3,7 @@ SCRIPT="${0##*/}"
 
 ## Defaults
 : "${EXOSCALE_ZONE:=ch-gva-2}"
+: "${KUBECTL:=kubectl}"
 
 ## Usage
 __USAGE() {
@@ -64,43 +65,43 @@ case "${MY_scope}" in
     case "${MY_item}" in
       'nodes')
         if [ "${MY_format}" == 'json' ]; then
-          kubectl -o json get nodes "${@}" \
+          ${KUBECTL} -o json get nodes "${@}" \
             | jq '.items[]|.metadata.name, (.status.conditions[]|select(.type=="Ready")).status, .metadata.labels, .status.addresses'
         else
-          kubectl -o wide get nodes "${@}" \
+          ${KUBECTL} -o wide get nodes "${@}" \
             | grep -E '^(NAME|test-ccm)'
         fi
       ;;
       'csrs')
         if [ "${MY_format}" == 'json' ]; then
-          kubectl -o json get csr "${@}" \
+          ${KUBECTL} -o json get csr "${@}" \
             | jq '.items[]|select(.spec.username|test("test-ccm"))|.metadata.name, .spec.username, (.status.conditions[]?|select(.type=="Approved")).status'
         else
-          kubectl -o wide get csr "${@}" \
+          ${KUBECTL} -o wide get csr "${@}" \
             | grep -E '(^NAME|test-ccm)'
         fi
         ;;
       'pods')
         if [ "${MY_format}" == 'json' ]; then
-          kubectl -o json get pods "${@}" \
+          ${KUBECTL} -o json get pods "${@}" \
             | jq '.items[]|select(.spec.nodeName|test("^test-ccm"))'
         else
-          kubectl -o wide get pods "${@}" \
+          ${KUBECTL} -o wide get pods "${@}" \
             | grep -E '(^NAME|test-ccm)'
         fi
         ;;
       'services')
         if [ "${MY_format}" == 'json' ]; then
-          kubectl -o json get services "${@}" \
+          ${KUBECTL} -o json get services "${@}" \
             | jq '.items[]|select(.spec.type=="LoadBalancer")|.metadata.namespace+":"+.metadata.name, .spec.ports, .status'
         else
-          kubectl -o wide get services "${@}" \
+          ${KUBECTL} -o wide get services "${@}" \
             | grep -E '(^NAME|LoadBalancer)'
         fi
       ;;
       'events')
         if [ "${MY_format}" == 'json' ]; then
-          kubectl -o json get events "${@}" \
+          ${KUBECTL} -o json get events "${@}" \
             | jq
         else
           kubectl \

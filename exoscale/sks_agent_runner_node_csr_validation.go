@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 	"time"
 
 	k8scertv1 "k8s.io/api/certificates/v1"
@@ -114,7 +115,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 
 				csrOK := false
 				for _, instance := range instances {
-					if *instance.Name == parsedCSR.DNSNames[0] {
+					if strings.ToLower(*instance.Name) == parsedCSR.DNSNames[0] {
 						var nodeAddrs []string
 
 						if instance.PublicIPAddress != nil {

@@ -16,7 +16,7 @@ resource "exoscale_sks_nodepool" "nodepool" {
 
   cluster_id      = var.test_cluster_id
   instance_type   = "standard.small"
-  instance_prefix = "${local.test_name}-pool"
+  instance_prefix = "${local.test_name}-Pool"
   size            = var.test_nodes_pool_size
 
   anti_affinity_group_ids = [exoscale_anti_affinity_group.nodes_aag.id]

@@ -28,6 +28,9 @@ import (
 )
 
 func (ts *exoscaleCCMTestSuite) generateK8sCSR(nodeName string, nodeIPAddresses []string) []byte {
+
+	// k8s node name are lowercase only
+	k8sNodeName := strings.ToLower(nodeName)
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	ts.Require().NoError(err, "failed to generate RSA private key")
 
@@ -42,9 +45,9 @@ func (ts *exoscaleCCMTestSuite) generateK8sCSR(nodeName string, nodeIPAddresses 
 			SignatureAlgorithm: x509.SHA512WithRSA,
 			Subject: pkix.Name{
 				Organization: []string{"system:nodes"},
-				CommonName:   "system:nodes:" + nodeName,
+				CommonName:   "system:nodes:" + k8sNodeName,
 			},
-			DNSNames:    []string{nodeName},
+			DNSNames:    []string{k8sNodeName},
 			IPAddresses: ipAddresses,
 		},
 		privateKey,

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+* Fix CSR approval for instance name with uppercase (#68)
+
 ## 0.14.0
 
 * Upgrade Kubernetes SDK to 1.28.1, egoscale to 0.100.3
