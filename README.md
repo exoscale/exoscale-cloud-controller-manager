@@ -23,6 +23,19 @@ The Exoscale CCM implements the following [controllers][k8s-ccm-controllers]:
 To get started with the Exoscale Cloud Controller Manager, please read the
 [following guide](docs/getting-started.md).
 
+## Versioning and compatibility policy
+
+The exoscale CCM adheres to [Semantic Versioning](https://semver.org/).
+
+New minor versions *after* `0.14` are aligned with the minor version number of the latest Kubernetes release.
+The aligned version `0.y` is compatible with Kubernetes version `1.y` and unless specified otherwise in the compatibility matrix below, CCM `0.y` is also compatible with the two most recent Kubernetes minor versions before `1.y`. Versions that are even older may work but without guarantee.
+For example, CCM `0.99` would be compatible with Kubernetes versions `1.99`, `1.98` and `1.97`.
+
+### Compatibility Matrix
+
+| CCM version | supported Kubernetes versions |
+|-------------|-------------------------------|
+| 0.14        | 1.28, 1.27, 1.26              | 
 
 ## Contributing
 
