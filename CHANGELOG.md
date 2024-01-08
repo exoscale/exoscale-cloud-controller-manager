@@ -1,5 +1,11 @@
 # Changelog
 
+## UNRELEASED
+
+### Improvements
+
+* README: add new versioning and compatibility policy (#72)
+
 ## 0.14.1
 
 ### Bug Fixes
