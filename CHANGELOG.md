@@ -1,10 +1,12 @@
 # Changelog
 
-## UNRELEASED
+## 0.29.0
 
 ### Improvements
 
 * README: add new versioning and compatibility policy (#72)
+* Bump golang.org/x/net from 0.13.0 to 0.17.0 (#69)
+* Bump google.golang.org/grpc from 1.54.0 to 1.56.3 (#70)
 
 ## 0.14.1
 
