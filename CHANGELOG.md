@@ -1,5 +1,11 @@
 # Changelog
 
+## UNRELEASED
+
+### Improvements
+
+* automate releasing with GH Actions (#73)
+
 ## 0.29.0
 
 ### Improvements
