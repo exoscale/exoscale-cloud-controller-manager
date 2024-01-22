@@ -97,7 +97,10 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	addresses := []v1.NodeAddress{}
+	instanceName := *instance.Name
+	addresses := []v1.NodeAddress{
+		{Type: v1.NodeHostName, Address: instanceName},
+	}
 
 	if instance.PublicIPAddress != nil {
 		addresses = append(
@@ -107,7 +110,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 	}
 
 	if i.p.client != nil && instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
-		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, *instance.Name, metav1.GetOptions{}); node != nil {
+		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instanceName, metav1.GetOptions{}); node != nil {
 			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 				addresses = append(
 					addresses,
