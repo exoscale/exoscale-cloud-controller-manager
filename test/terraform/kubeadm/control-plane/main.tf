@@ -39,7 +39,7 @@ resource "exoscale_compute_instance" "control_plane" {
 
   name        = "${local.test_name}-control-plane"
   type        = "standard.medium"
-  template_id = data.exoscale_compute_template.node_template.id
+  template_id = data.exoscale_template.node_template.id
   disk_size   = 10
   ipv6        = true
 
@@ -51,7 +51,7 @@ resource "exoscale_compute_instance" "control_plane" {
   connection {
     type        = "ssh"
     host        = self.public_ip_address
-    user        = data.exoscale_compute_template.node_template.username
+    user        = data.exoscale_template.node_template.default_user
     private_key = tls_private_key.ssh_key.private_key_openssh
   }
 

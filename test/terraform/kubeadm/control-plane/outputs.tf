@@ -46,7 +46,7 @@ output "nodes_ssh_key" {
   value = local_sensitive_file.ssh_key.filename
 }
 output "nodes_ssh_username" {
-  value = data.exoscale_compute_template.node_template.username
+  value = data.exoscale_template.node_template.default_user
 }
 
 # Kubernetes configuration and credentials

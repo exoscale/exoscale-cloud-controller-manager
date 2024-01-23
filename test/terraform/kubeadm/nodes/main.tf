@@ -29,7 +29,7 @@ resource "exoscale_instance_pool" "nodepool" {
 
   instance_prefix = "${local.test_name}-pool"
   instance_type   = "standard.small"
-  template_id     = data.exoscale_compute_template.node_template.id
+  template_id     = data.exoscale_template.node_template.id
   disk_size       = 10
   ipv6            = true
 
@@ -47,7 +47,7 @@ resource "exoscale_compute_instance" "external_node" {
   name = "${local.test_name}-external"
 
   type        = "standard.small"
-  template_id = data.exoscale_compute_template.node_template.id
+  template_id = data.exoscale_template.node_template.id
   disk_size   = 10
   ipv6        = true
 
@@ -59,7 +59,7 @@ resource "exoscale_compute_instance" "external_node" {
   connection {
     type        = "ssh"
     host        = self.public_ip_address
-    user        = data.exoscale_compute_template.node_template.username
+    user        = data.exoscale_template.node_template.default_user
     private_key = file("../control-plane/output/ssh.id_ed25519")
   }
 
