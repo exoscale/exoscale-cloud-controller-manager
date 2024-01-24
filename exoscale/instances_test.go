@@ -73,6 +73,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				PublicIPAddress: &testInstancePublicIPv4P,
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv4,
 			}},
@@ -86,6 +89,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				IPv6Enabled: ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv6,
 			}},
@@ -100,6 +106,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				IPv6Enabled:     ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv4,
 			}, {
@@ -146,6 +155,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 	})
 
 	expected := []v1.NodeAddress{{
+		Type:    v1.NodeHostName,
+		Address: testInstanceName,
+	}, {
 		Type:    v1.NodeExternalIP,
 		Address: testInstancePublicIPv4,
 	}}
