@@ -13,7 +13,7 @@ import (
 	egoscale "github.com/exoscale/egoscale/v2"
 	exoapi "github.com/exoscale/egoscale/v2/api"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -83,7 +83,7 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				ID:          &testInstanceID,
 				Name:        &testInstanceName,
 				IPv6Address: &testInstancePublicIPv6P,
-				IPv6Enabled: pointer.Bool(true),
+				IPv6Enabled: ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
 				Type:    v1.NodeExternalIP,
@@ -97,7 +97,7 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				Name:            &testInstanceName,
 				PublicIPAddress: &testInstancePublicIPv4P,
 				IPv6Address:     &testInstancePublicIPv6P,
-				IPv6Enabled:     pointer.Bool(true),
+				IPv6Enabled:     ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
 				Type:    v1.NodeExternalIP,

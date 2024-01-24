@@ -22,7 +22,7 @@ import (
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	certificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	fakecertificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1/fake"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	egoscale "github.com/exoscale/egoscale/v2"
 )
@@ -235,7 +235,7 @@ func (ts *exoscaleCCMTestSuite) Test_sksAgentRunnerNodeCSRValidation_run() {
 				Name:            &testInstanceName,
 				PublicIPAddress: &testInstancePublicIPv4P,
 				IPv6Address:     &testInstancePublicIPv6P,
-				IPv6Enabled:     pointer.Bool(true),
+				IPv6Enabled:     ptr.To(true),
 			}},
 			nil,
 		)
