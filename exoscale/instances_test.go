@@ -13,7 +13,7 @@ import (
 	egoscale "github.com/exoscale/egoscale/v2"
 	exoapi "github.com/exoscale/egoscale/v2/api"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -73,6 +73,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				PublicIPAddress: &testInstancePublicIPv4P,
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv4,
 			}},
@@ -83,9 +86,12 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				ID:          &testInstanceID,
 				Name:        &testInstanceName,
 				IPv6Address: &testInstancePublicIPv6P,
-				IPv6Enabled: pointer.Bool(true),
+				IPv6Enabled: ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv6,
 			}},
@@ -97,9 +103,12 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				Name:            &testInstanceName,
 				PublicIPAddress: &testInstancePublicIPv4P,
 				IPv6Address:     &testInstancePublicIPv6P,
-				IPv6Enabled:     pointer.Bool(true),
+				IPv6Enabled:     ptr.To(true),
 			},
 			expected: []v1.NodeAddress{{
+				Type:    v1.NodeHostName,
+				Address: testInstanceName,
+			}, {
 				Type:    v1.NodeExternalIP,
 				Address: testInstancePublicIPv4,
 			}, {
@@ -146,6 +155,9 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 	})
 
 	expected := []v1.NodeAddress{{
+		Type:    v1.NodeHostName,
+		Address: testInstanceName,
+	}, {
 		Type:    v1.NodeExternalIP,
 		Address: testInstancePublicIPv4,
 	}}

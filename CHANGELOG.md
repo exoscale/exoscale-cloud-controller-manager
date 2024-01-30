@@ -5,6 +5,12 @@
 ### Improvements
 
 * automate releasing with GH Actions (#73)
+* Bump Kubernetes SDK to 1.29.0
+* CCM is now built with Go 1.21
+
+### Bug Fixes
+
+* Fix missing hostname from the node list of addresses
 
 ## 0.29.0
 
