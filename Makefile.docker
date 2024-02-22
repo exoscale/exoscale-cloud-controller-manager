@@ -2,6 +2,7 @@
 
 # Dependencies
 # (do not pull the entire Go build environment in)
+go.mk/version.mk:
 include go.mk/version.mk
 
 
