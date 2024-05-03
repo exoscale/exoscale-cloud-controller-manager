@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+* ccm-command: print returned error before exiting #81 
+
 ## 0.29.1
 
 ### Improvements
