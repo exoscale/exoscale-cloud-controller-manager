@@ -2,7 +2,6 @@ package main
 
 import (
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -52,7 +51,7 @@ func main() {
 	})
 
 	if err := command.Execute(); err != nil {
-		os.Exit(1) //nolint:gocritic
+		klog.Fatalf("cloud-controller-manger command failed: %s", err)
 	}
 }
 
