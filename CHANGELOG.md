@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+
+* Update examples used in getting-started.md #82
+
 ## 0.29.2
 
 ### Bug Fixes
