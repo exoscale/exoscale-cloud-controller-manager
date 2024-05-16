@@ -36,7 +36,10 @@ spec:
           - --allow-untagged-cloud
         env:
           - name: EXOSCALE_ZONE
-            value: ch-gva-2
+            valueFrom:
+              secretKeyRef:
+                key: api-zone
+                name: exoscale-credentials
           - name: EXOSCALE_API_KEY
             valueFrom:
               secretKeyRef:
@@ -47,9 +50,3 @@ spec:
               secretKeyRef:
                 key: api-secret
                 name: exoscale-credentials
-          - name: EXOSCALE_API_ENDPOINT
-            valueFrom:
-              secretKeyRef:
-                key: api-endpoint
-                name: exoscale-credentials
-
