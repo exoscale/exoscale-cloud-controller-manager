@@ -5,6 +5,7 @@
 ### Improvements
 
 * Update examples used in getting-started.md #82
+* go.mk: lint with staticcheck #83 
 
 ## 0.29.2
 
