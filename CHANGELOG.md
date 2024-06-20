@@ -6,6 +6,7 @@
 
 * Update examples used in getting-started.md #82
 * go.mk: lint with staticcheck #83 
+* Bump go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc from 0.42.0 to 0.46.0 #85
 
 ## 0.29.2
 
