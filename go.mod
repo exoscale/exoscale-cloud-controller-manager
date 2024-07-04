@@ -2,7 +2,7 @@ module github.com/exoscale/exoscale-cloud-controller-manager
 
 go 1.22.0
 
-toolchain go1.22.4
+toolchain go1.22.5
 
 require (
 	github.com/exoscale/egoscale v0.102.3
