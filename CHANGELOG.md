@@ -2,11 +2,23 @@
 
 ## Unreleased
 
+## 0.30.0
+
 ### Improvements
 
 * Update examples used in getting-started.md #82
 * go.mk: lint with staticcheck #83 
 * Bump go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc from 0.42.0 to 0.46.0 #85
+* Bump Go to 1.22.5
+* Bump Kubernetes SDK from 1.29.1 to 1.30.2
+* Bump golang/protobuf from 1.5.3 to 1.5.4
+* Bump google/cel-go from 0.17.7 to 0.17.8
+* Bump hashicorp/go-cleanhttp from 0.5.1 to 0.5.2
+* Bump hashicorp/go-retryablehttp from 0.7.1 to 0.7.7
+* Bump go.uber.org/zap from 1.19.0 to 1.26.0
+* Bump golang.org/x/sync from 0.5.0 to 0.6.0
+* Bump golang.org/x/sys from 0.18.0 to 0.20.0
+* Remove go.uber.org/atomic
 
 ## 0.29.2
 
