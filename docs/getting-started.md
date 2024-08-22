@@ -10,6 +10,14 @@ images][docker-hub] in your Kubernetes manifests.
 
 ### Compile from sources
 
+> [!IMPORTANT]
+> macOS users **must** install recent `make` binary since the current version
+> shipping with developper tools is outdated.
+>
+> You can simply install GNU make with homebrew via `brew install make`. Do not
+> forget to use `gmake` command instead or add the path
+> `$(brew --prefix make)/libexec/gnubin` to your `$PATH`.
+
 If you wish to compile the Exoscale Cloud Controller Manager (CCM) from
 sources, run the following command at the root of the sources:
 
