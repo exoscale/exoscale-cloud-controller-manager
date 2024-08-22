@@ -10,7 +10,7 @@ images][docker-hub] in your Kubernetes manifests.
 
 ### Compile from sources
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > macOS users **must** install recent `make` binaries since the current version
 > shipping with developper tools is outdated.
 >
