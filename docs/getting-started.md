@@ -11,10 +11,10 @@ images][docker-hub] in your Kubernetes manifests.
 ### Compile from sources
 
 > [!IMPORTANT]
-> macOS users **must** install recent `make` binaries since the current version
+> macOS users **must** install recent `make` binary since the current version
 > shipping with developper tools is outdated.
 >
-> You can simply intall GNU make with homebrew via `brew install make`. Do not
+> You can simply install GNU make with homebrew via `brew install make`. Do not
 > forget to use `gmake` command instead or add the path
 > `$(brew --prefix make)/libexec/gnubin` to your `$PATH`.
 
