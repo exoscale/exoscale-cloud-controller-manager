@@ -88,7 +88,7 @@ apt:
         ${indent(8, apt_key_docker)}
     "kubernetes":
       # REF: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
-      source: "deb [arch=amd64] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+      source: "deb [arch=amd64] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /"
       key: |
         ${indent(8, apt_key_kubernetes)}
 

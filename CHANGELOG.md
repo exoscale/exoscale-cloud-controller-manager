@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+
+## 0.31.0
+
 ### Improvements
 
 * fix(test): use lowercase instance name prefix in test suite
+* Bump Kubernetes SDK from 1.30.2 to 1.31.0
 * chore(doc): add note about make for macOS users
 * go.mk: upgrade to v2.0.3 #89
 
