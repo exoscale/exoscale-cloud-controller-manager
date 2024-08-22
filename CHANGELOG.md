@@ -4,7 +4,7 @@
 
 ### Improvements
 
-* chore(doc): add note about make for macos users
+* chore(doc): add note about make for macOS users
 
 ## 0.30.0
 
