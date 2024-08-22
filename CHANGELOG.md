@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Improvements
+
+* chore(doc): add note about make for macos users
+
 ## 0.30.0
 
 ### Improvements
