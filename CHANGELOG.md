@@ -5,6 +5,7 @@
 ### Improvements
 
 * chore(doc): add note about make for macOS users
+* go.mk: upgrade to v2.0.3 #89 
 
 ## 0.30.0
 
