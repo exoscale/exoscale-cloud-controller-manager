@@ -4,15 +4,16 @@
 
 ### Improvements
 
+* fix(test): use lowercase instance name prefix in test suite
 * chore(doc): add note about make for macOS users
-* go.mk: upgrade to v2.0.3 #89 
+* go.mk: upgrade to v2.0.3 #89
 
 ## 0.30.0
 
 ### Improvements
 
 * Update examples used in getting-started.md #82
-* go.mk: lint with staticcheck #83 
+* go.mk: lint with staticcheck #83
 * Bump go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc from 0.42.0 to 0.46.0 #85
 * Bump Go to 1.22.5
 * Bump Kubernetes SDK from 1.29.1 to 1.30.2
@@ -29,13 +30,13 @@
 
 ### Bug Fixes
 
-* ccm-command: print returned error before exiting #81 
+* ccm-command: print returned error before exiting #81
 
 ## 0.29.1
 
 ### Improvements
 
-* go.mk: provide alternative to submodule approach #77 
+* go.mk: provide alternative to submodule approach #77
 * automate releasing with GH Actions (#73)
 * Bump Kubernetes SDK to 1.29.0
 * CCM is now built with Go 1.21
