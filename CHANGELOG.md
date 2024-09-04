@@ -2,9 +2,6 @@
 
 ## Unreleased
 
-
-## 0.31.0
-
 ### Improvements
 
 * fix(test): use lowercase instance name prefix in test suite
