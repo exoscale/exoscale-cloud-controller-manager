@@ -3,14 +3,10 @@ package exoscale
 import (
 	"context"
 	"errors"
-	"io"
-	"net/http"
 	"strings"
 
 	egoscale "github.com/exoscale/egoscale/v2"
 )
-
-const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
 
 func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.Instance, error) {
 	id, err := formatProviderID(providerID)
@@ -27,19 +23,4 @@ func formatProviderID(providerID string) (string, error) {
 	}
 
 	return strings.TrimPrefix(providerID, providerPrefix), nil
-}
-
-func queryInstanceMetadata(key string) (string, error) {
-	resp, err := http.Get(metadataEndpoint + key)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	value, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(value), nil
 }
