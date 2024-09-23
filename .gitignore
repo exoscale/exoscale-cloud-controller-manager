@@ -15,3 +15,6 @@ test/**/id_*
 test/**/nlb_service_*
 *.log
 *.pid
+
+# vscode
+__debug_bin*

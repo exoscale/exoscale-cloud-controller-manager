@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	cloudprovider "k8s.io/cloud-provider"
+	cloudproviderapi "k8s.io/cloud-provider/api"
 
 	egoscale "github.com/exoscale/egoscale/v2"
 	exoapi "github.com/exoscale/egoscale/v2/api"
@@ -20,6 +21,7 @@ var (
 	testInstanceID                   = new(exoscaleCCMTestSuite).randomID()
 	testInstanceName                 = new(exoscaleCCMTestSuite).randomString(10)
 	testInstancePublicIPv4           = "1.2.3.4"
+	testInstancePrivateIPv4          = "10.0.0.1"
 	testInstancePublicIPv6           = "fd00::123:4"
 	testInstancePublicIPv4P          = net.ParseIP(testInstancePublicIPv4)
 	testInstancePublicIPv6P          = net.ParseIP(testInstancePublicIPv6)
@@ -161,6 +163,108 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 		Type:    v1.NodeExternalIP,
 		Address: testInstancePublicIPv4,
 	}}
+
+	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_WithIPV6Enabled() {
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPv4P,
+				IPv6Enabled:     ptr.To(true),
+				IPv6Address:     &testInstancePublicIPv6P,
+			},
+			nil,
+		)
+
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testInstanceName,
+		},
+		Status: v1.NodeStatus{
+			NodeInfo: v1.NodeSystemInfo{
+				SystemUUID: testInstanceID,
+			},
+		},
+	})
+
+	expected := []v1.NodeAddress{
+		{
+			Type:    v1.NodeHostName,
+			Address: testInstanceName,
+		},
+		{
+			Type:    v1.NodeExternalIP,
+			Address: testInstancePublicIPv4,
+		},
+		{
+			Type:    v1.NodeExternalIP,
+			Address: testInstancePublicIPv6,
+		},
+	}
+
+	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_WithPrivateNetworkIDs() {
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:              &testInstanceID,
+				Name:            &testInstanceName,
+				PublicIPAddress: &testInstancePublicIPv4P,
+				PrivateNetworkIDs: &[]string{
+					new(exoscaleCCMTestSuite).randomID(),
+				},
+			},
+			nil,
+		)
+
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testInstanceName,
+			Annotations: map[string]string{
+				cloudproviderapi.AnnotationAlphaProvidedIPAddr: testInstancePrivateIPv4,
+			},
+		},
+		Status: v1.NodeStatus{
+			NodeInfo: v1.NodeSystemInfo{
+				SystemUUID: testInstanceID,
+			},
+		},
+	})
+
+	expected := []v1.NodeAddress{
+		{
+			Type:    v1.NodeHostName,
+			Address: testInstanceName,
+		},
+		{
+			Type:    v1.NodeExternalIP,
+			Address: testInstancePublicIPv4,
+		},
+		{
+			Type:    v1.NodeInternalIP,
+			Address: testInstancePrivateIPv4,
+		},
+	}
 
 	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
