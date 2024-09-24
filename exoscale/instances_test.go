@@ -74,13 +74,20 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				Name:            &testInstanceName,
 				PublicIPAddress: &testInstancePublicIPv4P,
 			},
-			expected: []v1.NodeAddress{{
-				Type:    v1.NodeHostName,
-				Address: testInstanceName,
-			}, {
-				Type:    v1.NodeExternalIP,
-				Address: testInstancePublicIPv4,
-			}},
+			expected: []v1.NodeAddress{
+				{
+					Type:    v1.NodeHostName,
+					Address: testInstanceName,
+				},
+				{
+					Type:    v1.NodeExternalIP,
+					Address: testInstancePublicIPv4,
+				},
+				{
+					Type:    v1.NodeInternalIP,
+					Address: testInstancePublicIPv4,
+				},
+			},
 		},
 		{
 			name: "PublicIPv6",
@@ -90,13 +97,20 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				IPv6Address: &testInstancePublicIPv6P,
 				IPv6Enabled: ptr.To(true),
 			},
-			expected: []v1.NodeAddress{{
-				Type:    v1.NodeHostName,
-				Address: testInstanceName,
-			}, {
-				Type:    v1.NodeExternalIP,
-				Address: testInstancePublicIPv6,
-			}},
+			expected: []v1.NodeAddress{
+				{
+					Type:    v1.NodeHostName,
+					Address: testInstanceName,
+				},
+				{
+					Type:    v1.NodeExternalIP,
+					Address: testInstancePublicIPv6,
+				},
+				{
+					Type:    v1.NodeInternalIP,
+					Address: testInstancePublicIPv6,
+				},
+			},
 		},
 		{
 			name: "DualStack",
@@ -107,16 +121,28 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddresses() {
 				IPv6Address:     &testInstancePublicIPv6P,
 				IPv6Enabled:     ptr.To(true),
 			},
-			expected: []v1.NodeAddress{{
-				Type:    v1.NodeHostName,
-				Address: testInstanceName,
-			}, {
-				Type:    v1.NodeExternalIP,
-				Address: testInstancePublicIPv4,
-			}, {
-				Type:    v1.NodeExternalIP,
-				Address: testInstancePublicIPv6,
-			}},
+			expected: []v1.NodeAddress{
+				{
+					Type:    v1.NodeHostName,
+					Address: testInstanceName,
+				},
+				{
+					Type:    v1.NodeExternalIP,
+					Address: testInstancePublicIPv4,
+				},
+				{
+					Type:    v1.NodeInternalIP,
+					Address: testInstancePublicIPv4,
+				},
+				{
+					Type:    v1.NodeExternalIP,
+					Address: testInstancePublicIPv6,
+				},
+				{
+					Type:    v1.NodeInternalIP,
+					Address: testInstancePublicIPv6,
+				},
+			},
 		},
 	} {
 		ts.Run(tt.name, func() {
@@ -156,13 +182,20 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID() {
 		},
 	})
 
-	expected := []v1.NodeAddress{{
-		Type:    v1.NodeHostName,
-		Address: testInstanceName,
-	}, {
-		Type:    v1.NodeExternalIP,
-		Address: testInstancePublicIPv4,
-	}}
+	expected := []v1.NodeAddress{
+		{
+			Type:    v1.NodeHostName,
+			Address: testInstanceName,
+		},
+		{
+			Type:    v1.NodeExternalIP,
+			Address: testInstancePublicIPv4,
+		},
+		{
+			Type:    v1.NodeInternalIP,
+			Address: testInstancePublicIPv4,
+		},
+	}
 
 	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
 	ts.Require().NoError(err)
@@ -208,7 +241,15 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_WithIPV6Enabled() 
 			Address: testInstancePublicIPv4,
 		},
 		{
+			Type:    v1.NodeInternalIP,
+			Address: testInstancePublicIPv4,
+		},
+		{
 			Type:    v1.NodeExternalIP,
+			Address: testInstancePublicIPv6,
+		},
+		{
+			Type:    v1.NodeInternalIP,
 			Address: testInstancePublicIPv6,
 		},
 	}
@@ -257,8 +298,56 @@ func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_WithPrivateNetwork
 			Address: testInstanceName,
 		},
 		{
+			Type:    v1.NodeInternalIP,
+			Address: testInstancePrivateIPv4,
+		},
+		{
 			Type:    v1.NodeExternalIP,
 			Address: testInstancePublicIPv4,
+		},
+	}
+
+	actual, err := ts.p.instances.NodeAddressesByProviderID(ts.p.ctx, providerPrefix+testInstanceID)
+	ts.Require().NoError(err)
+	ts.Require().Equal(expected, actual)
+}
+
+func (ts *exoscaleCCMTestSuite) TestNodeAddressesByProviderID_WithOnlyPrivateNetworkIDs() {
+	ts.p.client.(*exoscaleClientMock).
+		On("GetInstance", ts.p.ctx, ts.p.zone, testInstanceID).
+		Return(
+			&egoscale.Instance{
+				ID:   &testInstanceID,
+				Name: &testInstanceName,
+				PrivateNetworkIDs: &[]string{
+					new(exoscaleCCMTestSuite).randomID(),
+				},
+			},
+			nil,
+		)
+
+	ts.p.kclient = fake.NewSimpleClientset(&v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testInstanceName,
+			Annotations: map[string]string{
+				cloudproviderapi.AnnotationAlphaProvidedIPAddr: testInstancePrivateIPv4,
+			},
+		},
+		Status: v1.NodeStatus{
+			NodeInfo: v1.NodeSystemInfo{
+				SystemUUID: testInstanceID,
+			},
+		},
+	})
+
+	expected := []v1.NodeAddress{
+		{
+			Type:    v1.NodeHostName,
+			Address: testInstanceName,
 		},
 		{
 			Type:    v1.NodeInternalIP,

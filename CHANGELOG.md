@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* fix(instances): ensure internal IP is set when there is only public one
+
 ### Improvements
 
 * fix(test): use lowercase instance name prefix in test suite
