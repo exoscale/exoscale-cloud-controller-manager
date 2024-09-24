@@ -102,13 +102,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		{Type: v1.NodeHostName, Address: instanceName},
 	}
 
-	if instance.PublicIPAddress != nil {
-		addresses = append(
-			addresses,
-			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.PublicIPAddress.String()},
-		)
-	}
-
+	foundInternalIP := false
 	if i.p.client != nil && instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
 		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instanceName, metav1.GetOptions{}); node != nil {
 			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
@@ -116,7 +110,24 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 					addresses,
 					v1.NodeAddress{Type: v1.NodeInternalIP, Address: providedIP},
 				)
+				foundInternalIP = true
 			}
+		}
+	}
+
+	if instance.PublicIPAddress != nil {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.PublicIPAddress.String()},
+		)
+
+		// if there is no internal IP, we use the public IP as internal IP
+		// see spec here: https://kubernetes.io/docs/reference/node/node-status/#addresses
+		if !foundInternalIP {
+			addresses = append(
+				addresses,
+				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.PublicIPAddress.String()},
+			)
 		}
 	}
 
@@ -125,6 +136,15 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 			addresses,
 			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.IPv6Address.String()},
 		)
+
+		// if there is no internal IP, we use the public IP as internal IP
+		// see spec here: https://kubernetes.io/docs/reference/node/node-status/#addresses
+		if !foundInternalIP {
+			addresses = append(
+				addresses,
+				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.IPv6Address.String()},
+			)
+		}
 	}
 
 	return addresses, nil
