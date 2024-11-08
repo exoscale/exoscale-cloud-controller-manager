@@ -15,10 +15,10 @@ type cloudConfig struct {
 
 type globalConfig struct {
 	Zone               string
-	ApiKey             string `yaml:"apiKey"`
-	ApiSecret          string `yaml:"apiSecret"`
-	ApiCredentialsFile string `yaml:"apiCredentialsFile"`
-	ApiEnvironment     string `yaml:"apiEnvironment"`
+	APIKey             string `yaml:"apiKey"`
+	APISecret          string `yaml:"apiSecret"`
+	APICredentialsFile string `yaml:"apiCredentialsFile"`
+	APIEndpoint        string `yaml:"apiEndpoint"`
 }
 
 func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
@@ -37,21 +37,16 @@ func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
 		cfg.Global.Zone = value
 	}
 	if value, exists := os.LookupEnv("EXOSCALE_API_KEY"); exists {
-		cfg.Global.ApiKey = value
+		cfg.Global.APIKey = value
 	}
 	if value, exists := os.LookupEnv("EXOSCALE_API_SECRET"); exists {
-		cfg.Global.ApiSecret = value
+		cfg.Global.APISecret = value
 	}
 	if value, exists := os.LookupEnv("EXOSCALE_API_CREDENTIALS_FILE"); exists {
-		cfg.Global.ApiCredentialsFile = value
+		cfg.Global.APICredentialsFile = value
 	}
-	if value, exists := os.LookupEnv("EXOSCALE_API_ENVIRONMENT"); exists {
-		cfg.Global.ApiEnvironment = value
-	}
-
-	// Defaults
-	if cfg.Global.ApiEnvironment == "" {
-		cfg.Global.ApiEnvironment = defaultComputeEnvironment
+	if value, exists := os.LookupEnv("EXOSCALE_API_ENPOINT"); exists {
+		cfg.Global.APIEndpoint = value
 	}
 
 	return cfg, nil

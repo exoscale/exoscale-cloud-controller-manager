@@ -19,8 +19,8 @@ var (
 	testConfig_typical = cloudConfig{
 		Global: globalConfig{
 			Zone:      testZone,
-			ApiKey:    testAPIKey,
-			ApiSecret: testAPISecret,
+			APIKey:    testAPIKey,
+			APISecret: testAPISecret,
 		},
 		Instances: instancesConfig{
 			Overrides: []instancesOverrideConfig{{
@@ -67,10 +67,9 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_empty() {
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
 	ts.Require().NoError(err)
 	ts.Require().Equal("", cfg.Global.Zone)
-	ts.Require().Equal("", cfg.Global.ApiKey)
-	ts.Require().Equal("", cfg.Global.ApiSecret)
-	ts.Require().Equal("", cfg.Global.ApiCredentialsFile)
-	ts.Require().Equal(defaultComputeEnvironment, cfg.Global.ApiEnvironment)
+	ts.Require().Equal("", cfg.Global.APIKey)
+	ts.Require().Equal("", cfg.Global.APISecret)
+	ts.Require().Equal("", cfg.Global.APICredentialsFile)
 	ts.Require().Equal(false, cfg.Instances.Disabled)
 	ts.Require().Equal(false, cfg.LoadBalancer.Disabled)
 }
@@ -83,9 +82,9 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_credsFile() {
 
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
 	ts.Require().NoError(err)
-	ts.Require().Equal("", cfg.Global.ApiKey)
-	ts.Require().Equal("", cfg.Global.ApiSecret)
-	ts.Require().Equal(testAPICredentialsFile, cfg.Global.ApiCredentialsFile)
+	ts.Require().Equal("", cfg.Global.APIKey)
+	ts.Require().Equal("", cfg.Global.APISecret)
+	ts.Require().Equal(testAPICredentialsFile, cfg.Global.APICredentialsFile)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_typical() {
@@ -103,10 +102,10 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_typical() {
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
 	ts.Require().NoError(err)
 	ts.Require().Equal(testZone, cfg.Global.Zone)
-	ts.Require().Equal(testAPIKey, cfg.Global.ApiKey)
-	ts.Require().Equal(testAPISecret, cfg.Global.ApiSecret)
-	ts.Require().Equal("", cfg.Global.ApiCredentialsFile)
-	ts.Require().Equal(testAPIEnvironment, cfg.Global.ApiEnvironment)
+	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
+	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
+	ts.Require().Equal("", cfg.Global.APICredentialsFile)
+	ts.Require().Equal(testAPIEnvironment, cfg.Global.APIEndpoint)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_disabled() {
@@ -121,9 +120,9 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_credsFile() {
 
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_credsFile))
 	ts.Require().NoError(err)
-	ts.Require().Equal("", cfg.Global.ApiKey)
-	ts.Require().Equal("", cfg.Global.ApiSecret)
-	ts.Require().Equal(testAPICredentialsFile, cfg.Global.ApiCredentialsFile)
+	ts.Require().Equal("", cfg.Global.APIKey)
+	ts.Require().Equal("", cfg.Global.APISecret)
+	ts.Require().Equal(testAPICredentialsFile, cfg.Global.APICredentialsFile)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_typical() {
@@ -135,10 +134,10 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_typical() {
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_typical))
 	ts.Require().NoError(err)
 	ts.Require().Equal(testZone, cfg.Global.Zone)
-	ts.Require().Equal(testAPIKey, cfg.Global.ApiKey)
-	ts.Require().Equal(testAPISecret, cfg.Global.ApiSecret)
-	ts.Require().Equal("", cfg.Global.ApiCredentialsFile)
-	ts.Require().Equal(testAPIEnvironment, cfg.Global.ApiEnvironment)
+	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
+	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
+	ts.Require().Equal("", cfg.Global.APICredentialsFile)
+	ts.Require().Equal(testAPIEnvironment, cfg.Global.APIEndpoint)
 	ts.Require().Equal(false, cfg.Instances.Disabled)
 	ts.Require().Equal(false, cfg.LoadBalancer.Disabled)
 }

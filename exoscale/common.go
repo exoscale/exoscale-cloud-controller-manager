@@ -7,26 +7,26 @@ import (
 	"net/http"
 	"strings"
 
-	egoscale "github.com/exoscale/egoscale/v2"
+	v3 "github.com/exoscale/egoscale/v3"
 )
 
 const metadataEndpoint = "http://metadata.exoscale.com/1.0/meta-data/"
 
-func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*egoscale.Instance, error) {
+func (p *cloudProvider) computeInstanceByProviderID(ctx context.Context, providerID string) (*v3.Instance, error) {
 	id, err := formatProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.client.GetInstance(ctx, p.zone, id)
+	return p.client.GetInstance(ctx, id)
 }
 
-func formatProviderID(providerID string) (string, error) {
+func formatProviderID(providerID string) (v3.UUID, error) {
 	if providerID == "" {
 		return "", errors.New("provider ID cannot be empty")
 	}
 
-	return strings.TrimPrefix(providerID, providerPrefix), nil
+	return v3.UUID(strings.TrimPrefix(providerID, providerPrefix)), nil
 }
 
 func queryInstanceMetadata(key string) (string, error) {

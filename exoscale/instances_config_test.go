@@ -65,9 +65,8 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_instances() {
 	// Global
 	ts.Require().NoError(err)
 	ts.Require().Equal(testZone, cfg.Global.Zone)
-	ts.Require().Equal(testAPIKey, cfg.Global.ApiKey)
-	ts.Require().Equal(testAPISecret, cfg.Global.ApiSecret)
-	ts.Require().Equal(defaultComputeEnvironment, cfg.Global.ApiEnvironment)
+	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
+	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
 
 	// Overrides
 	ts.Require().Equal(4, len(cfg.Instances.Overrides))

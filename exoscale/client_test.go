@@ -21,7 +21,6 @@ func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_credentials() 
 			APIKey:    testAPIKey,
 			APISecret: testAPISecret,
 		},
-		apiEnvironment: defaultComputeEnvironment,
 	}
 
 	actual, err := newRefreshableExoscaleClient(context.Background(), &testConfig_typical.Global)
