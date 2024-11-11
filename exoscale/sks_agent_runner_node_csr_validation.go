@@ -127,7 +127,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 							nodeAddrs = append(nodeAddrs, instance.Ipv6Address)
 						}
 
-						if instance.PrivateNetworks != nil && len(instance.PrivateNetworks) > 0 {
+						if len(instance.PrivateNetworks) > 0 {
 							if node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
 								if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 									nodeAddrs = append(nodeAddrs, providedIP)

@@ -1084,20 +1084,20 @@ func Test_isLoadBalancerUpdated(t *testing.T) {
 func Test_isLoadBalancerServiceUpdated(t *testing.T) {
 	tests := []struct {
 		name      string
-		svcA      *v3.LoadBalancerService
-		svcB      *v3.LoadBalancerService
+		svcA      v3.LoadBalancerService
+		svcB      v3.LoadBalancerService
 		assertion require.BoolAssertionFunc
 	}{
 		{
 			"no change",
-			&v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
-			&v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
+			v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
+			v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
 			require.False,
 		},
 		{
 			"description updated",
-			&v3.LoadBalancerService{Name: testNLBServiceName},
-			&v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
+			v3.LoadBalancerService{Name: testNLBServiceName},
+			v3.LoadBalancerService{Name: testNLBServiceName, Description: testNLBServiceDescription},
 			require.True,
 		},
 	}

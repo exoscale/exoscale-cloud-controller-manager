@@ -16,7 +16,7 @@ func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_no_config() {
 
 func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_credentials() {
 	expected := &refreshableExoscaleClient{
-		RWMutex: &sync.RWMutex{},
+		RWMutex: &sync.RWMutex{}, //nolint:staticcheck
 		apiCredentials: exoscaleAPICredentials{
 			APIKey:    testAPIKey,
 			APISecret: testAPISecret,

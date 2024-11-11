@@ -264,7 +264,11 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 	if !l.isExternal(service) && isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
 		infof("updating NLB %q", nlbCurrent.Name)
 
-		if _, err = l.p.client.UpdateLoadBalancer(ctx, nlbUpdate); err != nil {
+		if _, err = l.p.client.UpdateLoadBalancer(ctx, nlbUpdate.ID, v3.UpdateLoadBalancerRequest{
+			Name:        nlbUpdate.Name,
+			Description: nlbCurrent.Description,
+			Labels:      nlbUpdate.Labels,
+		}); err != nil {
 			return err
 		}
 
@@ -318,10 +322,19 @@ next:
 			if isLoadBalancerServiceUpdated(nlbServiceCurrent, nlbServiceUpdate) {
 				infof("updating NLB service %s/%s", nlbCurrent.Name, nlbServiceUpdate.Name)
 
-				if err = l.p.client.UpdateLoadBalancerService(
+				if _, err = l.p.client.UpdateLoadBalancerService(
 					ctx,
 					nlbUpdate.ID,
 					nlbServiceUpdate.ID,
+					v3.UpdateLoadBalancerServiceRequest{
+						Name:        nlbServiceUpdate.Name,
+						Description: nlbServiceCurrent.Description,
+						Port:        nlbServiceCurrent.Port,
+						TargetPort:  nlbServiceCurrent.TargetPort,
+						Protocol:    v3.UpdateLoadBalancerServiceRequestProtocol(nlbServiceCurrent.Protocol),
+						Strategy:    v3.UpdateLoadBalancerServiceRequestStrategy(nlbServiceCurrent.Strategy),
+						Healthcheck: nlbServiceCurrent.Healthcheck,
+					},
 				); err != nil {
 					return err
 				}
@@ -331,7 +344,15 @@ next:
 		} else {
 			infof("creating new NLB service %s/%s", nlbCurrent.Name, nlbServiceUpdate.Name)
 
-			svc, err := l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, nlbServiceUpdate)
+			svc, err := l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
+				Name:        nlbServiceUpdate.Name,
+				Description: nlbServiceCurrent.Description,
+				Port:        nlbServiceCurrent.Port,
+				TargetPort:  nlbServiceCurrent.TargetPort,
+				Protocol:    v3.AddServiceToLoadBalancerRequestProtocol(nlbServiceCurrent.Protocol),
+				Strategy:    v3.AddServiceToLoadBalancerRequestStrategy(nlbServiceCurrent.Strategy),
+				Healthcheck: nlbServiceCurrent.Healthcheck,
+			})
 			if err != nil {
 				return err
 			}
@@ -639,17 +660,17 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*v3.LoadBalancer, er
 }
 
 func isLoadBalancerUpdated(current, update *v3.LoadBalancer) bool {
-	if defaultString(current.Name, "") != defaultString(update.Name, "") {
+	if current.Name != update.Name {
 		return true
 	}
 
-	if defaultString(current.Description, "") != defaultString(update.Description, "") {
+	if current.Description != update.Description {
 		return true
 	}
 
 	return false
 }
 
-func isLoadBalancerServiceUpdated(current, update *v3.LoadBalancerService) bool {
-	return !cmp.Equal(current, update, cmpopts.IgnoreFields(*current, "State", "HealthcheckStatus"))
+func isLoadBalancerServiceUpdated(current, update v3.LoadBalancerService) bool {
+	return !cmp.Equal(current, update, cmpopts.IgnoreFields(current, "State", "HealthcheckStatus"))
 }
