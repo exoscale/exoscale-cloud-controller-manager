@@ -42,7 +42,7 @@ func (m *exoscaleClientMock) DeleteLoadBalancerService(
 	id v3.UUID,
 	serviceID v3.UUID,
 ) (*v3.Operation, error) {
-	args := m.Called(ctx, id)
+	args := m.Called(ctx, id, serviceID)
 	return args.Get(0).(*v3.Operation), args.Error(1)
 }
 

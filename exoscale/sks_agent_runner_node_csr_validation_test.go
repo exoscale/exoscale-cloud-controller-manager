@@ -227,8 +227,8 @@ func (ts *exoscaleCCMTestSuite) Test_sksAgentRunnerNodeCSRValidation_run() {
 	}
 
 	ts.p.client.(*exoscaleClientMock).
-		On("ListInstances", mock.Anything, ts.p.zone, mock.Anything).
-		Return(v3.ListInstancesResponse{
+		On("ListInstances", mock.Anything, mock.Anything).
+		Return(&v3.ListInstancesResponse{
 			Instances: []v3.ListInstancesResponseInstances{{
 				Name:        testInstanceName,
 				PublicIP:    testInstancePublicIPv4P,

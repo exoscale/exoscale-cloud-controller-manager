@@ -55,5 +55,5 @@ func TestKubeServicePatcherPatch(t *testing.T) {
 	require.NoError(t, err)
 
 	svcID = serviceFinal.ObjectMeta.Annotations[annotationLoadBalancerID]
-	require.Equal(t, svcID, testNLBID)
+	require.Equal(t, svcID, testNLBID.String())
 }
