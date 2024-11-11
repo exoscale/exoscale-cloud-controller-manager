@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -61,8 +62,9 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 
 		//TODO add chain credentials with env...etc
 		creds := credentials.NewStaticCredentials(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
-
-		exo, err := v3.NewClient(creds)
+		exo, err := v3.NewClient(creds, v3.ClientOptWithUserAgent(
+			fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s", versionString),
+		))
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +79,17 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 	}
 
 	return c, nil
+}
+
+func (c *refreshableExoscaleClient) Wait(ctx context.Context, op *v3.Operation, states ...v3.OperationState) (*v3.Operation, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.Wait(
+		ctx,
+		op,
+		states...,
+	)
 }
 
 func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, path string) {

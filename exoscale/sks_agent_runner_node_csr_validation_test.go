@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	v3 "github.com/exoscale/egoscale/v3"
 	"github.com/stretchr/testify/mock"
 	k8scertv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,9 +23,6 @@ import (
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	certificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	fakecertificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1/fake"
-	"k8s.io/utils/ptr"
-
-	egoscale "github.com/exoscale/egoscale/v2"
 )
 
 func (ts *exoscaleCCMTestSuite) generateK8sCSR(nodeName string, nodeIPAddresses []string) []byte {
@@ -230,13 +228,13 @@ func (ts *exoscaleCCMTestSuite) Test_sksAgentRunnerNodeCSRValidation_run() {
 
 	ts.p.client.(*exoscaleClientMock).
 		On("ListInstances", mock.Anything, ts.p.zone, mock.Anything).
-		Return(
-			[]*egoscale.Instance{{
-				Name:            &testInstanceName,
-				PublicIPAddress: &testInstancePublicIPv4P,
-				IPv6Address:     &testInstancePublicIPv6P,
-				IPv6Enabled:     ptr.To(true),
+		Return(v3.ListInstancesResponse{
+			Instances: []v3.ListInstancesResponseInstances{{
+				Name:        testInstanceName,
+				PublicIP:    testInstancePublicIPv4P,
+				Ipv6Address: testInstancePublicIPv6P.String(),
 			}},
+		},
 			nil,
 		)
 

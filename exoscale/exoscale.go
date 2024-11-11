@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 
-	egoscale "github.com/exoscale/egoscale/v2"
-
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -41,8 +39,6 @@ type cloudProvider struct {
 }
 
 func init() {
-	egoscale.UserAgent = fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s %s", versionString, egoscale.UserAgent)
-
 	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
 		cfg, err := readExoscaleConfig(config)
 		if err != nil {

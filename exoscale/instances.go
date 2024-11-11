@@ -12,7 +12,6 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	cloudproviderapi "k8s.io/cloud-provider/api"
 
-	exoapi "github.com/exoscale/egoscale/v2/api"
 	v3 "github.com/exoscale/egoscale/v3"
 )
 
@@ -270,7 +269,7 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
-		if errors.Is(err, exoapi.ErrNotFound) {
+		if errors.Is(err, v3.ErrNotFound) {
 			return false, nil
 		}
 
@@ -303,7 +302,7 @@ func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID
 	return instance.State == "stopping" || instance.State == "stopped", nil
 }
 
-func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, zone string, id v3.UUID) (*v3.Instance, error) {
+func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -313,18 +312,18 @@ func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, zone string
 	)
 }
 
-func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, zone string, id v3.UUID) (*v3.InstanceType, error) {
+func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	return c.exo.GetInstanceType(
 		ctx,
-		id)
+		id,
+	)
 }
 
 func (c *refreshableExoscaleClient) ListInstances(
 	ctx context.Context,
-	zone string,
 	opts ...v3.ListInstancesOpt,
 ) (*v3.ListInstancesResponse, error) {
 	c.RLock()

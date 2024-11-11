@@ -107,27 +107,28 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 					continue
 				}
 
-				instances, err := r.p.client.ListInstances(ctx, r.p.zone)
+				//TODO add switch zone
+				instances, err := r.p.client.ListInstances(ctx)
 				if err != nil {
 					errorf("sks-agent: failed to list Compute instances: %v", err)
 					continue
 				}
 
 				csrOK := false
-				for _, instance := range instances {
-					if strings.ToLower(*instance.Name) == parsedCSR.DNSNames[0] {
+				for _, instance := range instances.Instances {
+					if strings.ToLower(instance.Name) == parsedCSR.DNSNames[0] {
 						var nodeAddrs []string
 
-						if instance.PublicIPAddress != nil {
-							nodeAddrs = append(nodeAddrs, instance.PublicIPAddress.String())
+						if instance.PublicIP != nil {
+							nodeAddrs = append(nodeAddrs, instance.PublicIP.String())
 						}
 
-						if instance.IPv6Enabled != nil && *instance.IPv6Enabled {
-							nodeAddrs = append(nodeAddrs, instance.IPv6Address.String())
+						if instance.Ipv6Address != "" {
+							nodeAddrs = append(nodeAddrs, instance.Ipv6Address)
 						}
 
-						if instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
-							if node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, *instance.Name, metav1.GetOptions{}); node != nil {
+						if instance.PrivateNetworks != nil && len(instance.PrivateNetworks) > 0 {
+							if node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
 								if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 									nodeAddrs = append(nodeAddrs, providedIP)
 								}
