@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/exoscale/egoscale/v3/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -23,8 +24,8 @@ func newZones(provider *cloudProvider) cloudprovider.Zones {
 // In most cases, this method is called from the kubelet querying a local metadata service to acquire its zone.
 // For the case of external cloud providers, use GetZoneByProviderID or GetZoneByNodeName since GetZone
 // can no longer be called from the kubelets.
-func (z zones) GetZone(_ context.Context) (cloudprovider.Zone, error) {
-	zone, err := queryInstanceMetadata("availability-zone")
+func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
+	zone, err := metadata.Get(ctx, metadata.AvailabilityZone)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
