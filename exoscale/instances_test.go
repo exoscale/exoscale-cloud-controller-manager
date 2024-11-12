@@ -498,6 +498,7 @@ func (ts *exoscaleCCMTestSuite) TestCurrentNodeName() {
 	ts.Require().Equal(types.NodeName(testInstanceName), actual)
 }
 
+// TODO FIX THIs TEST
 func (ts *exoscaleCCMTestSuite) TestInstanceExistsByProviderID() {
 	ts.p.client.(*exoscaleClientMock).
 		On("GetInstance", ts.p.ctx, testInstanceID).

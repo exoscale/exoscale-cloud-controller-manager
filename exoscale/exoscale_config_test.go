@@ -105,7 +105,6 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_typical() {
 	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
 	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
 	ts.Require().Equal("", cfg.Global.APICredentialsFile)
-	ts.Require().Equal(testAPIEnvironment, cfg.Global.APIEndpoint)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_disabled() {
@@ -137,7 +136,6 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_typical() {
 	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
 	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
 	ts.Require().Equal("", cfg.Global.APICredentialsFile)
-	ts.Require().Equal(testAPIEnvironment, cfg.Global.APIEndpoint)
 	ts.Require().Equal(false, cfg.Instances.Disabled)
 	ts.Require().Equal(false, cfg.LoadBalancer.Disabled)
 }

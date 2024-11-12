@@ -157,16 +157,25 @@ func (l *loadBalancer) EnsureLoadBalancer(
 
 			infof("creating new NLB %q", lbSpec.Name)
 
-			op, err := l.p.client.CreateLoadBalancer(ctx, v3.CreateLoadBalancerRequest{})
+			op, err := l.p.client.CreateLoadBalancer(ctx, v3.CreateLoadBalancerRequest{
+				Name:        lbSpec.Name,
+				Description: lbSpec.Description,
+				Labels:      lbSpec.Labels,
+			})
 			if err != nil {
 				return nil, err
 			}
 
-			if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, op.Reference.ID.String()); err != nil {
+			nlb, err = l.p.client.GetLoadBalancer(ctx, op.Reference.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, nlb.ID.String()); err != nil {
 				return nil, fmt.Errorf("error patching annotations: %s", err)
 			}
 
-			debugf("NLB %q created successfully (ID: %s)", nlb.Name, op.Reference.ID)
+			debugf("NLB %q created successfully (ID: %s)", nlb.Name, nlb.ID)
 		} else {
 			return nil, err
 		}
@@ -215,12 +224,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 		for _, servicePort := range service.Spec.Ports {
 			if nlbService.Port == int64(servicePort.Port) {
 				infof("deleting NLB service %s/%s", nlb.Name, nlbService.Name)
-				op, err := l.p.client.DeleteLoadBalancerService(ctx, nlb.ID, nlbService.ID)
-				if err != nil {
-					return err
-				}
-
-				_, err = l.p.client.Wait(ctx, op, v3.OperationStateSuccess)
+				_, err := l.p.client.DeleteLoadBalancerService(ctx, nlb.ID, nlbService.ID)
 				if err != nil {
 					return err
 				}

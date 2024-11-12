@@ -147,7 +147,7 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 	}
 
 	//TODO add chain credentials with env...etc
-	creds := credentials.NewStaticCredentials(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
+	creds := credentials.NewStaticCredentials(apiCredentials.APIKey, apiCredentials.APISecret)
 	client, err := v3.NewClient(creds)
 	if err != nil {
 		infof("failed to initialize Exoscale client: %v", err)
