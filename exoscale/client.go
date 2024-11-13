@@ -68,6 +68,11 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 		if err != nil {
 			return nil, err
 		}
+
+		if c.apiEndpoint != "" {
+			exo = exo.WithEndpoint(v3.Endpoint(c.apiEndpoint))
+		}
+
 		c.exo = exo
 	} else if config.APICredentialsFile != "" {
 		infof("reading (watching) Exoscale API credentials from file %q", config.APICredentialsFile)
@@ -155,6 +160,9 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 	}
 
 	c.Lock()
+	if c.apiEndpoint != "" {
+		client = client.WithEndpoint(v3.Endpoint(c.apiEndpoint))
+	}
 	c.exo = client
 	c.apiCredentials = apiCredentials
 	c.Unlock()

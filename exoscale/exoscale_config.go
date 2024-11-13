@@ -45,7 +45,7 @@ func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
 	if value, exists := os.LookupEnv("EXOSCALE_API_CREDENTIALS_FILE"); exists {
 		cfg.Global.APICredentialsFile = value
 	}
-	if value, exists := os.LookupEnv("EXOSCALE_API_ENPOINT"); exists {
+	if value, exists := os.LookupEnv("EXOSCALE_API_ENDPOINT"); exists {
 		cfg.Global.APIEndpoint = value
 	}
 

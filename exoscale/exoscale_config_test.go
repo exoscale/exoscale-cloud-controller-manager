@@ -12,7 +12,7 @@ var (
 	testAPIKey             = new(exoscaleCCMTestSuite).randomString(10)
 	testAPISecret          = new(exoscaleCCMTestSuite).randomString(10)
 	testAPICredentialsFile = new(exoscaleCCMTestSuite).randomString(10)
-	testAPIEnvironment     = "test"
+	testAPIEndpoint        = "test"
 
 	// Config
 	testConfig_empty   = cloudConfig{}
@@ -54,8 +54,8 @@ global:
   zone: "%s"
   apiKey: "%s"
   apiSecret: "%s"
-  apiEnvironment: "%s"
-`, testZone, testAPIKey, testAPISecret, testAPIEnvironment)
+  apiEndpoint: "%s"
+`, testZone, testAPIKey, testAPISecret, testAPIEndpoint)
 )
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_empty() {
@@ -91,12 +91,12 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_typical() {
 	os.Setenv("EXOSCALE_ZONE", testZone)
 	os.Setenv("EXOSCALE_API_KEY", testAPIKey)
 	os.Setenv("EXOSCALE_API_SECRET", testAPISecret)
-	os.Setenv("EXOSCALE_API_ENVIRONMENT", testAPIEnvironment)
+	os.Setenv("EXOSCALE_API_ENDPOINT", testAPIEndpoint)
 	defer func() {
 		os.Unsetenv("EXOSCALE_ZONE")
 		os.Unsetenv("EXOSCALE_API_KEY")
 		os.Unsetenv("EXOSCALE_API_SECRET")
-		os.Unsetenv("EXOSCALE_API_ENVIRONMENT")
+		os.Unsetenv("EXOSCALE_API_ENDPOINT")
 	}()
 
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
@@ -128,7 +128,7 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_typical() {
 	os.Unsetenv("EXOSCALE_ZONE")
 	os.Unsetenv("EXOSCALE_API_KEY")
 	os.Unsetenv("EXOSCALE_API_SECRET")
-	os.Unsetenv("EXOSCALE_API_ENVIRONMENT")
+	os.Unsetenv("EXOSCALE_API_ENDPOINT")
 
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_typical))
 	ts.Require().NoError(err)
