@@ -332,12 +332,12 @@ next:
 					nlbServiceUpdate.ID,
 					v3.UpdateLoadBalancerServiceRequest{
 						Name:        nlbServiceUpdate.Name,
-						Description: nlbServiceCurrent.Description,
-						Port:        nlbServiceCurrent.Port,
-						TargetPort:  nlbServiceCurrent.TargetPort,
-						Protocol:    v3.UpdateLoadBalancerServiceRequestProtocol(nlbServiceCurrent.Protocol),
-						Strategy:    v3.UpdateLoadBalancerServiceRequestStrategy(nlbServiceCurrent.Strategy),
-						Healthcheck: nlbServiceCurrent.Healthcheck,
+						Description: nlbServiceUpdate.Description,
+						Port:        nlbServiceUpdate.Port,
+						TargetPort:  nlbServiceUpdate.TargetPort,
+						Protocol:    v3.UpdateLoadBalancerServiceRequestProtocol(nlbServiceUpdate.Protocol),
+						Strategy:    v3.UpdateLoadBalancerServiceRequestStrategy(nlbServiceUpdate.Strategy),
+						Healthcheck: nlbServiceUpdate.Healthcheck,
 					},
 				); err != nil {
 					return err
@@ -350,12 +350,15 @@ next:
 
 			svc, err := l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
 				Name:        nlbServiceUpdate.Name,
-				Description: nlbServiceCurrent.Description,
-				Port:        nlbServiceCurrent.Port,
-				TargetPort:  nlbServiceCurrent.TargetPort,
-				Protocol:    v3.AddServiceToLoadBalancerRequestProtocol(nlbServiceCurrent.Protocol),
-				Strategy:    v3.AddServiceToLoadBalancerRequestStrategy(nlbServiceCurrent.Strategy),
-				Healthcheck: nlbServiceCurrent.Healthcheck,
+				Description: nlbServiceUpdate.Description,
+				Port:        nlbServiceUpdate.Port,
+				TargetPort:  nlbServiceUpdate.TargetPort,
+				Protocol:    v3.AddServiceToLoadBalancerRequestProtocol(nlbServiceUpdate.Protocol),
+				Strategy:    v3.AddServiceToLoadBalancerRequestStrategy(nlbServiceUpdate.Strategy),
+				Healthcheck: nlbServiceUpdate.Healthcheck,
+				InstancePool: &v3.InstancePool{
+					ID: nlbServiceUpdate.InstancePool.ID,
+				},
 			})
 			if err != nil {
 				return err
