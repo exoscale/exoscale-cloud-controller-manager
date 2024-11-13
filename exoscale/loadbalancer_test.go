@@ -115,8 +115,9 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 				Namespace: metav1.NamespaceDefault,
 				UID:       types.UID(k8sServiceUID),
 				Annotations: map[string]string{
-					annotationLoadBalancerDescription: testNLBDescription,
-					annotationLoadBalancerName:        testNLBName,
+					annotationLoadBalancerDescription:        testNLBDescription,
+					annotationLoadBalancerName:               testNLBName,
+					annotationLoadBalancerServiceDescription: testNLBServiceDescription,
 				},
 			},
 			Spec: v1.ServiceSpec{
@@ -132,6 +133,31 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 			Ingress: []v1.LoadBalancerIngress{{IP: testNLBIPaddress}},
 		}
 	)
+
+	expectedNLBServiceRequest := v3.AddServiceToLoadBalancerRequest{
+		Healthcheck: &v3.LoadBalancerServiceHealthcheck{
+			Interval: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthcheckInterval)
+				return d
+			}().Seconds()),
+			Mode:    defaultNLBServiceHealthcheckMode,
+			Port:    int64(k8sServicePortNodePort),
+			Retries: defaultNLBServiceHealthcheckRetries,
+			Timeout: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthCheckTimeout)
+				return d
+			}().Seconds()),
+		},
+		InstancePool: &v3.InstancePool{
+			ID: testNLBServiceInstancePoolID,
+		},
+		Name:        nlbServicePortName,
+		Description: testNLBServiceDescription,
+		Port:        int64(k8sServicePortPort),
+		Protocol:    v3.AddServiceToLoadBalancerRequestProtocol(testNLBServiceProtocol),
+		Strategy:    v3.AddServiceToLoadBalancerRequestStrategy(testNLBServiceStrategy),
+		TargetPort:  int64(k8sServicePortNodePort),
+	}
 
 	ts.p.client.(*exoscaleClientMock).
 		On("GetInstance", ts.p.ctx, testInstanceID).
@@ -171,9 +197,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 		On("AddServiceToLoadBalancer", ts.p.ctx, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			nlbServiceCreated = true
-			ts.Require().Equal(args.Get(2), v3.AddServiceToLoadBalancerRequest{
-				Name: nlbServicePortName,
-			})
+			ts.Require().Equal(args.Get(2), expectedNLBServiceRequest)
 		}).
 		Return(&v3.Operation{
 			Reference: &v3.OperationReference{
@@ -253,6 +277,30 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_reuse() {
 		}
 	)
 
+	expectedNLBServiceRequest := v3.AddServiceToLoadBalancerRequest{
+		Healthcheck: &v3.LoadBalancerServiceHealthcheck{
+			Interval: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthcheckInterval)
+				return d
+			}().Seconds()),
+			Mode:    defaultNLBServiceHealthcheckMode,
+			Port:    int64(k8sServicePortNodePort),
+			Retries: defaultNLBServiceHealthcheckRetries,
+			Timeout: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthCheckTimeout)
+				return d
+			}().Seconds()),
+		},
+		InstancePool: &v3.InstancePool{
+			ID: testNLBServiceInstancePoolID,
+		},
+		Name:       nlbServicePortName,
+		Port:       int64(k8sServicePortPort),
+		Protocol:   v3.AddServiceToLoadBalancerRequestProtocol(testNLBServiceProtocol),
+		Strategy:   v3.AddServiceToLoadBalancerRequestStrategy(testNLBServiceStrategy),
+		TargetPort: int64(k8sServicePortNodePort),
+	}
+
 	ts.p.client.(*exoscaleClientMock).
 		On("GetInstance", ts.p.ctx, testInstanceID).
 		Return(&v3.Instance{
@@ -276,9 +324,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_reuse() {
 		On("AddServiceToLoadBalancer", ts.p.ctx, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			nlbServiceCreated = true
-			ts.Require().Equal(args.Get(2), v3.AddServiceToLoadBalancerRequest{
-				Name: nlbServicePortName,
-			})
+			ts.Require().Equal(args.Get(2), expectedNLBServiceRequest)
 		}).
 		Return(&v3.Operation{
 			Reference: &v3.OperationReference{
@@ -632,8 +678,28 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_create() {
 		}
 	)
 
-	expectedNLBService := v3.AddServiceToLoadBalancerRequest{
-		Name: nlbServicePortName,
+	expectedNLBServiceRequest := v3.AddServiceToLoadBalancerRequest{
+		Healthcheck: &v3.LoadBalancerServiceHealthcheck{
+			Interval: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthcheckInterval)
+				return d
+			}().Seconds()),
+			Mode:    defaultNLBServiceHealthcheckMode,
+			Port:    int64(k8sServicePortNodePort),
+			Retries: defaultNLBServiceHealthcheckRetries,
+			Timeout: int64(func() time.Duration {
+				d, _ := time.ParseDuration(defaultNLBServiceHealthCheckTimeout)
+				return d
+			}().Seconds()),
+		},
+		InstancePool: &v3.InstancePool{
+			ID: testNLBServiceInstancePoolID,
+		},
+		Name:       nlbServicePortName,
+		Port:       int64(k8sServicePortPort),
+		Protocol:   v3.AddServiceToLoadBalancerRequestProtocol(testNLBServiceProtocol),
+		Strategy:   v3.AddServiceToLoadBalancerRequestStrategy(testNLBServiceStrategy),
+		TargetPort: int64(k8sServicePortNodePort),
 	}
 
 	ts.p.client.(*exoscaleClientMock).
@@ -645,7 +711,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_create() {
 		Run(func(args mock.Arguments) {
 			created = true
 			ts.Require().Equal(args.Get(1), currentNLB.ID)
-			ts.Require().Equal(args.Get(2), expectedNLBService)
+			ts.Require().Equal(args.Get(2), expectedNLBServiceRequest)
 		}).
 		Return(&v3.Operation{
 			Reference: &v3.OperationReference{
