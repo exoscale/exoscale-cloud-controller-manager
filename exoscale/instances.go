@@ -96,14 +96,13 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	instanceName := instance.Name
 	addresses := []v1.NodeAddress{
-		{Type: v1.NodeHostName, Address: instanceName},
+		{Type: v1.NodeHostName, Address: instance.Name},
 	}
 
 	foundInternalIP := false
 	if i.p.client != nil && instance.PrivateNetworks != nil && len(instance.PrivateNetworks) > 0 {
-		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instanceName, metav1.GetOptions{}); node != nil {
+		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
 			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 				addresses = append(
 					addresses,
