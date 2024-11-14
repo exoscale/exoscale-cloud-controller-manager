@@ -26,7 +26,6 @@ var (
 	// YAML
 	testConfigYAML_instances = fmt.Sprintf(`---
 global:
-  zone: "%s"
   apiKey: "%s"
   apiSecret: "%s"
 instances:
@@ -47,7 +46,7 @@ instances:
     - name: "%s"
       external: true
 `,
-		testZone, testAPIKey, testAPISecret,
+		testAPIKey, testAPISecret,
 		testInstanceOverrideType,
 		testInstanceOverrideAddress_internal, testInstanceOverrideAddress_external,
 		testInstanceOverrideExternalName, testInstanceOverrideExternalID, testInstanceOverrideExternalType, testInstanceOverrideExternalRegion,
@@ -56,7 +55,6 @@ instances:
 )
 
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_instances() {
-	os.Unsetenv("EXOSCALE_ZONE")
 	os.Unsetenv("EXOSCALE_API_KEY")
 	os.Unsetenv("EXOSCALE_API_SECRET")
 
@@ -64,7 +62,6 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_instances() {
 
 	// Global
 	ts.Require().NoError(err)
-	ts.Require().Equal(testZone, cfg.Global.Zone)
 	ts.Require().Equal(testAPIKey, cfg.Global.APIKey)
 	ts.Require().Equal(testAPISecret, cfg.Global.APISecret)
 

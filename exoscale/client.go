@@ -38,18 +38,33 @@ type exoscaleAPICredentials struct {
 type refreshableExoscaleClient struct {
 	exo            exoscaleClient
 	apiCredentials exoscaleAPICredentials
-	apiEndpoint    string
+	apiEndpoint    v3.Endpoint
 
 	*sync.RWMutex
 }
 
-func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*refreshableExoscaleClient, error) {
+type switchZone func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error)
+
+var switchZoneCallback switchZone = func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error) {
+	if zone == "" {
+		return client, nil
+	}
+
+	zoneEndpoint, err := client.GetZoneAPIEndpoint(ctx, zone)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.WithEndpoint(zoneEndpoint), nil
+}
+
+func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig, zone v3.ZoneName, zoneCallback switchZone) (*refreshableExoscaleClient, error) {
 	c := &refreshableExoscaleClient{
 		RWMutex: &sync.RWMutex{},
 	}
 
 	if config.APIEndpoint != "" {
-		c.apiEndpoint = config.APIEndpoint
+		c.apiEndpoint = v3.Endpoint(config.APIEndpoint)
 	}
 
 	if config.APIKey != "" && config.APISecret != "" { //nolint:gocritic
@@ -60,25 +75,36 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 			APISecret: config.APISecret,
 		}
 
-		//TODO add chain credentials with env...etc
-		creds := credentials.NewStaticCredentials(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
-		exo, err := v3.NewClient(creds, v3.ClientOptWithUserAgent(
+		var opts []v3.ClientOpt
+		if c.apiEndpoint != "" {
+			opts = append(opts, v3.ClientOptWithEndpoint(c.apiEndpoint))
+		}
+
+		opts = append(opts, v3.ClientOptWithUserAgent(
 			fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s", versionString),
 		))
+
+		//TODO add chain credentials with env...etc
+		creds := credentials.NewStaticCredentials(
+			c.apiCredentials.APIKey,
+			c.apiCredentials.APISecret,
+		)
+		exo, err := v3.NewClient(creds, opts...)
 		if err != nil {
 			return nil, err
 		}
 
-		if c.apiEndpoint != "" {
-			exo = exo.WithEndpoint(v3.Endpoint(c.apiEndpoint))
+		exo, err = zoneCallback(ctx, exo, zone)
+		if err != nil {
+			return nil, err
 		}
 
 		c.exo = exo
 	} else if config.APICredentialsFile != "" {
 		infof("reading (watching) Exoscale API credentials from file %q", config.APICredentialsFile)
 
-		c.refreshCredentialsFromFile(config.APICredentialsFile)
-		go c.watchCredentialsFile(ctx, config.APICredentialsFile)
+		c.refreshCredentialsFromFile(ctx, config.APICredentialsFile, zone, zoneCallback)
+		go c.watchCredentialsFile(ctx, config.APICredentialsFile, zone, zoneCallback)
 	} else {
 		return nil, errors.New("incomplete or missing Exoscale API credentials")
 	}
@@ -97,7 +123,12 @@ func (c *refreshableExoscaleClient) Wait(ctx context.Context, op *v3.Operation, 
 	)
 }
 
-func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, path string) {
+func (c *refreshableExoscaleClient) watchCredentialsFile(
+	ctx context.Context,
+	path string,
+	zone v3.ZoneName,
+	zoneCallback switchZone,
+) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fatalf("failed to watch credentials file %q: %v", path, err)
@@ -120,7 +151,7 @@ func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, pa
 			if event.Name == path &&
 				(event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create) {
 				infof("refreshing API credentials from file %q", path)
-				c.refreshCredentialsFromFile(path)
+				c.refreshCredentialsFromFile(ctx, path, zone, zoneCallback)
 			}
 
 		case err, ok := <-watcher.Errors:
@@ -138,7 +169,12 @@ func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, pa
 	}
 }
 
-func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
+func (c *refreshableExoscaleClient) refreshCredentialsFromFile(
+	ctx context.Context,
+	path string,
+	zone v3.ZoneName,
+	zoneCallback switchZone,
+) {
 	f, err := os.Open(path)
 	if err != nil {
 		fatalf("failed to read credentials file %q: %v", path, err)
@@ -151,18 +187,30 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 		return
 	}
 
+	var opts []v3.ClientOpt
+	if c.apiEndpoint != "" {
+		opts = append(opts, v3.ClientOptWithEndpoint(c.apiEndpoint))
+	}
+
+	opts = append(opts, v3.ClientOptWithUserAgent(
+		fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s", versionString),
+	))
+
 	//TODO add chain credentials with env...etc
 	creds := credentials.NewStaticCredentials(apiCredentials.APIKey, apiCredentials.APISecret)
-	client, err := v3.NewClient(creds)
+	client, err := v3.NewClient(creds, opts...)
 	if err != nil {
 		infof("failed to initialize Exoscale client: %v", err)
 		return
 	}
 
-	c.Lock()
-	if c.apiEndpoint != "" {
-		client = client.WithEndpoint(v3.Endpoint(c.apiEndpoint))
+	client, err = zoneCallback(ctx, client, zone)
+	if err != nil {
+		errorf("failed to switch client zone: %v", err)
+		return
 	}
+
+	c.Lock()
 	c.exo = client
 	c.apiCredentials = apiCredentials
 	c.Unlock()

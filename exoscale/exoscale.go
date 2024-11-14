@@ -2,12 +2,14 @@ package exoscale
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
+	v3 "github.com/exoscale/egoscale/v3"
+	"github.com/exoscale/egoscale/v3/metadata"
 	"k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -59,11 +61,20 @@ func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 		cfg: config,
 	}
 
-	provider.zone = config.Global.Zone
-	if provider.zone == "" {
-		return nil, errors.New("zone not specified, please set the 'zone' in the cloud configuration file or the EXOSCALE_ZONE environment variable")
-	}
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
+	defer cancel()
 
+	zone, err := metadata.FromCdRom(metadata.AvailabilityZone)
+	if err != nil {
+		klog.Warningf("error to get exoscale node metadata from CD-ROM: %v", err)
+		klog.Info("fallback on server metadata")
+		zone, err = metadata.Get(ctx, metadata.AvailabilityZone)
+		if err != nil {
+			klog.Errorf("error to get exoscale node metadata from server: %v", err)
+			return nil, fmt.Errorf("get metadata: %w", err)
+		}
+	}
+	provider.zone = zone
 	provider.instances = newInstances(provider, &config.Instances)
 	provider.loadBalancer = newLoadBalancer(provider, &config.LoadBalancer)
 	provider.zones = newZones(provider)
@@ -82,7 +93,12 @@ func (p *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 	p.ctx = ctx
 	p.stop = cancel
 
-	client, err := newRefreshableExoscaleClient(p.ctx, &p.cfg.Global)
+	client, err := newRefreshableExoscaleClient(
+		p.ctx,
+		&p.cfg.Global,
+		v3.ZoneName(p.zone),
+		switchZoneCallback,
+	)
 	if err != nil {
 		fatalf("could not create Exoscale client: %v", err)
 	}

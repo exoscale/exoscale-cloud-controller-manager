@@ -7,10 +7,16 @@ import (
 	"path"
 	"sync"
 	"time"
+
+	v3 "github.com/exoscale/egoscale/v3"
 )
 
+var testZoneCallback switchZone = func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error) {
+	return client, nil
+}
+
 func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_no_config() {
-	_, err := newRefreshableExoscaleClient(context.Background(), &testConfig_empty.Global)
+	_, err := newRefreshableExoscaleClient(context.Background(), &testConfig_empty.Global, v3.ZoneNameCHGva2, testZoneCallback)
 	ts.Require().Error(err)
 }
 
@@ -23,7 +29,7 @@ func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_credentials() 
 		},
 	}
 
-	actual, err := newRefreshableExoscaleClient(context.Background(), &testConfig_typical.Global)
+	actual, err := newRefreshableExoscaleClient(context.Background(), &testConfig_typical.Global, v3.ZoneNameCHGva2, testZoneCallback)
 	ts.Require().NoError(err)
 	ts.Require().Equal(expected.apiCredentials, actual.apiCredentials)
 	ts.Require().NotNil(actual.exo)
@@ -48,7 +54,7 @@ func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_refreshCredential
 	ts.Require().NoError(os.WriteFile(testAPICredentialsFile, jsonAPICredentials, 0o600))
 
 	client := &refreshableExoscaleClient{RWMutex: &sync.RWMutex{}}
-	client.refreshCredentialsFromFile(testAPICredentialsFile)
+	client.refreshCredentialsFromFile(context.Background(), testAPICredentialsFile, v3.ZoneNameCHGva2, testZoneCallback)
 
 	client.RLock()
 	defer client.RUnlock()
@@ -76,7 +82,7 @@ func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_watchCredentialsF
 	defer cancel()
 
 	client := &refreshableExoscaleClient{RWMutex: &sync.RWMutex{}}
-	go client.watchCredentialsFile(ctx, testAPICredentialsFile)
+	go client.watchCredentialsFile(ctx, testAPICredentialsFile, v3.ZoneNameCHGva2, testZoneCallback)
 
 	time.Sleep(1 * time.Second)
 	ts.Require().NoError(os.WriteFile(testAPICredentialsFile, jsonAPICredentials, 0o600))

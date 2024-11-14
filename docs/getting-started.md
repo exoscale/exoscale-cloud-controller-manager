@@ -57,9 +57,6 @@ with API credentials. This can be achieved:
 
 The following environment variables are available to configure Exoscale CCM:
 
-* `EXOSCALE_ZONE` [**required**]: the Exoscale zone which the cluster/CCM
-  runs in; e.g. `ch-gva-2`
-
 * `EXOSCALE_API_KEY` / `EXOSCALE_API_SECRET` [**required**]: actual Exoscale API
   credentials
 
@@ -78,13 +75,11 @@ the CCM *Deployment*.
 
 First, start by exporting the Exoscale API credentials (we recommend that you
 create dedicated API credentials using the [Exoscale IAM][exo-iam] service) to
-provide to the CCM in your shell, as well as the zone in which the cluster is
-located:
+provide to the CCM in your shell:
 
 ```Shell
 export EXOSCALE_API_KEY="EXOxxxxxxxxxxxxxxxxxxxxxxxx"
 export EXOSCALE_API_SECRET="xxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-export EXOSCALE_ZONE="ch-gva-2"
 ```
 
 Next, run the following command from the same shell:
@@ -111,7 +106,6 @@ of the environment variables mentioned above):
 ``` yaml
 # Global (API) configuration
 global:
-  zone: "<EXOSCALE_ZONE>"
   apiKey: "<EXOSCALE_API_KEY>"
   apiSecret: "<EXOSCALE_API_SECRET>"
   apiCredentialsFile: "<EXOSCALE_API_CREDENTIALS_FILE>"

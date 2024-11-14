@@ -14,7 +14,6 @@ type cloudConfig struct {
 }
 
 type globalConfig struct {
-	Zone               string
 	APIKey             string `yaml:"apiKey"`
 	APISecret          string `yaml:"apiSecret"`
 	APICredentialsFile string `yaml:"apiCredentialsFile"`
@@ -33,9 +32,6 @@ func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
 	}
 
 	// From environment
-	if value, exists := os.LookupEnv("EXOSCALE_ZONE"); exists {
-		cfg.Global.Zone = value
-	}
 	if value, exists := os.LookupEnv("EXOSCALE_API_KEY"); exists {
 		cfg.Global.APIKey = value
 	}
