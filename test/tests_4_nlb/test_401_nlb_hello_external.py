@@ -118,6 +118,9 @@ def test_cli_hello_external_services(
                     service_id,
                 ],
             )
+            logger.debug(
+                f"XXXXXXX NLB service: {sStdErr} Service ID: {service_id}"
+            )
             assert iExit == 0
             output = json.loads(sStdOut)
             logger.debug(

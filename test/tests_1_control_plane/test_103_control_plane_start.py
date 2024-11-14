@@ -22,7 +22,7 @@ def test_k8s_version(test, tf_control_plane, logger):
         output["serverVersion"]["major"],
         output["serverVersion"]["minor"],
     )
-    assert version_major_minor in ["1.28", "1.29", "1.30"]
+    assert version_major_minor in ["1.28", "1.29", "1.30", "1.31"]
 
 
 @pytest.mark.control_plane
