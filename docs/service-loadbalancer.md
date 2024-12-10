@@ -157,6 +157,13 @@ The Exoscale NLB service health checking mode.
 
 Supported values: `tcp` (default), `http`.
 
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port`
+
+Forces an healthcheck port.
+
+Default is `NodePort` of the service when `spec.ExternalTrafficPolicy` is set to `Cluster` (default) or
+`spec.HealthCheckNodePort` when `spec.ExternalTrafficPolicy` is set to `Local`.
+
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri`
 
@@ -201,6 +208,86 @@ the target *Pods*. With `spec.externalTrafficPolicy=Cluster` (the default),
 the CCM uses `spec.ports[].nodePort`.
 
 
+### Configuring a UDP service
+
+When pointing the Exoscale NLB to a UDP service, it still requires a TCP health
+check port to determine if the respective node or application is reachable.
+You can use a sidecar container to provide this functionality.
+
+Also make sure to allow UDP for the NodePort ports in your security group.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udp-echo-deployment
+  labels:
+    app: udp-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: udp-echo
+  template:
+    metadata:
+      labels:
+        app: udp-echo
+    spec:
+      containers:
+      - name: udp-echo
+        image: alpine
+        command: ["sh", "-c", "while true; do echo -n 'Echo' | nc -u -l -p 8080 -w 1; done"]
+        ports:
+        - containerPort: 8080
+          protocol: UDP
+      - name: tcp-healthcheck
+        image: k8s.gcr.io/echoserver:1.10
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: udp-echo-service
+  annotations:
+  # If you use externalTrafficPolicy: Cluster (default) you either have to use the same nodePort for both the
+  #    TCP (healthcheck) and UDP service or define here a healthcheck port which needs to be the same
+  #    as the TCP (healthcheck)'s NodePort
+  # If you use externalTrafficPolicy: local remove that annotation, it will use spec.healthCheckNodePort then
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port: "31621"
+spec:
+  type: LoadBalancer
+  # externalTrafficPolicy: Local
+  ports:
+    - name: udpapplication
+      port: 8080                 # External UDP Port
+      protocol: UDP
+      targetPort: 8080           # ContainerPort
+    # You can remove the following service + sidecar container when using externalTrafficPolicy: Local
+    - name: udpapphealthcheck
+      port: 8080                 # Health check port (TCP)
+      targetPort: 8080           # ContainerPort for TCP health checks
+      nodePort: 31621            # Must match the annotation above
+      protocol: TCP
+  selector:
+    app: udp-echo
+
+```
+
+**Notes:**
+
+* A [long-standing bug][k8s-same-port-bug] in kubectl prevents adding the same
+  port with different protocols (e.g., TCP and UDP) to an already existing service
+  with kubectl apply, kubectl edit, or similar commands. If you attempt this,
+  Kubernetes may delete the respective second port.  
+  Use `kubectl apply --server-side` to avoid or fix this issue.
+* If `externalTrafficPolicy: Local` is used, the CCM will automatically assign
+  `spec.healthCheckNodePort` (which checks wether a given node is online and holds endpoint for the service),
+  so the explicit annotation for the health check port and the sidecar is unnecessary.  
+  For externalTrafficPolicy: Cluster, ensure the annotation
+  `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port` matches the TCP `nodePort`.
+
 ### Using an externally managed NLB instance with the Exoscale CCM
 
 If you prefer to manage the NLB instance yourself using different tools
@@ -236,8 +323,6 @@ spec:
 
 ## ⚠️ Important Notes
 
-* Currently, the Exoscale CCM doesn't support UDP service load balancing due to
-  a [technical limitation in Kubernetes][k8s-issue-no-proto-mix].
 * As `NodePort` created by K8s *Services* are picked randomly [within a defined
   range][k8s-service-nodeport] (by default `30000-32767`), don't forget to
   configure [Security Groups][exo-sg] used by your Compute Instance Pools to
@@ -254,9 +339,9 @@ spec:
 [k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 [k8s-daemonset]: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 [k8s-ingress-controller]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
-[k8s-issue-no-proto-mix]: https://github.com/kubernetes/kubernetes/issues/23880
 [k8s-service-kube-proxy]: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 [k8s-service-nodeport]: https://kubernetes.io/docs/concepts/services-networking/service/#nodeport
 [k8s-service-source-ip]: https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-type-loadbalancer
 [k8s-service-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#service-v1-core
 [k8s-serviceport-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#serviceport-v1-core
+[k8s-same-port-bug]: https://github.com/kubernetes/kubernetes/issues/105610

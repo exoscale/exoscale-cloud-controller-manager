@@ -35,6 +35,7 @@ var (
 	testNLBServiceInstancePoolID            = new(exoscaleCCMTestSuite).randomID()
 	testNLBServiceName                      = new(exoscaleCCMTestSuite).randomString(10)
 	testNLBServiceProtocol                  = strings.ToLower(string(v1.ProtocolTCP))
+	testNLBServiceProtocolUDP               = strings.ToLower(string(v1.ProtocolUDP))
 	testNLBServiceStrategy                  = "round-robin"
 )
 
@@ -368,7 +369,9 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancerDeleted() {
 		k8sServiceUID                 = ts.randomID()
 		k8sServicePortPort     uint16 = 80
 		k8sServicePortNodePort uint16 = 32672
+		k8sServicePortProtocol		  = v1.ProtocolTCP
 		nlbServicePortName            = fmt.Sprintf("%s-%d", k8sServiceUID, k8sServicePortPort)
+		nlbServicePortProtocol		  = strings.ToLower(string(v1.ProtocolTCP))
 		nlbDeleted                    = false
 		nlbServiceDeleted             = false
 
@@ -378,6 +381,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancerDeleted() {
 			Services: []*egoscale.NetworkLoadBalancerService{{
 				Name: &nlbServicePortName,
 				Port: &k8sServicePortPort,
+				Protocol: &nlbServicePortProtocol,
 			}},
 		}
 
@@ -393,7 +397,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancerDeleted() {
 			},
 			Spec: v1.ServiceSpec{
 				Ports: []v1.ServicePort{{
-					Protocol: v1.ProtocolTCP,
+					Protocol: k8sServicePortProtocol,
 					Port:     int32(k8sServicePortPort),
 					NodePort: int32(k8sServicePortNodePort),
 				}},
@@ -1027,6 +1031,17 @@ func Test_buildLoadBalancerFromAnnotations(t *testing.T) {
 	expected.Services = expected.Services[:1]
 	expected.Services[0].Name = &testNLBServiceName
 	expected.Services[0].Description = &testNLBServiceDescription
+	actual, err = buildLoadBalancerFromAnnotations(service)
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	// Variant: UDP with healthcheck port defined
+	var serviceHealthCheckPort uint16 = 32123
+ 
+	service.Spec.Ports[0].Protocol = v1.ProtocolUDP
+	service.Annotations[annotationLoadBalancerServiceHealthCheckPort] = fmt.Sprint(serviceHealthCheckPort)
+	expected.Services[0].Protocol = &testNLBServiceProtocolUDP
+	expected.Services[0].Healthcheck.Port = &serviceHealthCheckPort
 	actual, err = buildLoadBalancerFromAnnotations(service)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
