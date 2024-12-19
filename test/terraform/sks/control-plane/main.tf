@@ -14,6 +14,8 @@ resource "exoscale_security_group_rule" "cluster_sg_rule" {
     kubelet_logs           = { protocol = "TCP", port = 10250, cidr = "0.0.0.0/0" },
     kubelet_nodeports_ipv4 = { protocol = "TCP", port = "30000-32767", cidr = "0.0.0.0/0" }
     kubelet_nodeports_ipv6 = { protocol = "TCP", port = "30000-32767", cidr = "::/0" }
+    kubelet_nodeports_ipv4_udp = { protocol = "UDP", port = "30000-32767", cidr = "0.0.0.0/0" }
+    kubelet_nodeports_ipv6_udp = { protocol = "UDP", port = "30000-32767", cidr = "::/0" }
     # Calico
     # REF: https://projectcalico.docs.tigera.io/getting-started/kubernetes/requirements#network-requirements
     calico_typha = { protocol = "TCP", port = 5473, sg = exoscale_security_group.cluster_sg.id }

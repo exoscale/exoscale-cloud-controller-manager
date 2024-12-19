@@ -28,6 +28,7 @@ const (
 	annotationLoadBalancerServiceDescription         = annotationPrefix + "service-description"
 	annotationLoadBalancerServiceInstancePoolID      = annotationPrefix + "service-instancepool-id"
 	annotationLoadBalancerServiceHealthCheckMode     = annotationPrefix + "service-healthcheck-mode"
+	annotationLoadBalancerServiceHealthCheckPort	 = annotationPrefix + "service-healthcheck-port"
 	annotationLoadBalancerServiceHealthCheckURI      = annotationPrefix + "service-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = annotationPrefix + "service-healthcheck-interval"
 	annotationLoadBalancerServiceHealthCheckTimeout  = annotationPrefix + "service-healthcheck-timeout"
@@ -214,7 +215,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	remainingServices := len(nlb.Services)
 	for _, nlbService := range nlb.Services {
 		for _, servicePort := range service.Spec.Ports {
-			if int32(*nlbService.Port) == servicePort.Port {
+			if int32(*nlbService.Port) == servicePort.Port && strings.ToLower(*nlbService.Protocol) == strings.ToLower(string(servicePort.Protocol)) {
 				infof("deleting NLB service %s/%s", *nlb.Name, *nlbService.Name)
 				if err = l.p.client.DeleteNetworkLoadBalancerService(ctx, l.p.zone, nlb, nlbService); err != nil {
 					return err
@@ -265,18 +266,30 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 	}
 
 	// Delete the NLB services which port is not present in the updated version.
-	nlbServices := make(map[uint16]*egoscale.NetworkLoadBalancerService)
+	// Info: There is a long standing bug in kubectl where patching a Service towards
+	// the same port tcp/udp and possible even other properties doesn't trigger
+	// It needs then a server side apply or replace
+	// kubectl apply --server-side
+	// https://github.com/kubernetes/kubernetes/issues/39188
+	// https://github.com/kubernetes/kubernetes/issues/105610
+	type ServiceKey struct {
+		Port     uint16
+		Protocol string
+	}
+
+	nlbServices := make(map[ServiceKey]*egoscale.NetworkLoadBalancerService)
 next:
 	for _, nlbServiceCurrent := range nlbCurrent.Services {
+		key := ServiceKey{Port: *nlbServiceCurrent.Port, Protocol: *nlbServiceCurrent.Protocol}
+		debugf("Checking existing NLB service %s/%s - key %v", *nlbCurrent.Name, *nlbServiceCurrent.Name, key)
+	
 		for _, nlbServiceUpdate := range nlbUpdate.Services {
-			// If a service exposing the same port already exists,
-			// flag it for update and save its ID for later reference.
-			if *nlbServiceUpdate.Port == *nlbServiceCurrent.Port {
-				debugf("Service port %d already in use by NLB service %s/%s, marking for update",
-					*nlbServiceCurrent.Port,
-					*nlbCurrent.Name,
-					*nlbServiceCurrent.Name)
-				nlbServices[*nlbServiceCurrent.Port] = nlbServiceCurrent
+			updateKey := ServiceKey{Port: *nlbServiceUpdate.Port, Protocol: *nlbServiceUpdate.Protocol}
+        
+			if key == updateKey {
+				debugf("Match found for existing service %s/%s with updated service %s/%s",
+                	*nlbCurrent.Name, *nlbServiceCurrent.Name, *nlbUpdate.Name, *nlbServiceUpdate.Name)
+				nlbServices[key] = nlbServiceCurrent
 				continue next
 			}
 		}
@@ -307,7 +320,10 @@ next:
 
 	// Update existing services and add new ones.
 	for _, nlbServiceUpdate := range nlbUpdate.Services {
-		if nlbServiceCurrent, ok := nlbServices[*nlbServiceUpdate.Port]; ok {
+		key := ServiceKey{Port: *nlbServiceUpdate.Port, Protocol: *nlbServiceUpdate.Protocol}
+		debugf("Checking updated NLB service %s/%s - key %v", *nlbUpdate.Name, *nlbServiceUpdate.Name, key)
+
+		if nlbServiceCurrent, ok := nlbServices[key]; ok {
 			nlbServiceUpdate.ID = nlbServiceCurrent.ID
 			if isLoadBalancerServiceUpdated(nlbServiceCurrent, nlbServiceUpdate) {
 				infof("updating NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
@@ -537,38 +553,52 @@ func buildLoadBalancerFromAnnotations(service *v1.Service) (*egoscale.NetworkLoa
 	hcRetries := int64(hcRetriesI)
 
 	for _, servicePort := range service.Spec.Ports {
-		// If the Service is configured with externalTrafficPolicy=Local, we use the value of the
-		// healthCheckNodePort property as NLB service healthcheck port as explained in this article:
-		// https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-type-loadbalancer
-		// TL;DR: this configures the NLB service to ensure only Instance Pool members actually running
-		// an endpoint for the corresponding K8s Service will receive ingress traffic from the NLB, thus
-		// preserving the source IP address information.
-		hcPort := uint16(servicePort.NodePort)
-		if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal &&
-			service.Spec.HealthCheckNodePort > 0 {
-			debugf("Service is configured with externalPolicy:Local, "+
-				"using the Service spec.healthCheckNodePort value (%d) instead "+
-				"of NodePort (%d) for NLB service healthcheck port",
-				service.Spec.HealthCheckNodePort,
-				servicePort.NodePort)
-			hcPort = uint16(service.Spec.HealthCheckNodePort)
+		var hcPort uint16
+
+		// If the user specifies a healthcheck port in the Service manifest annotations, we use that
+		// that is important for UDP services, as there the user must specify a TCP nodeport for healthchecks
+		hcPortAnnotation := getAnnotation(service, annotationLoadBalancerServiceHealthCheckPort, "")
+		if hcPortAnnotation != nil {
+			hcPortInt, err := strconv.Atoi(*hcPortAnnotation)
+			if err != nil {
+				return nil, fmt.Errorf("invalid healthcheck port annotation: %s", err)
+			}
+			hcPort = uint16(hcPortInt)
+		} else {
+			// If the Service is configured with externalTrafficPolicy=Local, we use the value of the
+			// healthCheckNodePort property as NLB service healthcheck port as explained in this article:
+			// https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-type-loadbalancer
+			// TL;DR: this configures the NLB service to ensure only Instance Pool members actually running
+			// an endpoint for the corresponding K8s Service will receive ingress traffic from the NLB, thus
+			// preserving the source IP address information.
+			hcPort = uint16(servicePort.NodePort)
+			if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal &&
+				service.Spec.HealthCheckNodePort > 0 {
+				debugf("Service is configured with externalPolicy:Local, "+
+					"using the Service spec.healthCheckNodePort value (%d) instead "+
+					"of NodePort (%d) for NLB service healthcheck port",
+					service.Spec.HealthCheckNodePort,
+					servicePort.NodePort)
+				hcPort = uint16(service.Spec.HealthCheckNodePort)
+			}
 		}
 
-		// Exoscale NLB services can forward both TCP and UDP protocol, however the only supported
-		// healthcheck protocol is TCP (plain TCP or HTTP).
-		// Due to a technical limitation in Kubernetes preventing declaration of mixed protocols in a
-		// service of type LoadBalancer (https://github.com/kubernetes/kubernetes/issues/23880) we only
-		// allow TCP for service ports.
-		if servicePort.Protocol != v1.ProtocolTCP {
-			return nil, errors.New("only TCP is supported as service port protocol")
+		// We support TCP/UDP but not SCTP
+		if servicePort.Protocol != v1.ProtocolTCP && servicePort.Protocol != v1.ProtocolUDP {
+			return nil, errors.New("only TCP and UDP are supported as service port protocols")
 		}
 
 		var (
+			// Name must be unique for updateLoadBalancer to work correctly
 			svcName       = fmt.Sprintf("%s-%d", service.UID, servicePort.Port)
 			svcProtocol   = strings.ToLower(string(servicePort.Protocol))
 			svcPort       = uint16(servicePort.Port)
 			svcTargetPort = uint16(servicePort.NodePort)
 		)
+
+		if servicePort.Protocol != v1.ProtocolTCP { // Add protocol to service name if not TCP
+			svcName += "-" + strings.ToLower(string(servicePort.Protocol))
+		}
 
 		svc := egoscale.NetworkLoadBalancerService{
 			Healthcheck: &egoscale.NetworkLoadBalancerServiceHealthcheck{

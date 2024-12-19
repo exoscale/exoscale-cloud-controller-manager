@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udp-echo
+  labels:
+    app: udp-echo
+    app.kubernetes.io/name: udp-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: udp-echo
+  template:
+    metadata:
+      labels:
+        app: udp-echo
+    spec:
+      containers:
+      - name: udp-echo
+        image: alpine
+        command: ["sh", "-c", "while true; do echo -n 'Echo' | nc -u -l -p 8080 -w 1; done"]
+        ports:
+        - containerPort: 8080
+          protocol: UDP
+      - name: tcp-healthcheck
+        image: k8s.gcr.io/echoserver:1.10
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: udp-echo-service
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-zone: "${exoscale_zone}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "${exoscale_nlb_id}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "${exoscale_instance_pool_id}"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port: "31621"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: udpapplication
+      port: 8080                 # External UDP Port
+      protocol: UDP
+      targetPort: 8080           # ContainerPort
+    - name: udpapphealthcheck
+      port: 8080                 # Health check port (TCP)
+      targetPort: 8080           # ContainerPort for TCP health checks
+      nodePort: 31621            # Must match the annotation above
+      protocol: TCP
+  selector:
+    app: udp-echo
