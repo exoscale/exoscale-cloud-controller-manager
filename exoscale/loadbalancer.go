@@ -28,7 +28,7 @@ const (
 	annotationLoadBalancerServiceDescription         = annotationPrefix + "service-description"
 	annotationLoadBalancerServiceInstancePoolID      = annotationPrefix + "service-instancepool-id"
 	annotationLoadBalancerServiceHealthCheckMode     = annotationPrefix + "service-healthcheck-mode"
-	annotationLoadBalancerServiceHealthCheckPort	 = annotationPrefix + "service-healthcheck-port"
+	annotationLoadBalancerServiceHealthCheckPort     = annotationPrefix + "service-healthcheck-port"
 	annotationLoadBalancerServiceHealthCheckURI      = annotationPrefix + "service-healthcheck-uri"
 	annotationLoadBalancerServiceHealthCheckInterval = annotationPrefix + "service-healthcheck-interval"
 	annotationLoadBalancerServiceHealthCheckTimeout  = annotationPrefix + "service-healthcheck-timeout"
@@ -215,7 +215,7 @@ func (l *loadBalancer) EnsureLoadBalancerDeleted(ctx context.Context, _ string, 
 	remainingServices := len(nlb.Services)
 	for _, nlbService := range nlb.Services {
 		for _, servicePort := range service.Spec.Ports {
-			if int32(*nlbService.Port) == servicePort.Port && strings.ToLower(*nlbService.Protocol) == strings.ToLower(string(servicePort.Protocol)) {
+			if int32(*nlbService.Port) == servicePort.Port && strings.EqualFold(*nlbService.Protocol, string(servicePort.Protocol)) {
 				infof("deleting NLB service %s/%s", *nlb.Name, *nlbService.Name)
 				if err = l.p.client.DeleteNetworkLoadBalancerService(ctx, l.p.zone, nlb, nlbService); err != nil {
 					return err
@@ -282,13 +282,13 @@ next:
 	for _, nlbServiceCurrent := range nlbCurrent.Services {
 		key := ServiceKey{Port: *nlbServiceCurrent.Port, Protocol: *nlbServiceCurrent.Protocol}
 		debugf("Checking existing NLB service %s/%s - key %v", *nlbCurrent.Name, *nlbServiceCurrent.Name, key)
-	
+
 		for _, nlbServiceUpdate := range nlbUpdate.Services {
 			updateKey := ServiceKey{Port: *nlbServiceUpdate.Port, Protocol: *nlbServiceUpdate.Protocol}
-        
+
 			if key == updateKey {
 				debugf("Match found for existing service %s/%s with updated service %s/%s",
-                	*nlbCurrent.Name, *nlbServiceCurrent.Name, *nlbUpdate.Name, *nlbServiceUpdate.Name)
+					*nlbCurrent.Name, *nlbServiceCurrent.Name, *nlbUpdate.Name, *nlbServiceUpdate.Name)
 				nlbServices[key] = nlbServiceCurrent
 				continue next
 			}
