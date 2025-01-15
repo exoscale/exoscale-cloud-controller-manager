@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.30.1
 
 * Add UDP Support to LoadBalancer service
 * fix(instances): ensure internal IP is set when there is only public one
