@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+* Fix not reported Kubernetes Node.status IPv6 addresses
+* chore(golang): bump golang from 1.23 to 1.23.5
+* Bump stretchr/testify from v1.9.0 to v1.10.0
+* Bump k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 to v0.0.0-20241210054802-24370beab758
+* Bump golang.org/x/crypto v0.24.0 to v0.32.0
+
 ## 0.30.1
 
 * Add UDP Support to LoadBalancer service
