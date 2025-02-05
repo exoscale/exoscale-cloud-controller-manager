@@ -131,7 +131,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		}
 	}
 
-	if instance.IPv6Enabled != nil && *instance.IPv6Enabled {
+	if instance.IPv6Address != nil {
 		addresses = append(
 			addresses,
 			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.IPv6Address.String()},
