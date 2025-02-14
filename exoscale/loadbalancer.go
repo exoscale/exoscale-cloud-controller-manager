@@ -27,6 +27,8 @@ const (
 	annotationLoadBalancerServiceName                = annotationPrefix + "service-name"
 	annotationLoadBalancerServiceDescription         = annotationPrefix + "service-description"
 	annotationLoadBalancerServiceInstancePoolID      = annotationPrefix + "service-instancepool-id"
+	annotationLoadBalancerSKSClusterName             = annotationPrefix + "sks-cluster-name" // required for annotationLoadBalancerServiceSKSNodePoolName
+	annotationLoadBalancerServiceSKSNodePoolName     = annotationPrefix + "service-sks-nodepool-name"
 	annotationLoadBalancerServiceHealthCheckMode     = annotationPrefix + "service-healthcheck-mode"
 	annotationLoadBalancerServiceHealthCheckPort     = annotationPrefix + "service-healthcheck-port"
 	annotationLoadBalancerServiceHealthCheckURI      = annotationPrefix + "service-healthcheck-uri"
@@ -101,14 +103,98 @@ func (l *loadBalancer) EnsureLoadBalancer(
 	service *v1.Service,
 	nodes []*v1.Node,
 ) (*v1.LoadBalancerStatus, error) {
-	// Inferring the Instance Pool ID from the cluster Nodes that run the Service in case no Instance Pool ID
-	// has been specified in the annotations.
-	//
-	// IMPORTANT: this use case is not compatible with Services referencing Pods using Node Selectors
-	// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
-	// The list of Nodes passed as argument to this method contains *ALL* the Nodes in the cluster, not only the
-	// ones that actually host the Pods targeted by the Service.
-	if getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "") == nil {
+	if l.isExternal(service) {
+		lbID := getAnnotation(service, annotationLoadBalancerID, "")
+		lbName := getAnnotation(service, annotationLoadBalancerName, "")
+
+		if lbID == nil && lbName == nil {
+			return nil, errors.New("NLB instance marked as external in Service annotations, but no ID or name specified")
+		}
+
+		// If yet no NLB ID specified OR determined by a previous EnsureLoadBalancer run
+		if lbID == nil && lbName != nil {
+			nlbs, err := l.p.client.ListNetworkLoadBalancers(ctx, l.p.zone)
+			if err != nil {
+				return nil, fmt.Errorf("error listing NLBs: %w", err)
+			}
+
+			found := false
+			for _, nlb := range nlbs {
+				if nlb.Name != nil && strings.EqualFold(*nlb.Name, *lbName) {
+					if err := l.patchAnnotation(ctx, service, annotationLoadBalancerID, *nlb.ID); err != nil {
+						return nil, fmt.Errorf("error patching annotations: %w", err)
+					}
+					infof("found external NLB %q by name %q and patched ID %s", *nlb.Name, *lbName, *nlb.ID)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return nil, fmt.Errorf(
+					"NLB instance is marked external by name %q, but no matching NLB was found",
+					*lbName,
+				)
+			}
+		}
+	}
+
+	// Check if the annotationLoadBalancerSKSClusterName and annotationLoadBalancerServiceSKSNodePoolName exist
+	if sksClusterName := getAnnotation(service, annotationLoadBalancerSKSClusterName, ""); sksClusterName != nil {
+		if sksNodePoolName := getAnnotation(service, annotationLoadBalancerServiceSKSNodePoolName, ""); sksNodePoolName != nil {
+			debugf("SKS Cluster name specified in Service annotations: %s", *sksClusterName)
+			debugf("SKS Node Pool name specified in Service annotations: %s", *sksNodePoolName)
+
+			// Get the list of SKS clusters
+			sksClusters, err := l.p.client.ListSKSClusters(ctx, l.p.zone)
+			if err != nil {
+				return nil, fmt.Errorf("error listing SKS clusters: %s", err)
+			}
+
+			// Find the SKS cluster by name
+			var sksCluster *egoscale.SKSCluster
+			for _, cluster := range sksClusters {
+				if cluster.Name != nil && strings.EqualFold(*cluster.Name, *sksClusterName) {
+					sksCluster = cluster
+					break
+				}
+			}
+
+			if sksCluster == nil {
+				return nil, fmt.Errorf("SKS cluster with name %s not found", *sksClusterName)
+			}
+
+			// Find the SKS node pool ID by name
+			var instancePoolID string
+			for _, pool := range sksCluster.Nodepools {
+				if pool.Name != nil && strings.EqualFold(*pool.Name, *sksNodePoolName) {
+					instancePoolID = *pool.InstancePoolID
+					break
+				}
+			}
+
+			if instancePoolID == "" {
+				return nil, fmt.Errorf("SKS node pool with name %s not found", *sksNodePoolName)
+			}
+
+			debugf("inferred NLB service Instance Pool ID from SKS node pool name: %s", instancePoolID)
+
+			err = l.patchAnnotation(ctx, service, annotationLoadBalancerServiceInstancePoolID, instancePoolID)
+			if err != nil {
+				return nil, fmt.Errorf("error patching annotations: %s", err)
+			}
+		}
+	} else if getAnnotation(service, annotationLoadBalancerServiceSKSNodePoolName, "") != nil {
+		return nil, errors.New("SKS node pool name specified without SKS cluster name")
+	} else if getAnnotation(service, annotationLoadBalancerServiceInstancePoolID, "") == nil {
+		// Inferring the Instance Pool ID from the cluster Nodes that run the Service in case no Instance Pool ID
+		// has been specified in the annotations.
+		//
+		// IMPORTANT: this use case is not compatible with Services referencing Pods using Node Selectors
+		// (see https://github.com/kubernetes/kubernetes/issues/45234 for an explanation of the problem).
+		// The list of Nodes passed as argument to this method contains *ALL* the Nodes in the cluster, not only the
+		// ones that actually host the Pods targeted by the Service.
+
 		debugf("no NLB service Instance Pool ID specified in Service annotations, inferring from cluster Nodes")
 
 		instancePoolID := ""
@@ -255,6 +341,7 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		return err
 	}
 
+	// If this NLB is not marked as external and top-level fields changed, update them.
 	if !l.isExternal(service) && isLoadBalancerUpdated(nlbCurrent, nlbUpdate) {
 		infof("updating NLB %q", *nlbCurrent.Name)
 
@@ -265,7 +352,7 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		debugf("NLB %q updated successfully", *nlbCurrent.Name)
 	}
 
-	// Delete the NLB services which port is not present in the updated version.
+	// First loop: delete any old NLB services whose port/protocol no longer exist in the updated spec.
 	// Info: There is a long standing bug in kubectl where patching a Service towards
 	// the same port tcp/udp and possible even other properties doesn't trigger
 	// It needs then a server side apply or replace
@@ -277,16 +364,20 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 		Protocol string
 	}
 
+	// We'll collect existing services that still match a port/protocol into this map
 	nlbServices := make(map[ServiceKey]*egoscale.NetworkLoadBalancerService)
+
 next:
 	for _, nlbServiceCurrent := range nlbCurrent.Services {
 		key := ServiceKey{Port: *nlbServiceCurrent.Port, Protocol: *nlbServiceCurrent.Protocol}
-		debugf("Checking existing NLB service %s/%s - key %v", *nlbCurrent.Name, *nlbServiceCurrent.Name, key)
+		debugf("Checking existing NLB service %s/%s - key %v",
+			*nlbCurrent.Name, *nlbServiceCurrent.Name, key)
 
+		// See if there's a matching port/protocol in nlbUpdate
 		for _, nlbServiceUpdate := range nlbUpdate.Services {
 			updateKey := ServiceKey{Port: *nlbServiceUpdate.Port, Protocol: *nlbServiceUpdate.Protocol}
-
 			if key == updateKey {
+				// Keep it around for the second loop (updates)
 				debugf("Match found for existing service %s/%s with updated service %s/%s",
 					*nlbCurrent.Name, *nlbServiceCurrent.Name, *nlbUpdate.Name, *nlbServiceUpdate.Name)
 				nlbServices[key] = nlbServiceCurrent
@@ -294,52 +385,37 @@ next:
 			}
 		}
 
+		// If we got here, this existing NLB service doesn't match any desired port/protocol.
 		if l.isExternal(service) {
-			debugf("NLB service %s/%s doesn't match any service port, but this Service is "+
-				"using an external NLB. Avoiding deletion since it may belong to another Service",
+			debugf(
+				"NLB service %s/%s doesn't match any service port, but the NLB is marked external. "+
+					"Avoiding deletion since it may belong to another Service.",
 				*nlbCurrent.Name,
-				*nlbServiceCurrent.Name)
-			continue next
+				*nlbServiceCurrent.Name,
+			)
+			continue
 		}
 
 		infof("NLB service %s/%s doesn't match any service port, deleting",
 			*nlbCurrent.Name,
 			*nlbServiceCurrent.Name)
 
-		if err := l.p.client.DeleteNetworkLoadBalancerService(
-			ctx,
-			l.p.zone,
-			nlbCurrent,
-			nlbServiceCurrent,
-		); err != nil {
+		if err := l.p.client.DeleteNetworkLoadBalancerService(ctx, l.p.zone, nlbCurrent, nlbServiceCurrent); err != nil {
 			return err
 		}
-
 		debugf("NLB service %s/%s deleted successfully", *nlbCurrent.Name, *nlbServiceCurrent.Name)
 	}
 
-	// Update existing services and add new ones.
+	// Second loop: for each desired service, either update the existing one or create a new one.
 	for _, nlbServiceUpdate := range nlbUpdate.Services {
 		key := ServiceKey{Port: *nlbServiceUpdate.Port, Protocol: *nlbServiceUpdate.Protocol}
-		debugf("Checking updated NLB service %s/%s - key %v", *nlbUpdate.Name, *nlbServiceUpdate.Name, key)
+		debugf("Checking updated NLB service %s/%s - key %v",
+			*nlbUpdate.Name, *nlbServiceUpdate.Name, key)
 
-		if nlbServiceCurrent, ok := nlbServices[key]; ok {
-			nlbServiceUpdate.ID = nlbServiceCurrent.ID
-			if isLoadBalancerServiceUpdated(nlbServiceCurrent, nlbServiceUpdate) {
-				infof("updating NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
-
-				if err = l.p.client.UpdateNetworkLoadBalancerService(
-					ctx,
-					l.p.zone,
-					nlbUpdate,
-					nlbServiceUpdate,
-				); err != nil {
-					return err
-				}
-
-				debugf("NLB service %s/%s updated successfully", *nlbCurrent.Name, *nlbServiceUpdate.Name)
-			}
-		} else {
+		// Check if there's an existing NLB service (same port/protocol)
+		nlbServiceCurrent, ok := nlbServices[key]
+		if !ok {
+			// No existing one, so create brand new
 			infof("creating new NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
 
 			svc, err := l.p.client.CreateNetworkLoadBalancerService(ctx, l.p.zone, nlbCurrent, nlbServiceUpdate)
@@ -351,6 +427,65 @@ next:
 				*nlbCurrent.Name,
 				*nlbServiceUpdate.Name,
 				*svc.ID)
+			continue
+		}
+
+		// We have an existing service with the same port/protocol, so let's see if the Instance Pool changed.
+		nlbServiceUpdate.ID = nlbServiceCurrent.ID
+
+		currentPool := ""
+		if nlbServiceCurrent.InstancePoolID != nil {
+			currentPool = *nlbServiceCurrent.InstancePoolID
+		}
+		desiredPool := ""
+		if nlbServiceUpdate.InstancePoolID != nil {
+			desiredPool = *nlbServiceUpdate.InstancePoolID
+		}
+
+		// If the InstancePoolID has changed, we must delete+recreate (API won't let us just "update" the pool with a new target).
+		// https://openapi-v2.exoscale.com/operation/operation-update-load-balancer-service
+		if currentPool != desiredPool {
+			infof(
+				"NLB service %s/%s target changed from %q to %q, must delete and recreate service",
+				*nlbCurrent.Name,
+				*nlbServiceCurrent.Name,
+				currentPool,
+				desiredPool,
+			)
+
+			// 1. Delete existing
+			if err := l.p.client.DeleteNetworkLoadBalancerService(ctx, l.p.zone, nlbCurrent, nlbServiceCurrent); err != nil {
+				return fmt.Errorf("failed deleting NLB service: %w", err)
+			}
+			debugf("NLB service %s/%s deleted successfully", *nlbCurrent.Name, *nlbServiceCurrent.Name)
+
+			// 2. Create fresh
+			svc, err := l.p.client.CreateNetworkLoadBalancerService(ctx, l.p.zone, nlbCurrent, nlbServiceUpdate)
+			if err != nil {
+				return fmt.Errorf("failed re-creating NLB service: %w", err)
+			}
+			debugf("NLB service %s/%s created successfully (ID: %s)",
+				*nlbCurrent.Name,
+				*nlbServiceUpdate.Name,
+				*svc.ID)
+
+			continue
+		}
+
+		// Otherwise (pool is the same), just do a normal update if any other fields differ
+		if isLoadBalancerServiceUpdated(nlbServiceCurrent, nlbServiceUpdate) {
+			infof("updating NLB service %s/%s", *nlbCurrent.Name, *nlbServiceUpdate.Name)
+
+			if err = l.p.client.UpdateNetworkLoadBalancerService(
+				ctx,
+				l.p.zone,
+				nlbUpdate,
+				nlbServiceUpdate,
+			); err != nil {
+				return err
+			}
+
+			debugf("NLB service %s/%s updated successfully", *nlbCurrent.Name, *nlbServiceUpdate.Name)
 		}
 	}
 

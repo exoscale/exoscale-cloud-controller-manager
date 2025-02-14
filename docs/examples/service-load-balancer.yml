@@ -3,11 +3,24 @@ apiVersion: v1
 metadata:
   name: nginx
   annotations:
-    service.beta.kubernetes.io/exoscale-loadbalancer-name: "k8s-services"
+    # Recommended. Does not create (and delete!) 
+    #   a load balancer by itself - but you have to create one prior to creating the k8s service
+    service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
+    # One of the following two annotations is required if external: "true"
+    service.beta.kubernetes.io/exoscale-loadbalancer-id: "b2064587-ce8e-4d84-ae1c-765ba011b513"
+    #  or
+    # service.beta.kubernetes.io/exoscale-loadbalancer-name: "k8s-services"
+
     service.beta.kubernetes.io/exoscale-loadbalancer-description: "This load balancer exposes Kubernetes Services"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-name: "k8s-svc-nginx"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-description: "This service exposes a demo Nginx web server page"
-    service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-description: "This service exposes a demo Nginx web server page2"
+
+    # Cluster-Name required if using sks-nodepool-name instead of instancepool-id
+    # service.beta.kubernetes.io/exoscale-loadbalancer-sks-cluster-name: "my-sks-cluster"
+    # service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name: "my-sks-nodepool"
+    #  or (id of instance pool - not sks nodepool id)
+    # service.beta.kubernetes.io/exoscale-loadbalancer-service-instancepool-id: "ac713f9b-7115-4e96-8c0f-118e9b9cdb59"
+
     service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy: "round-robin"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-mode: "http"
     service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-uri: "/"

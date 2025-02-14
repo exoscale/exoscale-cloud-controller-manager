@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	egoscale "github.com/exoscale/egoscale/v2"
+	exoapi "github.com/exoscale/egoscale/v2/api"
 
 	"gopkg.in/fsnotify.v1"
 )
@@ -24,6 +25,8 @@ type exoscaleClient interface {
 	GetInstanceType(context.Context, string, string) (*egoscale.InstanceType, error)
 	GetNetworkLoadBalancer(context.Context, string, string) (*egoscale.NetworkLoadBalancer, error)
 	ListInstances(context.Context, string, ...egoscale.ListInstancesOpt) ([]*egoscale.Instance, error)
+	ListNetworkLoadBalancers(context.Context, string) ([]*egoscale.NetworkLoadBalancer, error)
+	ListSKSClusters(context.Context, string) ([]*egoscale.SKSCluster, error)
 	UpdateNetworkLoadBalancer(context.Context, string, *egoscale.NetworkLoadBalancer) error
 	UpdateNetworkLoadBalancerService(context.Context, string, *egoscale.NetworkLoadBalancer, *egoscale.NetworkLoadBalancerService) error
 }
@@ -146,5 +149,25 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 		"Exoscale API credentials refreshed, now using %s (%s)",
 		c.apiCredentials.Name,
 		c.apiCredentials.APIKey,
+	)
+}
+
+func (c *refreshableExoscaleClient) ListSKSClusters(ctx context.Context, zone string) ([]*egoscale.SKSCluster, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.ListSKSClusters(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
+	)
+}
+
+func (c *refreshableExoscaleClient) ListNetworkLoadBalancers(ctx context.Context, zone string) ([]*egoscale.NetworkLoadBalancer, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.ListNetworkLoadBalancers(
+		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
+		zone,
 	)
 }
