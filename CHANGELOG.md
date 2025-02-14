@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+* Add support for refering to name of load balancer instead of id
+* Add support for refering to sks nodepool instead of instance pool id
+* Add support for changing instance pool destination
+
 ## 0.30.1
 
 * Add UDP Support to LoadBalancer service
