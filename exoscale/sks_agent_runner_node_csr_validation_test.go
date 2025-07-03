@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	fakek8s "k8s.io/client-go/kubernetes/fake"
 	applyconfigurationscertificatesv1 "k8s.io/client-go/applyconfigurations/certificates/v1"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
 	certificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	fakecertificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1/fake"
 	"k8s.io/utils/ptr"
@@ -139,8 +139,8 @@ type certificatesV1Mock struct {
 func (m *certificatesV1Mock) CertificateSigningRequests() certificatesv1.CertificateSigningRequestInterface {
 	return &certificateSigningRequestMock{
 		certificateSigningRequest: m.FakeCertificatesV1.CertificateSigningRequests(),
-		eventChan:                      m.eventChan,
-		csrApprovalTestFunc:            m.csrApprovalTestFunc,
+		eventChan:                 m.eventChan,
+		csrApprovalTestFunc:       m.csrApprovalTestFunc,
 	}
 }
 
