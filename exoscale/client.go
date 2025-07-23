@@ -24,6 +24,8 @@ type exoscaleClient interface {
 	GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error)
 	GetLoadBalancer(ctx context.Context, id v3.UUID) (*v3.LoadBalancer, error)
 	ListInstances(ctx context.Context, opts ...v3.ListInstancesOpt) (*v3.ListInstancesResponse, error)
+	ListLoadBalancers(ctx context.Context) (*v3.ListLoadBalancersResponse, error)
+	ListSKSClusters(ctx context.Context) (*v3.ListSKSClustersResponse, error)
 	UpdateLoadBalancer(ctx context.Context, id v3.UUID, req v3.UpdateLoadBalancerRequest) (*v3.Operation, error)
 	UpdateLoadBalancerService(ctx context.Context, id v3.UUID, serviceID v3.UUID, req v3.UpdateLoadBalancerServiceRequest) (*v3.Operation, error)
 	Wait(ctx context.Context, op *v3.Operation, states ...v3.OperationState) (*v3.Operation, error)

@@ -92,6 +92,10 @@ managed NLB instance with the Exoscale CCM*).
 
 The name of the Exoscale NLB. Defaults to `<Kubernetes Service UID>`.
 
+You can also set it for using an externally managed NLB instance instead of
+`exoscale-loadbalancer-id` (see section *Using an externally
+managed NLB instance with the Exoscale CCM*).
+
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-description`
 
@@ -102,7 +106,7 @@ The description of the Exoscale NLB.
 
 If set to `true`, the Exoscale CCM will consider the NLB as externally
 managed and will not attempt to create/update/delete the NLB instance
-whose ID is specified in the K8s *Service* annotations.
+whose ID or Name is specified in the K8s *Service* annotations.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-name`
@@ -130,9 +134,22 @@ the Instance Pool ID of the cluster *Nodes* ; this information must be
 specified in case your *Service* is targeting *Pods* that are subject to
 [custom *Node* scheduling][k8s-assign-pod-node].
 
-> Note: the Instance Pool cannot be changed after NLB service creation – the
-> K8s Service will have to be deleted and re-created with the annotation
-> updated.
+### `service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name`
+
+Can be used instead of `exoscale-loadbalancer-service-instancepool-id` for pointing
+the service to an instance pool. The name of a SKS nodepool must be used then.
+
+`exoscale-loadbalancer-service-instancepool-id` will be then automatically set
+with its ID.
+
+When using this you have to specify the sks clustername in the annotation below.
+
+#### `service.beta.kubernetes.io/exoscale-sks-cluster-name`
+
+This is a requirement for
+`service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name`
+
+Otherwise this annotation is not needed.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy`
@@ -291,7 +308,7 @@ spec:
 ### Using an externally managed NLB instance with the Exoscale CCM
 
 If you prefer to manage the NLB instance yourself using different tools
-(e.g. [Terraform][exo-tf-provider]), you can specify the ID of the NLB instance
+(e.g. [Terraform][exo-tf-provider]), you can specify the ID or Name of the NLB instance
 to use in the K8s *Service* annotations as well as an annotation instructing
 the Exoscale CCM not to create/update/delete the specified NLB instance:
 
@@ -302,6 +319,8 @@ metadata:
   name: nginx
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-id: "09191de9-513b-4270-a44c-5aad8354bb47"
+    # or (name takes precedence over id if both specified)
+    # service.beta.kubernetes.io/exoscale-loadbalancer-name: "my-exoscale-loadbalancer"
     service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
 spec:
   selector:
@@ -337,7 +356,6 @@ spec:
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
 [ingress-nginx]: https://kubernetes.github.io/ingress-nginx/
 [k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
-[k8s-daemonset]: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 [k8s-ingress-controller]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
 [k8s-service-kube-proxy]: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 [k8s-service-nodeport]: https://kubernetes.io/docs/concepts/services-networking/service/#nodeport

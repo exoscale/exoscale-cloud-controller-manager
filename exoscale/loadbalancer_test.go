@@ -161,6 +161,10 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_EnsureLoadBalancer_create() {
 	}
 
 	ts.p.client.(*exoscaleClientMock).
+		On("ListLoadBalancers", ts.p.ctx).
+		Return(&v3.ListLoadBalancersResponse{}, nil)
+
+	ts.p.client.(*exoscaleClientMock).
 		On("GetInstance", ts.p.ctx, testInstanceID).
 		Return(&v3.Instance{
 			ID: testInstanceID,

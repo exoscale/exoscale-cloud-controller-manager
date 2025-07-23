@@ -69,6 +69,20 @@ func (m *exoscaleClientMock) ListInstances(
 	return args.Get(0).(*v3.ListInstancesResponse), args.Error(1)
 }
 
+func (m *exoscaleClientMock) ListLoadBalancers(
+	ctx context.Context,
+) (*v3.ListLoadBalancersResponse, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*v3.ListLoadBalancersResponse), args.Error(1)
+}
+
+func (m *exoscaleClientMock) ListSKSClusters(
+	ctx context.Context,
+) (*v3.ListSKSClustersResponse, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*v3.ListSKSClustersResponse), args.Error(1)
+}
+
 func (m *exoscaleClientMock) UpdateLoadBalancer(
 	ctx context.Context,
 	id v3.UUID,
