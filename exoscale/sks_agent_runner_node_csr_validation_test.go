@@ -14,6 +14,9 @@ import (
 	"testing"
 	"time"
 
+	types "k8s.io/apimachinery/pkg/types"
+	applyconfigurationscertificatesv1 "k8s.io/client-go/applyconfigurations/certificates/v1"
+
 	v3 "github.com/exoscale/egoscale/v3"
 	"github.com/stretchr/testify/mock"
 	k8scertv1 "k8s.io/api/certificates/v1"
@@ -70,19 +73,59 @@ func (c certificateSigningRequestMockWatcher) Stop() {
 }
 
 type certificateSigningRequestMock struct {
-	fakecertificatesv1.FakeCertificateSigningRequests
+	certificateSigningRequest certificatesv1.CertificateSigningRequestInterface
 
 	eventChan           <-chan watch.Event
 	csrApprovalTestFunc func(certificateSigningRequestName string, certificateSigningRequest *k8scertv1.CertificateSigningRequest)
 }
 
-func (m *certificateSigningRequestMock) UpdateApproval(ctx context.Context, certificateSigningRequestName string, certificateSigningRequest *k8scertv1.CertificateSigningRequest, opts metav1.UpdateOptions) (result *k8scertv1.CertificateSigningRequest, err error) {
-	m.csrApprovalTestFunc(certificateSigningRequestName, certificateSigningRequest)
-	return m.FakeCertificateSigningRequests.UpdateApproval(ctx, certificateSigningRequestName, certificateSigningRequest, opts)
+func (m *certificateSigningRequestMock) Create(ctx context.Context, certificateSigningRequest *k8scertv1.CertificateSigningRequest, opts metav1.CreateOptions) (*k8scertv1.CertificateSigningRequest, error) {
+	return m.certificateSigningRequest.Create(ctx, certificateSigningRequest, opts)
+}
+
+func (m *certificateSigningRequestMock) Update(ctx context.Context, certificateSigningRequest *k8scertv1.CertificateSigningRequest, opts metav1.UpdateOptions) (*k8scertv1.CertificateSigningRequest, error) {
+	return m.certificateSigningRequest.Update(ctx, certificateSigningRequest, opts)
+}
+
+func (m *certificateSigningRequestMock) UpdateStatus(ctx context.Context, certificateSigningRequest *k8scertv1.CertificateSigningRequest, opts metav1.UpdateOptions) (*k8scertv1.CertificateSigningRequest, error) {
+	return m.certificateSigningRequest.UpdateStatus(ctx, certificateSigningRequest, opts)
+}
+
+func (m *certificateSigningRequestMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return m.certificateSigningRequest.Delete(ctx, name, opts)
+}
+
+func (m *certificateSigningRequestMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	return m.certificateSigningRequest.DeleteCollection(ctx, opts, listOpts)
+}
+
+func (m *certificateSigningRequestMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*k8scertv1.CertificateSigningRequest, error) {
+	return m.certificateSigningRequest.Get(ctx, name, opts)
+}
+
+func (m *certificateSigningRequestMock) List(ctx context.Context, opts metav1.ListOptions) (*k8scertv1.CertificateSigningRequestList, error) {
+	return m.certificateSigningRequest.List(ctx, opts)
 }
 
 func (m *certificateSigningRequestMock) Watch(_ context.Context, _ metav1.ListOptions) (watch.Interface, error) {
 	return &certificateSigningRequestMockWatcher{eventChan: m.eventChan}, nil
+}
+
+func (m *certificateSigningRequestMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *k8scertv1.CertificateSigningRequest, err error) {
+	return m.certificateSigningRequest.Patch(ctx, name, pt, data, opts, subresources...)
+}
+
+func (m *certificateSigningRequestMock) Apply(ctx context.Context, certificateSigningRequest *applyconfigurationscertificatesv1.CertificateSigningRequestApplyConfiguration, opts metav1.ApplyOptions) (result *k8scertv1.CertificateSigningRequest, err error) {
+	return m.certificateSigningRequest.Apply(ctx, certificateSigningRequest, opts)
+}
+
+func (m *certificateSigningRequestMock) ApplyStatus(ctx context.Context, certificateSigningRequest *applyconfigurationscertificatesv1.CertificateSigningRequestApplyConfiguration, opts metav1.ApplyOptions) (result *k8scertv1.CertificateSigningRequest, err error) {
+	return m.certificateSigningRequest.ApplyStatus(ctx, certificateSigningRequest, opts)
+}
+
+func (m *certificateSigningRequestMock) UpdateApproval(ctx context.Context, certificateSigningRequestName string, certificateSigningRequest *k8scertv1.CertificateSigningRequest, opts metav1.UpdateOptions) (result *k8scertv1.CertificateSigningRequest, err error) {
+	m.csrApprovalTestFunc(certificateSigningRequestName, certificateSigningRequest)
+	return m.certificateSigningRequest.UpdateApproval(ctx, certificateSigningRequestName, certificateSigningRequest, opts)
 }
 
 type certificatesV1Mock struct {
@@ -94,9 +137,9 @@ type certificatesV1Mock struct {
 
 func (m *certificatesV1Mock) CertificateSigningRequests() certificatesv1.CertificateSigningRequestInterface {
 	return &certificateSigningRequestMock{
-		FakeCertificateSigningRequests: fakecertificatesv1.FakeCertificateSigningRequests{Fake: m.FakeCertificatesV1},
-		eventChan:                      m.eventChan,
-		csrApprovalTestFunc:            m.csrApprovalTestFunc,
+		certificateSigningRequest: m.FakeCertificatesV1.CertificateSigningRequests(),
+		eventChan:                 m.eventChan,
+		csrApprovalTestFunc:       m.csrApprovalTestFunc,
 	}
 }
 
