@@ -60,3 +60,6 @@ output "manifest_hello_external" {
 output "manifest_hello_ingress" {
   value = local_file.app_manifest["hello-ingress"].filename
 }
+output "manifest_udp_echo" {
+  value = local_file.app_manifest["udp-echo"].filename
+}

@@ -66,7 +66,7 @@ func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 
 	zone, err := metadata.FromCdRom(metadata.AvailabilityZone)
 	if err != nil {
-		klog.Warningf("error to get exoscale node metadata from CD-ROM: %v", err)
+		klog.Infof("cannot get node metadata from CD-ROM: %v", err)
 		klog.Info("fallback on server metadata")
 		zone, err = metadata.Get(ctx, metadata.AvailabilityZone)
 		if err != nil {

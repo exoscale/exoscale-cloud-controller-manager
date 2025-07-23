@@ -512,3 +512,37 @@ def nlb_hello_ingress(test, tf_control_plane, tf_nodes, nlb_ingress_nginx, logge
             ],
             kubeconfig=tf_control_plane["kubeconfig_admin"],
         )
+
+
+@pytest.fixture(scope="session")
+def nlb_udp_echo_external(test, tf_control_plane, tf_nodes, ccm, logger):
+    manifest = tf_nodes["manifest_udp_echo"]
+
+    # Apply the UDP Echo application manifest
+    logger.info("[K8s] Applying UDP Echo (external NLB) application manifest ...")
+    kubectl(
+        [
+            "apply",
+            f"--filename={manifest}",
+        ],
+        kubeconfig=tf_control_plane["kubeconfig_admin"],
+        pyexit=True,
+    )
+
+    # Yield the manifest for use in tests
+    yield manifest
+
+    # Teardown
+    if not os.getenv("TEST_CCM_NO_NLB_TEARDOWN"):
+        logger.info(
+            "[K8s] Deleting UDP Echo (external NLB) application manifest (this may take some time) ..."
+        )
+        kubectl(
+            [
+                "delete",
+                f"--filename={manifest}",
+            ],
+            kubeconfig=tf_control_plane["kubeconfig_admin"],
+        )
+    else:
+        logger.info("[K8s] Skipping teardown of UDP Echo manifest due to environment variable.")
