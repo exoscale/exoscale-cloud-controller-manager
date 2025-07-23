@@ -354,7 +354,6 @@ func (l *loadBalancer) updateLoadBalancer(ctx context.Context, service *v1.Servi
 	}
 
 	// First loop: delete any old NLB services whose port/protocol no longer exist in the updated spec.
-
 	// Info: There is a long standing bug in kubectl where patching a Service towards
 	// the same port tcp/udp and possible even other properties doesn't trigger
 	// It needs then a server side apply or replace

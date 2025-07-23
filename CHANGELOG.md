@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.32.0 (Unreleased)
 
+### Improvements
+
+* chore(deps): bump Kubernetes SDK from 1.31.0 to 1.32.6
+* Add support for refering to name of load balancer instead of id
+* Add support for refering to sks nodepool instead of instance pool id
+* Add support for changing instance pool destination
+
+## 0.30.1
+
+* Add UDP Support to LoadBalancer service
 * fix(instances): ensure internal IP is set when there is only public one
 
 ### Improvements

@@ -71,6 +71,8 @@ Run the tests with minimal verbosity (for successful tests reporting in Pull-Req
 # Set your Exoscale (API) credentials
 export EXOSCALE_API_KEY='EXO...'
 export EXOSCALE_API_SECRET='...'
+# ch-gva-2 currently required
+export EXOSCALE_ZONE="ch-gva-2"
 
 # Run the tests
 pytest

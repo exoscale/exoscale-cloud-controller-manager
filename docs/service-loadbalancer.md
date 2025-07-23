@@ -151,7 +151,6 @@ This is a requirement for
 
 Otherwise this annotation is not needed.
 
-
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-strategy`
 
 The Exoscale NLB Service strategy to use.
@@ -173,6 +172,13 @@ Supported values: `round-robin` (default), `source-hash`.
 The Exoscale NLB service health checking mode.
 
 Supported values: `tcp` (default), `http`.
+
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port`
+
+Forces an healthcheck port.
+
+Default is `NodePort` of the service when `spec.ExternalTrafficPolicy` is set to `Cluster` (default) or
+`spec.HealthCheckNodePort` when `spec.ExternalTrafficPolicy` is set to `Local`.
 
 
 #### `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port`
@@ -224,6 +230,86 @@ Exoscale CCM will configure managed NLB services to use the *Service*
 will result in having the ingress traffic forwarded only to *Nodes* running
 the target *Pods*. With `spec.externalTrafficPolicy=Cluster` (the default),
 the CCM uses `spec.ports[].nodePort`.
+
+### Configuring a UDP service
+
+When pointing the Exoscale NLB to a UDP service, it still requires a TCP health
+check port to determine if the respective node or application is reachable.
+You can use a sidecar container to provide this functionality.
+
+Also make sure to allow UDP for the NodePort ports in your security group.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udp-echo-deployment
+  labels:
+    app: udp-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: udp-echo
+  template:
+    metadata:
+      labels:
+        app: udp-echo
+    spec:
+      containers:
+      - name: udp-echo
+        image: alpine
+        command: ["sh", "-c", "while true; do echo -n 'Echo' | nc -u -l -p 8080 -w 1; done"]
+        ports:
+        - containerPort: 8080
+          protocol: UDP
+      - name: tcp-healthcheck
+        image: k8s.gcr.io/echoserver:1.10
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: udp-echo-service
+  annotations:
+  # If you use externalTrafficPolicy: Cluster (default) you either have to use the same nodePort for both the
+  #    TCP (healthcheck) and UDP service or define here a healthcheck port which needs to be the same
+  #    as the TCP (healthcheck)'s NodePort
+  # If you use externalTrafficPolicy: local remove that annotation, it will use spec.healthCheckNodePort then
+    service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port: "31621"
+spec:
+  type: LoadBalancer
+  # externalTrafficPolicy: Local
+  ports:
+    - name: udpapplication
+      port: 8080                 # External UDP Port
+      protocol: UDP
+      targetPort: 8080           # ContainerPort
+    # You can remove the following service + sidecar container when using externalTrafficPolicy: Local
+    - name: udpapphealthcheck
+      port: 8080                 # Health check port (TCP)
+      targetPort: 8080           # ContainerPort for TCP health checks
+      nodePort: 31621            # Must match the annotation above
+      protocol: TCP
+  selector:
+    app: udp-echo
+
+```
+
+**Notes:**
+
+* A [long-standing bug][k8s-same-port-bug] in kubectl prevents adding the same
+  port with different protocols (e.g., TCP and UDP) to an already existing service
+  with kubectl apply, kubectl edit, or similar commands. If you attempt this,
+  Kubernetes may delete the respective second port.  
+  Use `kubectl apply --server-side` to avoid or fix this issue.
+* If `externalTrafficPolicy: Local` is used, the CCM will automatically assign
+  `spec.healthCheckNodePort` (which checks wether a given node is online and holds endpoint for the service),
+  so the explicit annotation for the health check port and the sidecar is unnecessary.  
+  For externalTrafficPolicy: Cluster, ensure the annotation
+  `service.beta.kubernetes.io/exoscale-loadbalancer-service-healthcheck-port` matches the TCP `nodePort`.
 
 ### Configuring a UDP service
 

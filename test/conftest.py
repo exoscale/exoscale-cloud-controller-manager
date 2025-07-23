@@ -513,7 +513,6 @@ def nlb_hello_ingress(test, tf_control_plane, tf_nodes, nlb_ingress_nginx, logge
             kubeconfig=tf_control_plane["kubeconfig_admin"],
         )
 
-
 @pytest.fixture(scope="session")
 def nlb_udp_echo_external(test, tf_control_plane, tf_nodes, ccm, logger):
     manifest = tf_nodes["manifest_udp_echo"]
