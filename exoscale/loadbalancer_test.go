@@ -461,12 +461,14 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_GetLoadBalancer() {
 	// Non-existent NLB
 
 	ts.p.client.(*exoscaleClientMock).
-		On("GetLoadBalancer", ts.p.ctx, mock.Anything).
-		Return(new(v3.LoadBalancer), errLoadBalancerNotFound)
+		On("GetLoadBalancer", ts.p.ctx, v3.UUID("lolnope")).
+		Return(&v3.LoadBalancer{}, errLoadBalancerNotFound)
 
 	_, exists, err = ts.p.loadBalancer.GetLoadBalancer(ts.p.ctx, "", &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{},
+			Annotations: map[string]string{
+				annotationLoadBalancerID: "lolnope",
+			},
 		},
 	})
 	ts.Require().False(exists)
@@ -527,7 +529,6 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_UpdateLoadBalancer() {
 	ts.T().Skip("wraps loadBalancer.updateLoadBalancer()")
 }
 
-// TODO FIX THIs TEST
 func (ts *exoscaleCCMTestSuite) Test_loadBalancer_fetchLoadBalancer() {
 	expected := &v3.LoadBalancer{
 		ID:   testNLBID,
@@ -550,18 +551,18 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_fetchLoadBalancer() {
 
 	// Non-existent NLB
 
-	// ts.p.client.(*exoscaleClientMock).
-	// 	On("GetLoadBalancer", ts.p.ctx, "lolnope").
-	// 	Return(new(v3.LoadBalancer), errLoadBalancerNotFound)
+	ts.p.client.(*exoscaleClientMock).
+		On("GetLoadBalancer", ts.p.ctx, v3.UUID("lolnope")).
+		Return(&v3.LoadBalancer{}, errLoadBalancerNotFound)
 
-	// _, err = ts.p.loadBalancer.(*loadBalancer).fetchLoadBalancer(ts.p.ctx, &v1.Service{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Annotations: map[string]string{
-	// 			annotationLoadBalancerID: "lolnope",
-	// 		},
-	// 	},
-	// })
-	// ts.Require().ErrorIs(err, errLoadBalancerNotFound)
+	_, err = ts.p.loadBalancer.(*loadBalancer).fetchLoadBalancer(ts.p.ctx, &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				annotationLoadBalancerID: "lolnope",
+			},
+		},
+	})
+	ts.Require().ErrorIs(err, errLoadBalancerNotFound)
 }
 
 func (ts *exoscaleCCMTestSuite) Test_loadBalancer_patchAnnotation() {
