@@ -20,7 +20,7 @@ def test_ccm_api_credentials_invalid(
     os.symlink(ccm_api_credentials_invalid, api_credentials_path)
     (lines, match, unmatch) = ioMatch(
         ccm,
-        matches=["exoscale-ccm: Exoscale API credentials refreshed, now using invalid"],
+        matches=["exoscale-ccm: failed to switch client zone"],
         timeout=test["timeout"]["ccm"]["refresh_api_credentials"],
         logger=logger,
     )
