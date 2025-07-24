@@ -336,5 +336,5 @@ func (c *refreshableExoscaleClient) ListInstances(
 
 // Instance Type name is <family>.<size>
 func getInstanceTypeName(family v3.InstanceTypeFamily, size v3.InstanceTypeSize) string {
-	return string(family) + "." + string(size)
+	return fmt.Sprintf("%s.%s", family, size)
 }
