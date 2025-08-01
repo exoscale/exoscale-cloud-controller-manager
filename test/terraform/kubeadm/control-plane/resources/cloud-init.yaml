@@ -121,6 +121,7 @@ packages:
   - containerd.io
   # source: kubernetes
   - kubeadm
+  - kubelet
   - cri-tools
 package_update: true
 package_upgrade: true
