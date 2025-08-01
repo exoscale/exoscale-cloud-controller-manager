@@ -427,7 +427,7 @@ next:
 			// No existing one, so create brand new
 			infof("creating new NLB service %s/%s", nlbCurrent.Name, nlbServiceUpdate.Name)
 
-			svc, err := l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
+			_, err = l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
 				Name:        nlbServiceUpdate.Name,
 				Description: nlbServiceUpdate.Description,
 				Port:        nlbServiceUpdate.Port,
@@ -441,6 +441,27 @@ next:
 			})
 			if err != nil {
 				return err
+			}
+
+			// Operation returns load balancer (not service) reference.
+			// We now need to look for newly created service.
+			nlb, err := l.p.client.GetLoadBalancer(ctx, nlbCurrent.ID)
+			if err != nil {
+				return err
+			}
+
+			svc := v3.LoadBalancerService{}
+			for _, item := range nlb.Services {
+				if item.Name == nlbServiceUpdate.Name {
+					svc = item
+				}
+			}
+			if svc.Name == "" {
+				return fmt.Errorf(
+					"Failed to create NLB service %s/%s",
+					nlbCurrent.Name,
+					nlbServiceUpdate.Name,
+				)
 			}
 
 			debugf("NLB service %s/%s created successfully (ID: %s)",
@@ -483,7 +504,7 @@ next:
 			debugf("NLB service %s/%s deleted successfully", nlbCurrent.Name, nlbServiceCurrent.Name)
 
 			// 2. Create fresh
-			svc, err := l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
+			_, err = l.p.client.AddServiceToLoadBalancer(ctx, nlbCurrent.ID, v3.AddServiceToLoadBalancerRequest{
 				Name:        nlbServiceUpdate.Name,
 				Description: nlbServiceUpdate.Description,
 				Port:        nlbServiceUpdate.Port,
@@ -497,6 +518,27 @@ next:
 			})
 			if err != nil {
 				return err
+			}
+
+			// Operation returns load balancer (not service) reference.
+			// We now need to look for newly created service.
+			nlb, err := l.p.client.GetLoadBalancer(ctx, nlbCurrent.ID)
+			if err != nil {
+				return err
+			}
+
+			svc := v3.LoadBalancerService{}
+			for _, item := range nlb.Services {
+				if item.Name == nlbServiceUpdate.Name {
+					svc = item
+				}
+			}
+			if svc.Name == "" {
+				return fmt.Errorf(
+					"Failed to create NLB service %s/%s",
+					nlbCurrent.Name,
+					nlbServiceUpdate.Name,
+				)
 			}
 
 			debugf("NLB service %s/%s created successfully (ID: %s)",
