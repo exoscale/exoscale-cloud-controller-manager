@@ -458,7 +458,7 @@ next:
 			}
 			if svc.Name == "" {
 				return fmt.Errorf(
-					"Failed to create NLB service %s/%s",
+					"failed to create NLB service %s/%s",
 					nlbCurrent.Name,
 					nlbServiceUpdate.Name,
 				)
@@ -535,7 +535,7 @@ next:
 			}
 			if svc.Name == "" {
 				return fmt.Errorf(
-					"Failed to create NLB service %s/%s",
+					"failed to create NLB service %s/%s",
 					nlbCurrent.Name,
 					nlbServiceUpdate.Name,
 				)
