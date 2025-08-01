@@ -64,16 +64,21 @@ func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
 	defer cancel()
 
-	zone, err := metadata.FromCdRom(metadata.AvailabilityZone)
-	if err != nil {
-		klog.Infof("cannot get node metadata from CD-ROM: %v", err)
-		klog.Info("fallback on server metadata")
-		zone, err = metadata.Get(ctx, metadata.AvailabilityZone)
+	var err error
+	zone := os.Getenv("EXOSCALE_API_ZONE")
+	if zone == "" {
+		zone, err = metadata.FromCdRom(metadata.AvailabilityZone)
 		if err != nil {
-			klog.Errorf("error to get exoscale node metadata from server: %v", err)
-			return nil, fmt.Errorf("get metadata: %w", err)
+			klog.Infof("cannot get node metadata from CD-ROM: %v", err)
+			klog.Info("fallback on server metadata")
+			zone, err = metadata.Get(ctx, metadata.AvailabilityZone)
+			if err != nil {
+				klog.Errorf("error to get exoscale node metadata from server: %v", err)
+				return nil, fmt.Errorf("get metadata: %w", err)
+			}
 		}
 	}
+
 	provider.zone = zone
 	provider.instances = newInstances(provider, &config.Instances)
 	provider.loadBalancer = newLoadBalancer(provider, &config.LoadBalancer)
