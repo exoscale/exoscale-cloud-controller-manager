@@ -107,7 +107,6 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 					continue
 				}
 
-				//TODO add switch zone
 				instances, err := r.p.client.ListInstances(ctx)
 				if err != nil {
 					errorf("sks-agent: failed to list Compute instances: %v", err)
