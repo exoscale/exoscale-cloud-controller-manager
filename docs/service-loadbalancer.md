@@ -307,7 +307,7 @@ spec:
 ### Using an externally managed NLB instance with the Exoscale CCM
 
 If you prefer to manage the NLB instance yourself using different tools
-(e.g. [Terraform][exo-tf-provider]), you can specify the ID or name of the NLB instance
+(e.g. [Terraform][exo-tf-provider]), you can specify the ID or Name of the NLB instance
 to use in the K8s *Service* annotations as well as an annotation instructing
 the Exoscale CCM not to create/update/delete the specified NLB instance:
 

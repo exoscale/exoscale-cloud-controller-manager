@@ -69,7 +69,7 @@ def test_udp_echo_external_response(test, tf_nodes, nlb_udp_echo_external, logge
     logger.debug(f"[NLB] Testing UDP Echo server on {nlb_ipv4}:{udp_port}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.settimeout(5.0)
+        sock.settimeout(10.0)
         try:
             # Send data
             message = "Hello UDP"

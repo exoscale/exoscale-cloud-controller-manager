@@ -64,7 +64,7 @@ func (ts *exoscaleCCMTestSuite) TestGetZoneByNodeName() {
 		},
 		Status: v1.NodeStatus{
 			NodeInfo: v1.NodeSystemInfo{
-				SystemUUID: testInstanceID,
+				SystemUUID: testInstanceID.String(),
 			},
 		},
 	})

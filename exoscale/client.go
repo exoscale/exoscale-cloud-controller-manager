@@ -4,31 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
-	egoscale "github.com/exoscale/egoscale/v2"
-	exoapi "github.com/exoscale/egoscale/v2/api"
+	v3 "github.com/exoscale/egoscale/v3"
+	"github.com/exoscale/egoscale/v3/credentials"
 
 	"gopkg.in/fsnotify.v1"
 )
 
-const defaultComputeEnvironment = "api"
-
 type exoscaleClient interface {
-	CreateNetworkLoadBalancer(context.Context, string, *egoscale.NetworkLoadBalancer) (*egoscale.NetworkLoadBalancer, error)
-	CreateNetworkLoadBalancerService(context.Context, string, *egoscale.NetworkLoadBalancer, *egoscale.NetworkLoadBalancerService) (*egoscale.NetworkLoadBalancerService, error)
-	DeleteNetworkLoadBalancer(context.Context, string, *egoscale.NetworkLoadBalancer) error
-	DeleteNetworkLoadBalancerService(context.Context, string, *egoscale.NetworkLoadBalancer, *egoscale.NetworkLoadBalancerService) error
-	GetInstance(context.Context, string, string) (*egoscale.Instance, error)
-	GetInstanceType(context.Context, string, string) (*egoscale.InstanceType, error)
-	GetNetworkLoadBalancer(context.Context, string, string) (*egoscale.NetworkLoadBalancer, error)
-	ListInstances(context.Context, string, ...egoscale.ListInstancesOpt) ([]*egoscale.Instance, error)
-	ListNetworkLoadBalancers(context.Context, string) ([]*egoscale.NetworkLoadBalancer, error)
-	ListSKSClusters(context.Context, string) ([]*egoscale.SKSCluster, error)
-	UpdateNetworkLoadBalancer(context.Context, string, *egoscale.NetworkLoadBalancer) error
-	UpdateNetworkLoadBalancerService(context.Context, string, *egoscale.NetworkLoadBalancer, *egoscale.NetworkLoadBalancerService) error
+	CreateLoadBalancer(ctx context.Context, req v3.CreateLoadBalancerRequest) (*v3.Operation, error)
+	AddServiceToLoadBalancer(ctx context.Context, id v3.UUID, req v3.AddServiceToLoadBalancerRequest) (*v3.Operation, error)
+	DeleteLoadBalancer(ctx context.Context, id v3.UUID) (*v3.Operation, error)
+	DeleteLoadBalancerService(ctx context.Context, id v3.UUID, serviceID v3.UUID) (*v3.Operation, error)
+	GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error)
+	GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error)
+	GetLoadBalancer(ctx context.Context, id v3.UUID) (*v3.LoadBalancer, error)
+	ListInstances(ctx context.Context, opts ...v3.ListInstancesOpt) (*v3.ListInstancesResponse, error)
+	ListLoadBalancers(ctx context.Context) (*v3.ListLoadBalancersResponse, error)
+	ListSKSClusters(ctx context.Context) (*v3.ListSKSClustersResponse, error)
+	UpdateLoadBalancer(ctx context.Context, id v3.UUID, req v3.UpdateLoadBalancerRequest) (*v3.Operation, error)
+	UpdateLoadBalancerService(ctx context.Context, id v3.UUID, serviceID v3.UUID, req v3.UpdateLoadBalancerServiceRequest) (*v3.Operation, error)
+	Wait(ctx context.Context, op *v3.Operation, states ...v3.OperationState) (*v3.Operation, error)
 }
 
 type exoscaleAPICredentials struct {
@@ -40,39 +40,73 @@ type exoscaleAPICredentials struct {
 type refreshableExoscaleClient struct {
 	exo            exoscaleClient
 	apiCredentials exoscaleAPICredentials
-	apiEnvironment string
+	apiEndpoint    v3.Endpoint
 
 	*sync.RWMutex
 }
 
-func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*refreshableExoscaleClient, error) {
+type switchZone func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error)
+
+var switchZoneCallback switchZone = func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error) {
+	if zone == "" {
+		return client, nil
+	}
+
+	zoneEndpoint, err := client.GetZoneAPIEndpoint(ctx, zone)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.WithEndpoint(zoneEndpoint), nil
+}
+
+func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig, zone v3.ZoneName, zoneCallback switchZone) (*refreshableExoscaleClient, error) {
 	c := &refreshableExoscaleClient{
-		RWMutex:        &sync.RWMutex{},
-		apiEnvironment: defaultComputeEnvironment,
+		RWMutex: &sync.RWMutex{},
 	}
 
-	if config.ApiEnvironment != "" {
-		c.apiEnvironment = config.ApiEnvironment
+	if config.APIEndpoint != "" {
+		c.apiEndpoint = v3.Endpoint(config.APIEndpoint)
 	}
 
-	if config.ApiKey != "" && config.ApiSecret != "" { //nolint:gocritic
+	if config.APIKey != "" && config.APISecret != "" { //nolint:gocritic
 		infof("using Exoscale actual API credentials (key + secret)")
 
 		c.apiCredentials = exoscaleAPICredentials{
-			APIKey:    config.ApiKey,
-			APISecret: config.ApiSecret,
+			APIKey:    config.APIKey,
+			APISecret: config.APISecret,
 		}
 
-		exo, err := egoscale.NewClient(c.apiCredentials.APIKey, c.apiCredentials.APISecret)
+		var opts []v3.ClientOpt
+		if c.apiEndpoint != "" {
+			opts = append(opts, v3.ClientOptWithEndpoint(c.apiEndpoint))
+		}
+
+		opts = append(opts, v3.ClientOptWithUserAgent(
+			fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s", versionString),
+		))
+
+		//TODO add chain credentials with env...etc
+		creds := credentials.NewStaticCredentials(
+			c.apiCredentials.APIKey,
+			c.apiCredentials.APISecret,
+		)
+		exo, err := v3.NewClient(creds, opts...)
 		if err != nil {
 			return nil, err
 		}
-		c.exo = exo
-	} else if config.ApiCredentialsFile != "" {
-		infof("reading (watching) Exoscale API credentials from file %q", config.ApiCredentialsFile)
 
-		c.refreshCredentialsFromFile(config.ApiCredentialsFile)
-		go c.watchCredentialsFile(ctx, config.ApiCredentialsFile)
+		exo, err = zoneCallback(ctx, exo, zone)
+		if err != nil {
+			return nil, err
+		}
+
+		c.exo = exo
+	} else if config.APICredentialsFile != "" {
+		infof("reading (watching) Exoscale API credentials from file %q", config.APICredentialsFile)
+
+		c.refreshCredentialsFromFile(ctx, config.APICredentialsFile, zone, zoneCallback)
+		go c.watchCredentialsFile(ctx, config.APICredentialsFile, zone, zoneCallback)
 	} else {
 		return nil, errors.New("incomplete or missing Exoscale API credentials")
 	}
@@ -80,7 +114,23 @@ func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig) (*r
 	return c, nil
 }
 
-func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, path string) {
+func (c *refreshableExoscaleClient) Wait(ctx context.Context, op *v3.Operation, states ...v3.OperationState) (*v3.Operation, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.exo.Wait(
+		ctx,
+		op,
+		states...,
+	)
+}
+
+func (c *refreshableExoscaleClient) watchCredentialsFile(
+	ctx context.Context,
+	path string,
+	zone v3.ZoneName,
+	zoneCallback switchZone,
+) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fatalf("failed to watch credentials file %q: %v", path, err)
@@ -103,7 +153,7 @@ func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, pa
 			if event.Name == path &&
 				(event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create) {
 				infof("refreshing API credentials from file %q", path)
-				c.refreshCredentialsFromFile(path)
+				c.refreshCredentialsFromFile(ctx, path, zone, zoneCallback)
 			}
 
 		case err, ok := <-watcher.Errors:
@@ -121,7 +171,12 @@ func (c *refreshableExoscaleClient) watchCredentialsFile(ctx context.Context, pa
 	}
 }
 
-func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
+func (c *refreshableExoscaleClient) refreshCredentialsFromFile(
+	ctx context.Context,
+	path string,
+	zone v3.ZoneName,
+	zoneCallback switchZone,
+) {
 	f, err := os.Open(path)
 	if err != nil {
 		fatalf("failed to read credentials file %q: %v", path, err)
@@ -134,9 +189,26 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 		return
 	}
 
-	client, err := egoscale.NewClient(apiCredentials.APIKey, apiCredentials.APISecret)
+	var opts []v3.ClientOpt
+	if c.apiEndpoint != "" {
+		opts = append(opts, v3.ClientOptWithEndpoint(c.apiEndpoint))
+	}
+
+	opts = append(opts, v3.ClientOptWithUserAgent(
+		fmt.Sprintf("Exoscale-K8s-Cloud-Controller/%s", versionString),
+	))
+
+	//TODO add chain credentials with env...etc
+	creds := credentials.NewStaticCredentials(apiCredentials.APIKey, apiCredentials.APISecret)
+	client, err := v3.NewClient(creds, opts...)
 	if err != nil {
 		infof("failed to initialize Exoscale client: %v", err)
+		return
+	}
+
+	client, err = zoneCallback(ctx, client, zone)
+	if err != nil {
+		errorf("failed to switch client zone: %v", err)
 		return
 	}
 
@@ -149,25 +221,5 @@ func (c *refreshableExoscaleClient) refreshCredentialsFromFile(path string) {
 		"Exoscale API credentials refreshed, now using %s (%s)",
 		c.apiCredentials.Name,
 		c.apiCredentials.APIKey,
-	)
-}
-
-func (c *refreshableExoscaleClient) ListSKSClusters(ctx context.Context, zone string) ([]*egoscale.SKSCluster, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	return c.exo.ListSKSClusters(
-		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
-		zone,
-	)
-}
-
-func (c *refreshableExoscaleClient) ListNetworkLoadBalancers(ctx context.Context, zone string) ([]*egoscale.NetworkLoadBalancer, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	return c.exo.ListNetworkLoadBalancers(
-		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
-		zone,
 	)
 }

@@ -3,7 +3,7 @@ package exoscale
 import (
 	"context"
 
-	egoscale "github.com/exoscale/egoscale/v2"
+	v3 "github.com/exoscale/egoscale/v3"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -12,100 +12,101 @@ type exoscaleClientMock struct {
 	mock.Mock
 }
 
-func (m *exoscaleClientMock) CreateNetworkLoadBalancer(
+func (m *exoscaleClientMock) CreateLoadBalancer(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-) (*egoscale.NetworkLoadBalancer, error) {
-	args := m.Called(ctx, zone, nlb)
-	return args.Get(0).(*egoscale.NetworkLoadBalancer), args.Error(1)
+	req v3.CreateLoadBalancerRequest,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, req)
+	return args.Get(0).(*v3.Operation), args.Error(1)
 }
 
-func (m *exoscaleClientMock) CreateNetworkLoadBalancerService(
+func (m *exoscaleClientMock) AddServiceToLoadBalancer(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-	svc *egoscale.NetworkLoadBalancerService,
-) (*egoscale.NetworkLoadBalancerService, error) {
-	args := m.Called(ctx, zone, nlb, svc)
-	return args.Get(0).(*egoscale.NetworkLoadBalancerService), args.Error(1)
+	id v3.UUID,
+	req v3.AddServiceToLoadBalancerRequest,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, id, req)
+	return args.Get(0).(*v3.Operation), args.Error(1)
 }
 
-func (m *exoscaleClientMock) DeleteNetworkLoadBalancer(
+func (m *exoscaleClientMock) DeleteLoadBalancer(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-) error {
-	args := m.Called(ctx, zone, nlb)
-	return args.Error(0)
+	id v3.UUID,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*v3.Operation), args.Error(1)
 }
 
-func (m *exoscaleClientMock) DeleteNetworkLoadBalancerService(
+func (m *exoscaleClientMock) DeleteLoadBalancerService(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-	svc *egoscale.NetworkLoadBalancerService,
-) error {
-	args := m.Called(ctx, zone, nlb, svc)
-	return args.Error(0)
+	id v3.UUID,
+	serviceID v3.UUID,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, id, serviceID)
+	return args.Get(0).(*v3.Operation), args.Error(1)
 }
 
-func (m *exoscaleClientMock) GetInstance(ctx context.Context, zone, id string) (*egoscale.Instance, error) {
-	args := m.Called(ctx, zone, id)
-	return args.Get(0).(*egoscale.Instance), args.Error(1)
+func (m *exoscaleClientMock) GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*v3.Instance), args.Error(1)
 }
 
-func (m *exoscaleClientMock) GetInstanceType(ctx context.Context, zone, id string) (*egoscale.InstanceType, error) {
-	args := m.Called(ctx, zone, id)
-	return args.Get(0).(*egoscale.InstanceType), args.Error(1)
+func (m *exoscaleClientMock) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*v3.InstanceType), args.Error(1)
 }
 
-func (m *exoscaleClientMock) GetNetworkLoadBalancer(
-	ctx context.Context,
-	zone string,
-	id string,
-) (*egoscale.NetworkLoadBalancer, error) {
-	args := m.Called(ctx, zone, id)
-	return args.Get(0).(*egoscale.NetworkLoadBalancer), args.Error(1)
+func (m *exoscaleClientMock) GetLoadBalancer(ctx context.Context, id v3.UUID) (*v3.LoadBalancer, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*v3.LoadBalancer), args.Error(1)
 }
 
 func (m *exoscaleClientMock) ListInstances(
 	ctx context.Context,
-	zone string,
-	opts ...egoscale.ListInstancesOpt,
-) ([]*egoscale.Instance, error) {
-	args := m.Called(ctx, zone, opts)
-	return args.Get(0).([]*egoscale.Instance), args.Error(1)
+	opts ...v3.ListInstancesOpt,
+) (*v3.ListInstancesResponse, error) {
+	args := m.Called(ctx, opts)
+	return args.Get(0).(*v3.ListInstancesResponse), args.Error(1)
 }
 
-func (m *exoscaleClientMock) ListNetworkLoadBalancers(
+func (m *exoscaleClientMock) ListLoadBalancers(
 	ctx context.Context,
-	zone string,
-) ([]*egoscale.NetworkLoadBalancer, error) {
-	args := m.Called(ctx, zone)
-	return args.Get(0).([]*egoscale.NetworkLoadBalancer), args.Error(1)
+) (*v3.ListLoadBalancersResponse, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*v3.ListLoadBalancersResponse), args.Error(1)
 }
 
-func (m *exoscaleClientMock) ListSKSClusters(ctx context.Context, zone string) ([]*egoscale.SKSCluster, error) {
-	args := m.Called(ctx, zone)
-	return args.Get(0).([]*egoscale.SKSCluster), args.Error(1)
-}
-
-func (m *exoscaleClientMock) UpdateNetworkLoadBalancer(
+func (m *exoscaleClientMock) ListSKSClusters(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-) error {
-	args := m.Called(ctx, zone, nlb)
-	return args.Error(0)
+) (*v3.ListSKSClustersResponse, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*v3.ListSKSClustersResponse), args.Error(1)
 }
 
-func (m *exoscaleClientMock) UpdateNetworkLoadBalancerService(
+func (m *exoscaleClientMock) UpdateLoadBalancer(
 	ctx context.Context,
-	zone string,
-	nlb *egoscale.NetworkLoadBalancer,
-	svc *egoscale.NetworkLoadBalancerService,
-) error {
-	args := m.Called(ctx, zone, nlb, svc)
-	return args.Error(0)
+	id v3.UUID,
+	req v3.UpdateLoadBalancerRequest,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, id, req)
+	return args.Get(0).(*v3.Operation), args.Error(1)
+}
+
+func (m *exoscaleClientMock) UpdateLoadBalancerService(
+	ctx context.Context,
+	id v3.UUID,
+	serviceID v3.UUID,
+	req v3.UpdateLoadBalancerServiceRequest,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, id, serviceID, req)
+	return args.Get(0).(*v3.Operation), args.Error(1)
+}
+
+func (m *exoscaleClientMock) Wait(
+	ctx context.Context,
+	op *v3.Operation,
+	states ...v3.OperationState,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, op, states)
+	return args.Get(0).(*v3.Operation), args.Error(1)
 }
