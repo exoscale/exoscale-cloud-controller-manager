@@ -115,7 +115,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 
 				csrOK := false
 				for _, instance := range instances {
-					if strings.ToLower(*instance.Name) == strings.ToLower(parsedCSR.DNSNames[0]) {
+					if strings.EqualFold(*instance.Name, parsedCSR.DNSNames[0]) {
 						var nodeAddrs []string
 
 						if instance.PublicIP != nil {
