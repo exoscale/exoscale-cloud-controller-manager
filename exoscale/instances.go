@@ -12,8 +12,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	cloudproviderapi "k8s.io/cloud-provider/api"
 
-	egoscale "github.com/exoscale/egoscale/v2"
-	exoapi "github.com/exoscale/egoscale/v2/api"
+	v3 "github.com/exoscale/egoscale/v3"
 )
 
 // Label value must be '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
@@ -97,14 +96,13 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	instanceName := *instance.Name
 	addresses := []v1.NodeAddress{
-		{Type: v1.NodeHostName, Address: instanceName},
+		{Type: v1.NodeHostName, Address: instance.Name},
 	}
 
 	foundInternalIP := false
-	if i.p.client != nil && instance.PrivateNetworkIDs != nil && len(*instance.PrivateNetworkIDs) > 0 {
-		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instanceName, metav1.GetOptions{}); node != nil {
+	if i.p.client != nil && instance.PrivateNetworks != nil && len(instance.PrivateNetworks) > 0 {
+		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
 			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 				addresses = append(
 					addresses,
@@ -115,10 +113,10 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		}
 	}
 
-	if instance.PublicIPAddress != nil {
+	if instance.PublicIP != nil {
 		addresses = append(
 			addresses,
-			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.PublicIPAddress.String()},
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.PublicIP.String()},
 		)
 
 		// if there is no internal IP, we use the public IP as internal IP
@@ -126,15 +124,15 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		if !foundInternalIP {
 			addresses = append(
 				addresses,
-				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.PublicIPAddress.String()},
+				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.PublicIP.String()},
 			)
 		}
 	}
 
-	if instance.IPv6Enabled != nil && *instance.IPv6Enabled {
+	if instance.Ipv6Address != "" {
 		addresses = append(
 			addresses,
-			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.IPv6Address.String()},
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: instance.Ipv6Address},
 		)
 
 		// if there is no internal IP, we use the public IP as internal IP
@@ -142,7 +140,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		if !foundInternalIP {
 			addresses = append(
 				addresses,
-				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.IPv6Address.String()},
+				v1.NodeAddress{Type: v1.NodeInternalIP, Address: instance.Ipv6Address},
 			)
 		}
 	}
@@ -231,12 +229,12 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	instanceType, err := i.p.client.GetInstanceType(ctx, i.p.zone, *instance.InstanceTypeID)
+	instanceType, err := i.p.client.GetInstanceType(ctx, instance.InstanceType.ID)
 	if err != nil {
 		return "", err
 	}
 
-	return labelInvalidCharsRegex.ReplaceAllString(getInstanceTypeName(*instanceType.Family, *instanceType.Size), ""), nil
+	return labelInvalidCharsRegex.ReplaceAllString(getInstanceTypeName(instanceType.Family, instanceType.Size), ""), nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
@@ -270,7 +268,7 @@ func (i *instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 	_, err := i.p.computeInstanceByProviderID(ctx, providerID)
 	if err != nil {
-		if errors.Is(err, exoapi.ErrNotFound) {
+		if errors.Is(err, v3.ErrNotFound) {
 			return false, nil
 		}
 
@@ -300,46 +298,43 @@ func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID
 		return false, err
 	}
 
-	return *instance.State == "stopping" || *instance.State == "stopped", nil
+	return instance.State == "stopping" || instance.State == "stopped", nil
 }
 
-func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, zone, id string) (*egoscale.Instance, error) {
+func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	return c.exo.GetInstance(
-		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
-		zone,
+		ctx,
 		id,
 	)
 }
 
-func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, zone, id string) (*egoscale.InstanceType, error) {
+func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	return c.exo.GetInstanceType(
-		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
-		zone,
-		id)
+		ctx,
+		id,
+	)
 }
 
 func (c *refreshableExoscaleClient) ListInstances(
 	ctx context.Context,
-	zone string,
-	opts ...egoscale.ListInstancesOpt,
-) ([]*egoscale.Instance, error) {
+	opts ...v3.ListInstancesOpt,
+) (*v3.ListInstancesResponse, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	return c.exo.ListInstances(
-		exoapi.WithEndpoint(ctx, exoapi.NewReqEndpoint(c.apiEnvironment, zone)),
-		zone,
+		ctx,
 		opts...,
 	)
 }
 
 // Instance Type name is <family>.<size>
-func getInstanceTypeName(family string, size string) string {
-	return family + "." + size
+func getInstanceTypeName(family v3.InstanceTypeFamily, size v3.InstanceTypeSize) string {
+	return fmt.Sprintf("%s.%s", family, size)
 }

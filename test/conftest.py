@@ -545,4 +545,3 @@ def nlb_udp_echo_external(test, tf_control_plane, tf_nodes, ccm, logger):
         )
     else:
         logger.info("[K8s] Skipping teardown of UDP Echo manifest due to environment variable.")
-

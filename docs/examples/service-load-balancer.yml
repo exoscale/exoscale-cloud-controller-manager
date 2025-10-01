@@ -3,7 +3,7 @@ apiVersion: v1
 metadata:
   name: nginx
   annotations:
-    # Recommended. Does not create (and delete!) 
+    # Recommended. Does not create (and delete!)
     #   a load balancer by itself - but you have to create one prior to creating the k8s service
     service.beta.kubernetes.io/exoscale-loadbalancer-external: "true"
     # One of the following two annotations is required if external: "true"

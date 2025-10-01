@@ -29,7 +29,7 @@ func TestNewServicePatcher(t *testing.T) {
 	patcher := newServicePatcher(context.Background(), clientset, service)
 	require.Equal(t, patcher.current, patcher.modified, "service values should not differ")
 
-	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID.String()
 	require.NotEqual(t, patcher.current, patcher.modified, "service values should differ")
 }
 
@@ -47,7 +47,7 @@ func TestKubeServicePatcherPatch(t *testing.T) {
 	require.Empty(t, svcID)
 
 	patcher := newServicePatcher(ctx, clientset, service)
-	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID
+	service.ObjectMeta.Annotations[annotationLoadBalancerID] = testNLBID.String()
 	err = patcher.Patch()
 	require.NoError(t, err)
 
@@ -55,5 +55,5 @@ func TestKubeServicePatcherPatch(t *testing.T) {
 	require.NoError(t, err)
 
 	svcID = serviceFinal.ObjectMeta.Annotations[annotationLoadBalancerID]
-	require.Equal(t, svcID, testNLBID)
+	require.Equal(t, svcID, testNLBID.String())
 }
