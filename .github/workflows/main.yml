@@ -22,6 +22,25 @@ jobs:
       - name: Run tests
         run: make test-verbose
 
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Ginkgo
+        shell: bash
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Run E2E tests
+        shell: bash
+        env:
+          EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
+          EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}
+          EXOSCALE_API_ZONE: ch-gva-2
+        run: |
+            cd e2e
+            go install github.com/onsi/ginkgo/v2/ginkgo@latest
+            ~/go/bin/ginkgo -v --timeout=30m
+
   build:
     needs: unit-test
     runs-on: ubuntu-latest
