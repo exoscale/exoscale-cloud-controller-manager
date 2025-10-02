@@ -74,8 +74,7 @@ func (nm *NodepoolManager) CreateNodepool(ctx context.Context, size int64) error
 }
 
 func (nm *NodepoolManager) ResizeNodepool(ctx context.Context, newSize int64) error {
-	var zeroUUID exoscale.UUID
-	if nm.nodepoolID == zeroUUID {
+	if nm.nodepoolID == "" {
 		return fmt.Errorf("nodepool not created")
 	}
 
@@ -113,8 +112,7 @@ func (nm *NodepoolManager) ResizeNodepool(ctx context.Context, newSize int64) er
 }
 
 func (nm *NodepoolManager) DeleteNodepool(ctx context.Context) error {
-	var zeroUUID exoscale.UUID
-	if nm.nodepoolID == zeroUUID {
+	if nm.nodepoolID == "" {
 		return nil
 	}
 

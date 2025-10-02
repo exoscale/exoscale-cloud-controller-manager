@@ -99,8 +99,7 @@ func (cm *ClusterManager) CreateCluster(ctx context.Context) error {
 }
 
 func (cm *ClusterManager) GetKubeconfig(ctx context.Context, user string, groups []string) ([]byte, error) {
-	var zeroUUID exoscale.UUID
-	if cm.clusterID == zeroUUID {
+	if cm.clusterID == "" {
 		return nil, fmt.Errorf("cluster not created")
 	}
 
@@ -124,8 +123,7 @@ func (cm *ClusterManager) GetKubeconfig(ctx context.Context, user string, groups
 }
 
 func (cm *ClusterManager) DeleteCluster(ctx context.Context) error {
-	var zeroUUID exoscale.UUID
-	if cm.clusterID == zeroUUID {
+	if cm.clusterID == "" {
 		return nil
 	}
 

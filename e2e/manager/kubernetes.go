@@ -441,3 +441,39 @@ func (kc *KubernetesClient) TestHTTPEndpoint(ctx context.Context, url string) er
 
 	return nil
 }
+
+func ExtractServerFromKubeconfig(kubeconfig []byte) (string, error) {
+	kubeconfigStr := string(kubeconfig)
+	fieldPrefix := "server: "
+
+	startIdx := strings.Index(kubeconfigStr, fieldPrefix)
+	if startIdx == -1 {
+		return "", fmt.Errorf("server not found in kubeconfig")
+	}
+
+	startIdx += len(fieldPrefix)
+	endIdx := strings.IndexAny(kubeconfigStr[startIdx:], "\n\r")
+	if endIdx == -1 {
+		endIdx = len(kubeconfigStr) - startIdx
+	}
+
+	return kubeconfigStr[startIdx : startIdx+endIdx], nil
+}
+
+func ExtractCACertFromKubeconfig(kubeconfig []byte) (string, error) {
+	kubeconfigStr := string(kubeconfig)
+	fieldPrefix := "certificate-authority-data: "
+
+	startIdx := strings.Index(kubeconfigStr, fieldPrefix)
+	if startIdx == -1 {
+		return "", fmt.Errorf("certificate-authority-data not found in kubeconfig")
+	}
+
+	startIdx += len(fieldPrefix)
+	endIdx := strings.IndexAny(kubeconfigStr[startIdx:], "\n\r")
+	if endIdx == -1 {
+		endIdx = len(kubeconfigStr) - startIdx
+	}
+
+	return kubeconfigStr[startIdx : startIdx+endIdx], nil
+}

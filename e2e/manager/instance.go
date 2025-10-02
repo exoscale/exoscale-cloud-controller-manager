@@ -78,14 +78,12 @@ func (im *InstanceManager) buildUserData() (string, error) {
 		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
-	kubeconfig := string(kubeconfigBytes)
-
-	apiServerURL, err := extractServerFromKubeconfig(kubeconfig)
+	apiServerURL, err := ExtractServerFromKubeconfig(kubeconfigBytes)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract server URL: %w", err)
 	}
 
-	caCertBase64, err := extractCACertFromKubeconfig(kubeconfig)
+	caCertBase64, err := ExtractCACertFromKubeconfig(kubeconfigBytes)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract CA cert: %w", err)
 	}
@@ -119,37 +117,8 @@ cluster-certificate = "%s"
 	return base64.StdEncoding.EncodeToString([]byte(userDataToml)), nil
 }
 
-func extractFieldFromKubeconfig(kubeconfig, fieldPrefix, fieldName string) (string, error) {
-	startIdx := -1
-	for i := 0; i < len(kubeconfig)-len(fieldPrefix); i++ {
-		if kubeconfig[i:i+len(fieldPrefix)] == fieldPrefix {
-			startIdx = i + len(fieldPrefix)
-			break
-		}
-	}
-	if startIdx == -1 {
-		return "", fmt.Errorf("%s not found in kubeconfig", fieldName)
-	}
-
-	endIdx := startIdx
-	for endIdx < len(kubeconfig) && kubeconfig[endIdx] != '\n' && kubeconfig[endIdx] != '\r' {
-		endIdx++
-	}
-
-	return kubeconfig[startIdx:endIdx], nil
-}
-
-func extractServerFromKubeconfig(kubeconfig string) (string, error) {
-	return extractFieldFromKubeconfig(kubeconfig, "server: ", "server")
-}
-
-func extractCACertFromKubeconfig(kubeconfig string) (string, error) {
-	return extractFieldFromKubeconfig(kubeconfig, "certificate-authority-data: ", "certificate-authority-data")
-}
-
 func (im *InstanceManager) DeleteInstance(ctx context.Context) error {
-	var zeroUUID exoscale.UUID
-	if im.instanceID == zeroUUID {
+	if im.instanceID == "" {
 		return nil
 	}
 
