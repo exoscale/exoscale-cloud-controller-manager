@@ -248,7 +248,7 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 		})
 
 		It("should initialize static node with cloud provider", func() {
-			staticNodeName := fmt.Sprintf("%s-static", suite.Config.TestID)
+			staticNodeName := fmt.Sprintf("%s-STATIC", suite.Config.TestID)
 
 			logCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 			defer cancel()
@@ -306,7 +306,7 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 			Expect(nodes).To(HaveLen(expectedNodeCount),
 				"Expected %d ready nodes (nodepool + static instance)", expectedNodeCount)
 
-			staticNodeName := fmt.Sprintf("%s-static", suite.Config.TestID)
+			staticNodeName := fmt.Sprintf("%s-STATIC", suite.Config.TestID)
 
 			for _, node := range nodes {
 				if node.Name == staticNodeName {
@@ -345,7 +345,7 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 		})
 
 		It("should wait for static node to be removed from cluster", func() {
-			staticNodeName := fmt.Sprintf("%s-static", suite.Config.TestID)
+			staticNodeName := fmt.Sprintf("%s-STATIC", suite.Config.TestID)
 
 			timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 			defer cancel()
