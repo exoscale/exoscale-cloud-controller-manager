@@ -3,25 +3,27 @@
   "extends": [
     "config:recommended"
   ],
-  "labels": ["dependencies"],
-  "stabilityDays": 3,
+  "labels": [
+    "dependencies"
+  ],
+  "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "packageRules": [
     {
       "description": "Group Kubernetes dependencies together",
       "groupName": "kubernetes",
-      "matchPackagePrefixes": [
-        "k8s.io/"
+      "matchPackageNames": [
+        "k8s.io/{/,}**"
       ]
     },
     {
       "description": "Group test framework dependencies",
       "groupName": "test-frameworks",
-      "matchPackagePatterns": [
-        "github.com/onsi/ginkgo",
-        "github.com/onsi/gomega",
-        "github.com/stretchr/testify"
+      "matchPackageNames": [
+        "/github.com/onsi/ginkgo/",
+        "/github.com/onsi/gomega/",
+        "/github.com/stretchr/testify/"
       ]
     }
   ],
@@ -37,6 +39,8 @@
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": ["security"]
+    "labels": [
+      "security"
+    ]
   }
 }
