@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,7 +103,11 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 
 	foundInternalIP := false
 	if i.p.client != nil && instance.PrivateNetworks != nil && len(instance.PrivateNetworks) > 0 {
-		if node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
+		node, _ := i.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{})
+		if node == nil {
+			node, _ = i.p.kclient.CoreV1().Nodes().Get(ctx, strings.ToLower(instance.Name), metav1.GetOptions{})
+		}
+		if node != nil {
 			if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 				addresses = append(
 					addresses,
