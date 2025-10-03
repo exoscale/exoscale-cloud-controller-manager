@@ -115,7 +115,7 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 
 				csrOK := false
 				for _, instance := range instances.Instances {
-					if strings.ToLower(instance.Name) == parsedCSR.DNSNames[0] {
+					if strings.EqualFold(instance.Name, parsedCSR.DNSNames[0]) {
 						var nodeAddrs []string
 
 						if instance.PublicIP != nil {
@@ -127,7 +127,11 @@ func (r *sksAgentRunnerNodeCSRValidation) run(ctx context.Context) {
 						}
 
 						if len(instance.PrivateNetworks) > 0 {
-							if node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{}); node != nil {
+							node, _ := r.p.kclient.CoreV1().Nodes().Get(ctx, instance.Name, metav1.GetOptions{})
+							if node == nil {
+								node, _ = r.p.kclient.CoreV1().Nodes().Get(ctx, strings.ToLower(instance.Name), metav1.GetOptions{})
+							}
+							if node != nil {
 								if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 									nodeAddrs = append(nodeAddrs, providedIP)
 								}

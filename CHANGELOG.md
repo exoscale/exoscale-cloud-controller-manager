@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.32.1 (TO BE RELEASED)
+
+### Bug Fixes
+
+* csr validation: handle hostname case inconsistencies
+
+### Improvements
+
+* End-to-end testing overhaul
+
 ## 0.32.0
 
 ### Improvements

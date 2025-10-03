@@ -465,7 +465,7 @@ type ListBlockStorageVolumesOpt func(url.Values)
 
 func ListBlockStorageVolumesWithInstanceID(instanceID UUID) ListBlockStorageVolumesOpt {
 	return func(q url.Values) {
-		q.Add("instanceID", fmt.Sprint(instanceID))
+		q.Add("instance-id", fmt.Sprint(instanceID))
 	}
 }
 
@@ -529,7 +529,7 @@ type CreateBlockStorageVolumeRequest struct {
 	Name string `json:"name,omitempty" validate:"omitempty,lte=255"`
 	// Volume size in GiB.
 	// When a snapshot ID is supplied, this defaults to the size of the source volume, but can be set to a larger value.
-	Size int64 `json:"size,omitempty" validate:"omitempty,gte=10"`
+	Size int64 `json:"size,omitempty" validate:"omitempty,gte=1"`
 }
 
 // Create a block storage volume
@@ -1099,10 +1099,10 @@ func (c Client) DetachBlockStorageVolume(ctx context.Context, id UUID) (*Operati
 
 type ResizeBlockStorageVolumeRequest struct {
 	// Volume size in GiB
-	Size int64 `json:"size" validate:"required,gte=11"`
+	Size int64 `json:"size" validate:"required,gt=0"`
 }
 
-// This operation resizes a Block storage volume. Note: the volume can only grow, cannot be shrunk.
+// This operation resizes a Block storage volume. Note: the volume can only grow, cannot be shrunk. Only detached volumes or volumes attached to stopped instances can be resized.
 func (c Client) ResizeBlockStorageVolume(ctx context.Context, id UUID, req ResizeBlockStorageVolumeRequest) (*BlockStorageVolume, error) {
 	path := fmt.Sprintf("/block-storage/%v:resize-volume", id)
 
@@ -3465,13 +3465,13 @@ type CreateDBAASServiceKafkaRequest struct {
 	// Allow clients to connect to kafka_connect from the public internet for service nodes that are in a project VPC or another type of private network
 	KafkaConnectEnabled *bool `json:"kafka-connect-enabled,omitempty"`
 	// Kafka Connect configuration values
-	KafkaConnectSettings JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
+	KafkaConnectSettings *JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
 	// Enable Kafka-REST service
 	KafkaRestEnabled *bool `json:"kafka-rest-enabled,omitempty"`
 	// Kafka REST configuration
-	KafkaRestSettings JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
+	KafkaRestSettings *JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
 	// Kafka broker configuration values
-	KafkaSettings JSONSchemaKafka `json:"kafka-settings,omitempty"`
+	KafkaSettings *JSONSchemaKafka `json:"kafka-settings,omitempty"`
 	// Automatic maintenance settings
 	Maintenance *CreateDBAASServiceKafkaRequestMaintenance `json:"maintenance,omitempty"`
 	// Subscription plan
@@ -3479,7 +3479,7 @@ type CreateDBAASServiceKafkaRequest struct {
 	// Enable Schema-Registry service
 	SchemaRegistryEnabled *bool `json:"schema-registry-enabled,omitempty"`
 	// Schema Registry configuration
-	SchemaRegistrySettings JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
+	SchemaRegistrySettings *JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
 	// Service is protected against termination and powering off
 	TerminationProtection *bool `json:"termination-protection,omitempty"`
 	// Kafka major version
@@ -3574,13 +3574,13 @@ type UpdateDBAASServiceKafkaRequest struct {
 	// Allow clients to connect to kafka_connect from the public internet for service nodes that are in a project VPC or another type of private network
 	KafkaConnectEnabled *bool `json:"kafka-connect-enabled,omitempty"`
 	// Kafka Connect configuration values
-	KafkaConnectSettings JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
+	KafkaConnectSettings *JSONSchemaKafkaConnect `json:"kafka-connect-settings,omitempty"`
 	// Enable Kafka-REST service
 	KafkaRestEnabled *bool `json:"kafka-rest-enabled,omitempty"`
 	// Kafka REST configuration
-	KafkaRestSettings JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
+	KafkaRestSettings *JSONSchemaKafkaRest `json:"kafka-rest-settings,omitempty"`
 	// Kafka broker configuration values
-	KafkaSettings JSONSchemaKafka `json:"kafka-settings,omitempty"`
+	KafkaSettings *JSONSchemaKafka `json:"kafka-settings,omitempty"`
 	// Automatic maintenance settings
 	Maintenance *UpdateDBAASServiceKafkaRequestMaintenance `json:"maintenance,omitempty"`
 	// Subscription plan
@@ -3588,7 +3588,7 @@ type UpdateDBAASServiceKafkaRequest struct {
 	// Enable Schema-Registry service
 	SchemaRegistryEnabled *bool `json:"schema-registry-enabled,omitempty"`
 	// Schema Registry configuration
-	SchemaRegistrySettings JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
+	SchemaRegistrySettings *JSONSchemaSchemaRegistry `json:"schema-registry-settings,omitempty"`
 	// Service is protected against termination and powering off
 	TerminationProtection *bool `json:"termination-protection,omitempty"`
 	// Kafka major version
@@ -4300,9 +4300,9 @@ func (c Client) GetDBAASServiceMysql(ctx context.Context, name string) (*DBAASSe
 
 type CreateDBAASServiceMysqlRequestBackupSchedule struct {
 	// The hour of day (in UTC) when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupHour int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
+	BackupHour *int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
 	// The minute of an hour when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupMinute int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
+	BackupMinute *int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
 }
 
 type CreateDBAASServiceMysqlRequestIntegrationsType string
@@ -4378,7 +4378,7 @@ type CreateDBAASServiceMysqlRequest struct {
 	// Migrate data from existing server
 	Migration *CreateDBAASServiceMysqlRequestMigration `json:"migration,omitempty"`
 	// mysql.conf configuration values
-	MysqlSettings JSONSchemaMysql `json:"mysql-settings,omitempty"`
+	MysqlSettings *JSONSchemaMysql `json:"mysql-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
 	// ISO time of a backup to recover from for services that support arbitrary times
@@ -4442,9 +4442,9 @@ func (c Client) CreateDBAASServiceMysql(ctx context.Context, name string, req Cr
 
 type UpdateDBAASServiceMysqlRequestBackupSchedule struct {
 	// The hour of day (in UTC) when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupHour int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
+	BackupHour *int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
 	// The minute of an hour when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupMinute int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
+	BackupMinute *int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
 }
 
 type UpdateDBAASServiceMysqlRequestMaintenanceDow string
@@ -4498,7 +4498,7 @@ type UpdateDBAASServiceMysqlRequest struct {
 	// Migrate data from existing server
 	Migration *UpdateDBAASServiceMysqlRequestMigration `json:"migration,omitempty"`
 	// mysql.conf configuration values
-	MysqlSettings JSONSchemaMysql `json:"mysql-settings,omitempty"`
+	MysqlSettings *JSONSchemaMysql `json:"mysql-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
 	// Service is protected against termination and powering off
@@ -5084,7 +5084,7 @@ const (
 
 type CreateDBAASServiceOpensearchRequestIndexPatterns struct {
 	// Maximum number of indexes to keep
-	MaxIndexCount int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
+	MaxIndexCount *int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
 	// fnmatch pattern
 	Pattern string `json:"pattern,omitempty" validate:"omitempty,lte=1024"`
 	// Deletion sorting algorithm
@@ -5094,9 +5094,9 @@ type CreateDBAASServiceOpensearchRequestIndexPatterns struct {
 // Template settings for all new indexes
 type CreateDBAASServiceOpensearchRequestIndexTemplate struct {
 	// The maximum number of nested JSON objects that a single document can contain across all nested types. This limit helps to prevent out of memory errors when a document contains too many nested objects. Default is 10000.
-	MappingNestedObjectsLimit int64 `json:"mapping-nested-objects-limit,omitempty" validate:"omitempty,gte=0,lte=100000"`
+	MappingNestedObjectsLimit *int64 `json:"mapping-nested-objects-limit,omitempty" validate:"omitempty,gte=0,lte=100000"`
 	// The number of replicas each primary shard has.
-	NumberOfReplicas int64 `json:"number-of-replicas,omitempty" validate:"omitempty,gte=0,lte=29"`
+	NumberOfReplicas *int64 `json:"number-of-replicas,omitempty" validate:"omitempty,gte=0,lte=29"`
 	// The number of primary shards that an index should have.
 	NumberOfShards int64 `json:"number-of-shards,omitempty" validate:"omitempty,gte=1,lte=1024"`
 }
@@ -5145,11 +5145,11 @@ type CreateDBAASServiceOpensearchRequest struct {
 	// Automatic maintenance settings
 	Maintenance *CreateDBAASServiceOpensearchRequestMaintenance `json:"maintenance,omitempty"`
 	// Maximum number of indexes to keep before deleting the oldest one
-	MaxIndexCount int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
+	MaxIndexCount *int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
 	// OpenSearch Dashboards settings
 	OpensearchDashboards *CreateDBAASServiceOpensearchRequestOpensearchDashboards `json:"opensearch-dashboards,omitempty"`
 	// OpenSearch settings
-	OpensearchSettings JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
+	OpensearchSettings *JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
 	// Name of a backup to recover from for services that support backup names
@@ -5220,7 +5220,7 @@ const (
 
 type UpdateDBAASServiceOpensearchRequestIndexPatterns struct {
 	// Maximum number of indexes to keep
-	MaxIndexCount int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
+	MaxIndexCount *int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
 	// fnmatch pattern
 	Pattern string `json:"pattern,omitempty" validate:"omitempty,lte=1024"`
 	// Deletion sorting algorithm
@@ -5230,9 +5230,9 @@ type UpdateDBAASServiceOpensearchRequestIndexPatterns struct {
 // Template settings for all new indexes
 type UpdateDBAASServiceOpensearchRequestIndexTemplate struct {
 	// The maximum number of nested JSON objects that a single document can contain across all nested types. This limit helps to prevent out of memory errors when a document contains too many nested objects. Default is 10000.
-	MappingNestedObjectsLimit int64 `json:"mapping-nested-objects-limit,omitempty" validate:"omitempty,gte=0,lte=100000"`
+	MappingNestedObjectsLimit *int64 `json:"mapping-nested-objects-limit,omitempty" validate:"omitempty,gte=0,lte=100000"`
 	// The number of replicas each primary shard has.
-	NumberOfReplicas int64 `json:"number-of-replicas,omitempty" validate:"omitempty,gte=0,lte=29"`
+	NumberOfReplicas *int64 `json:"number-of-replicas,omitempty" validate:"omitempty,gte=0,lte=29"`
 	// The number of primary shards that an index should have.
 	NumberOfShards int64 `json:"number-of-shards,omitempty" validate:"omitempty,gte=1,lte=1024"`
 }
@@ -5280,11 +5280,11 @@ type UpdateDBAASServiceOpensearchRequest struct {
 	// Automatic maintenance settings
 	Maintenance *UpdateDBAASServiceOpensearchRequestMaintenance `json:"maintenance,omitempty"`
 	// Maximum number of indexes to keep before deleting the oldest one
-	MaxIndexCount int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
+	MaxIndexCount *int64 `json:"max-index-count,omitempty" validate:"omitempty,gte=0"`
 	// OpenSearch Dashboards settings
 	OpensearchDashboards *UpdateDBAASServiceOpensearchRequestOpensearchDashboards `json:"opensearch-dashboards,omitempty"`
 	// OpenSearch settings
-	OpensearchSettings JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
+	OpensearchSettings *JSONSchemaOpensearch `json:"opensearch-settings,omitempty"`
 	// Subscription plan
 	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
 	// Service is protected against termination and powering off
@@ -5771,9 +5771,9 @@ func (c Client) GetDBAASServicePG(ctx context.Context, name string) (*DBAASServi
 
 type CreateDBAASServicePGRequestBackupSchedule struct {
 	// The hour of day (in UTC) when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupHour int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
+	BackupHour *int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
 	// The minute of an hour when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupMinute int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
+	BackupMinute *int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
 }
 
 type CreateDBAASServicePGRequestIntegrationsType string
@@ -5847,7 +5847,7 @@ type CreateDBAASServicePGRequest struct {
 	// Migrate data from existing server
 	Migration *CreateDBAASServicePGRequestMigration `json:"migration,omitempty"`
 	// postgresql.conf configuration values
-	PGSettings JSONSchemaPG `json:"pg-settings,omitempty"`
+	PGSettings *JSONSchemaPG `json:"pg-settings,omitempty"`
 	// System-wide settings for pgbouncer.
 	PgbouncerSettings *JSONSchemaPgbouncer `json:"pgbouncer-settings,omitempty"`
 	// System-wide settings for pglookout.
@@ -5922,9 +5922,9 @@ func (c Client) CreateDBAASServicePG(ctx context.Context, name string, req Creat
 
 type UpdateDBAASServicePGRequestBackupSchedule struct {
 	// The hour of day (in UTC) when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupHour int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
+	BackupHour *int64 `json:"backup-hour,omitempty" validate:"omitempty,gte=0,lte=23"`
 	// The minute of an hour when backup for the service is started. New backup is only started if previous backup has already completed.
-	BackupMinute int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
+	BackupMinute *int64 `json:"backup-minute,omitempty" validate:"omitempty,gte=0,lte=59"`
 }
 
 type UpdateDBAASServicePGRequestMaintenanceDow string
@@ -5976,7 +5976,7 @@ type UpdateDBAASServicePGRequest struct {
 	// Migrate data from existing server
 	Migration *UpdateDBAASServicePGRequestMigration `json:"migration,omitempty"`
 	// postgresql.conf configuration values
-	PGSettings JSONSchemaPG `json:"pg-settings,omitempty"`
+	PGSettings *JSONSchemaPG `json:"pg-settings,omitempty"`
 	// System-wide settings for pgbouncer.
 	PgbouncerSettings *JSONSchemaPgbouncer `json:"pgbouncer-settings,omitempty"`
 	// System-wide settings for pglookout.
@@ -6709,595 +6709,6 @@ func (c Client) CreateDBAASPGUpgradeCheck(ctx context.Context, service string, r
 	return bodyresp, nil
 }
 
-// Delete a Redis service
-func (c Client) DeleteDBAASServiceRedis(ctx context.Context, name string) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v", name)
-
-	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "delete-dbaas-service-redis")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASServiceRedis: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-// Get a DBaaS Redis service
-func (c Client) GetDBAASServiceRedis(ctx context.Context, name string) (*DBAASServiceRedis, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v", name)
-
-	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "get-dbaas-service-redis")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: http response: %w", err)
-	}
-
-	bodyresp := &DBAASServiceRedis{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("GetDBAASServiceRedis: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-type CreateDBAASServiceRedisRequestMaintenanceDow string
-
-const (
-	CreateDBAASServiceRedisRequestMaintenanceDowSaturday  CreateDBAASServiceRedisRequestMaintenanceDow = "saturday"
-	CreateDBAASServiceRedisRequestMaintenanceDowTuesday   CreateDBAASServiceRedisRequestMaintenanceDow = "tuesday"
-	CreateDBAASServiceRedisRequestMaintenanceDowNever     CreateDBAASServiceRedisRequestMaintenanceDow = "never"
-	CreateDBAASServiceRedisRequestMaintenanceDowWednesday CreateDBAASServiceRedisRequestMaintenanceDow = "wednesday"
-	CreateDBAASServiceRedisRequestMaintenanceDowSunday    CreateDBAASServiceRedisRequestMaintenanceDow = "sunday"
-	CreateDBAASServiceRedisRequestMaintenanceDowFriday    CreateDBAASServiceRedisRequestMaintenanceDow = "friday"
-	CreateDBAASServiceRedisRequestMaintenanceDowMonday    CreateDBAASServiceRedisRequestMaintenanceDow = "monday"
-	CreateDBAASServiceRedisRequestMaintenanceDowThursday  CreateDBAASServiceRedisRequestMaintenanceDow = "thursday"
-)
-
-// Automatic maintenance settings
-type CreateDBAASServiceRedisRequestMaintenance struct {
-	// Day of week for installing updates
-	Dow CreateDBAASServiceRedisRequestMaintenanceDow `json:"dow" validate:"required"`
-	// Time for installing updates, UTC
-	Time string `json:"time" validate:"required,gte=8,lte=8"`
-}
-
-// Migrate data from existing server
-type CreateDBAASServiceRedisRequestMigration struct {
-	// Database name for bootstrapping the initial connection
-	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
-	// Hostname or IP address of the server where to migrate data from
-	Host string `json:"host" validate:"required,gte=1,lte=255"`
-	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
-	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
-	Method    EnumMigrationMethod `json:"method,omitempty"`
-	// Password for authentication with the server where to migrate data from
-	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
-	// Port number of the server where to migrate data from
-	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
-	// The server where to migrate data from is secured with SSL
-	SSL *bool `json:"ssl,omitempty"`
-	// User name for authentication with the server where to migrate data from
-	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
-}
-
-type CreateDBAASServiceRedisRequest struct {
-	ForkFromService DBAASServiceName `json:"fork-from-service,omitempty" validate:"omitempty,gte=0,lte=63"`
-	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
-	IPFilter []string `json:"ip-filter,omitempty"`
-	// Automatic maintenance settings
-	Maintenance *CreateDBAASServiceRedisRequestMaintenance `json:"maintenance,omitempty"`
-	// Migrate data from existing server
-	Migration *CreateDBAASServiceRedisRequestMigration `json:"migration,omitempty"`
-	// Subscription plan
-	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
-	// Name of a backup to recover from for services that support backup names
-	RecoveryBackupName string `json:"recovery-backup-name,omitempty" validate:"omitempty,gte=1"`
-	// Redis settings
-	RedisSettings *JSONSchemaRedis `json:"redis-settings,omitempty"`
-	// Service is protected against termination and powering off
-	TerminationProtection *bool `json:"termination-protection,omitempty"`
-}
-
-// Create a DBaaS Redis service
-func (c Client) CreateDBAASServiceRedis(ctx context.Context, name string, req CreateDBAASServiceRedisRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v", name)
-
-	body, err := prepareJSONBody(req)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: prepare Json body: %w", err)
-	}
-
-	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	request.Header.Add("Content-Type", "application/json")
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "create-dbaas-service-redis")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("CreateDBAASServiceRedis: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-type UpdateDBAASServiceRedisRequestMaintenanceDow string
-
-const (
-	UpdateDBAASServiceRedisRequestMaintenanceDowSaturday  UpdateDBAASServiceRedisRequestMaintenanceDow = "saturday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowTuesday   UpdateDBAASServiceRedisRequestMaintenanceDow = "tuesday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowNever     UpdateDBAASServiceRedisRequestMaintenanceDow = "never"
-	UpdateDBAASServiceRedisRequestMaintenanceDowWednesday UpdateDBAASServiceRedisRequestMaintenanceDow = "wednesday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowSunday    UpdateDBAASServiceRedisRequestMaintenanceDow = "sunday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowFriday    UpdateDBAASServiceRedisRequestMaintenanceDow = "friday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowMonday    UpdateDBAASServiceRedisRequestMaintenanceDow = "monday"
-	UpdateDBAASServiceRedisRequestMaintenanceDowThursday  UpdateDBAASServiceRedisRequestMaintenanceDow = "thursday"
-)
-
-// Automatic maintenance settings
-type UpdateDBAASServiceRedisRequestMaintenance struct {
-	// Day of week for installing updates
-	Dow UpdateDBAASServiceRedisRequestMaintenanceDow `json:"dow" validate:"required"`
-	// Time for installing updates, UTC
-	Time string `json:"time" validate:"required,gte=8,lte=8"`
-}
-
-// Migrate data from existing server
-type UpdateDBAASServiceRedisRequestMigration struct {
-	// Database name for bootstrapping the initial connection
-	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
-	// Hostname or IP address of the server where to migrate data from
-	Host string `json:"host" validate:"required,gte=1,lte=255"`
-	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
-	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
-	Method    EnumMigrationMethod `json:"method,omitempty"`
-	// Password for authentication with the server where to migrate data from
-	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
-	// Port number of the server where to migrate data from
-	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
-	// The server where to migrate data from is secured with SSL
-	SSL *bool `json:"ssl,omitempty"`
-	// User name for authentication with the server where to migrate data from
-	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
-}
-
-type UpdateDBAASServiceRedisRequest struct {
-	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
-	IPFilter []string `json:"ip-filter,omitempty"`
-	// Automatic maintenance settings
-	Maintenance *UpdateDBAASServiceRedisRequestMaintenance `json:"maintenance,omitempty"`
-	// Migrate data from existing server
-	Migration *UpdateDBAASServiceRedisRequestMigration `json:"migration,omitempty"`
-	// Subscription plan
-	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
-	// Redis settings
-	RedisSettings *JSONSchemaRedis `json:"redis-settings,omitempty"`
-	// Service is protected against termination and powering off
-	TerminationProtection *bool `json:"termination-protection,omitempty"`
-}
-
-// Update a DBaaS Redis service
-func (c Client) UpdateDBAASServiceRedis(ctx context.Context, name string, req UpdateDBAASServiceRedisRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v", name)
-
-	body, err := prepareJSONBody(req)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: prepare Json body: %w", err)
-	}
-
-	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	request.Header.Add("Content-Type", "application/json")
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "update-dbaas-service-redis")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("UpdateDBAASServiceRedis: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-// Initiate Redis maintenance update
-func (c Client) StartDBAASRedisMaintenance(ctx context.Context, name string) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/maintenance/start", name)
-
-	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "start-dbaas-redis-maintenance")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("StartDBAASRedisMaintenance: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-// Stop a DBaaS Redis migration
-func (c Client) StopDBAASRedisMigration(ctx context.Context, name string) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/migration/stop", name)
-
-	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "stop-dbaas-redis-migration")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("StopDBAASRedisMigration: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-type CreateDBAASRedisUserRequest struct {
-	Username DBAASUserUsername `json:"username" validate:"required,gte=1,lte=64"`
-}
-
-// Create a DBaaS Redis user
-func (c Client) CreateDBAASRedisUser(ctx context.Context, serviceName string, req CreateDBAASRedisUserRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/user", serviceName)
-
-	body, err := prepareJSONBody(req)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: prepare Json body: %w", err)
-	}
-
-	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	request.Header.Add("Content-Type", "application/json")
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "create-dbaas-redis-user")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("CreateDBAASRedisUser: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-// Delete a DBaaS Redis user
-func (c Client) DeleteDBAASRedisUser(ctx context.Context, serviceName string, username string) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/user/%v", serviceName, username)
-
-	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "delete-dbaas-redis-user")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("DeleteDBAASRedisUser: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-type ResetDBAASRedisUserPasswordRequest struct {
-	Password DBAASUserPassword `json:"password,omitempty" validate:"omitempty,gte=8,lte=256"`
-}
-
-// If no password is provided one will be generated automatically.
-func (c Client) ResetDBAASRedisUserPassword(ctx context.Context, serviceName string, username string, req ResetDBAASRedisUserPasswordRequest) (*Operation, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/user/%v/password/reset", serviceName, username)
-
-	body, err := prepareJSONBody(req)
-	if err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: prepare Json body: %w", err)
-	}
-
-	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
-	if err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	request.Header.Add("Content-Type", "application/json")
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "reset-dbaas-redis-user-password")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: http response: %w", err)
-	}
-
-	bodyresp := &Operation{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("ResetDBAASRedisUserPassword: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
-// Reveal the secrets of a DBaaS Redis user
-func (c Client) RevealDBAASRedisUserPassword(ctx context.Context, serviceName string, username string) (*DBAASUserRedisSecrets, error) {
-	path := fmt.Sprintf("/dbaas-redis/%v/user/%v/password/reveal", serviceName, username)
-
-	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: new request: %w", err)
-	}
-
-	request.Header.Add("User-Agent", c.getUserAgent())
-
-	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: execute request editors: %w", err)
-	}
-
-	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: sign request: %w", err)
-	}
-
-	if c.trace {
-		dumpRequest(request, "reveal-dbaas-redis-user-password")
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: http client do: %w", err)
-	}
-
-	if c.trace {
-		dumpResponse(response)
-	}
-
-	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: http response: %w", err)
-	}
-
-	bodyresp := &DBAASUserRedisSecrets{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("RevealDBAASRedisUserPassword: prepare Json response: %w", err)
-	}
-
-	return bodyresp, nil
-}
-
 type ListDBAASServicesResponse struct {
 	DBAASServices []DBAASServiceCommon `json:"dbaas-services,omitempty"`
 }
@@ -8014,49 +7425,49 @@ func (c Client) GetDBAASSettingsPG(ctx context.Context) (*GetDBAASSettingsPGResp
 	return bodyresp, nil
 }
 
-// Redis configuration values
-type GetDBAASSettingsRedisResponseSettingsRedis struct {
+// Valkey configuration values
+type GetDBAASSettingsValkeyResponseSettingsValkey struct {
 	AdditionalProperties *bool          `json:"additionalProperties,omitempty"`
 	Properties           map[string]any `json:"properties,omitempty"`
 	Title                string         `json:"title,omitempty"`
 	Type                 string         `json:"type,omitempty"`
 }
 
-type GetDBAASSettingsRedisResponseSettings struct {
-	// Redis configuration values
-	Redis *GetDBAASSettingsRedisResponseSettingsRedis `json:"redis,omitempty"`
+type GetDBAASSettingsValkeyResponseSettings struct {
+	// Valkey configuration values
+	Valkey *GetDBAASSettingsValkeyResponseSettingsValkey `json:"valkey,omitempty"`
 }
 
-type GetDBAASSettingsRedisResponse struct {
-	Settings *GetDBAASSettingsRedisResponseSettings `json:"settings,omitempty"`
+type GetDBAASSettingsValkeyResponse struct {
+	Settings *GetDBAASSettingsValkeyResponseSettings `json:"settings,omitempty"`
 }
 
-// Returns the default settings for Redis.
-func (c Client) GetDBAASSettingsRedis(ctx context.Context) (*GetDBAASSettingsRedisResponse, error) {
-	path := "/dbaas-settings-redis"
+// Returns the default settings for Valkey.
+func (c Client) GetDBAASSettingsValkey(ctx context.Context) (*GetDBAASSettingsValkeyResponse, error) {
+	path := "/dbaas-settings-valkey"
 
 	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: new request: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: new request: %w", err)
 	}
 
 	request.Header.Add("User-Agent", c.getUserAgent())
 
 	if err := c.executeRequestInterceptors(ctx, request); err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: execute request editors: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: execute request editors: %w", err)
 	}
 
 	if err := c.signRequest(request); err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: sign request: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: sign request: %w", err)
 	}
 
 	if c.trace {
-		dumpRequest(request, "get-dbaas-settings-redis")
+		dumpRequest(request, "get-dbaas-settings-valkey")
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: http client do: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: http client do: %w", err)
 	}
 
 	if c.trace {
@@ -8064,12 +7475,12 @@ func (c Client) GetDBAASSettingsRedis(ctx context.Context) (*GetDBAASSettingsRed
 	}
 
 	if err := handleHTTPErrorResp(response); err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: http response: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: http response: %w", err)
 	}
 
-	bodyresp := &GetDBAASSettingsRedisResponse{}
+	bodyresp := &GetDBAASSettingsValkeyResponse{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
-		return nil, fmt.Errorf("GetDBAASSettingsRedis: prepare Json response: %w", err)
+		return nil, fmt.Errorf("GetDBAASSettingsValkey: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -8173,6 +7584,595 @@ func (c Client) GetDBAASTask(ctx context.Context, service string, id UUID) (*DBA
 	bodyresp := &DBAASTask{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("GetDBAASTask: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Delete a Valkey service
+func (c Client) DeleteDBAASServiceValkey(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Get a DBaaS Valkey service
+func (c Client) GetDBAASServiceValkey(ctx context.Context, name string) (*DBAASServiceValkey, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &DBAASServiceValkey{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateDBAASServiceValkeyRequestMaintenanceDow string
+
+const (
+	CreateDBAASServiceValkeyRequestMaintenanceDowSaturday  CreateDBAASServiceValkeyRequestMaintenanceDow = "saturday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowTuesday   CreateDBAASServiceValkeyRequestMaintenanceDow = "tuesday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowNever     CreateDBAASServiceValkeyRequestMaintenanceDow = "never"
+	CreateDBAASServiceValkeyRequestMaintenanceDowWednesday CreateDBAASServiceValkeyRequestMaintenanceDow = "wednesday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowSunday    CreateDBAASServiceValkeyRequestMaintenanceDow = "sunday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowFriday    CreateDBAASServiceValkeyRequestMaintenanceDow = "friday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowMonday    CreateDBAASServiceValkeyRequestMaintenanceDow = "monday"
+	CreateDBAASServiceValkeyRequestMaintenanceDowThursday  CreateDBAASServiceValkeyRequestMaintenanceDow = "thursday"
+)
+
+// Automatic maintenance settings
+type CreateDBAASServiceValkeyRequestMaintenance struct {
+	// Day of week for installing updates
+	Dow CreateDBAASServiceValkeyRequestMaintenanceDow `json:"dow" validate:"required"`
+	// Time for installing updates, UTC
+	Time string `json:"time" validate:"required,gte=8,lte=8"`
+}
+
+// Migrate data from existing server
+type CreateDBAASServiceValkeyRequestMigration struct {
+	// Database name for bootstrapping the initial connection
+	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
+	// Hostname or IP address of the server where to migrate data from
+	Host string `json:"host" validate:"required,gte=1,lte=255"`
+	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
+	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
+	Method    EnumMigrationMethod `json:"method,omitempty"`
+	// Password for authentication with the server where to migrate data from
+	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
+	// Port number of the server where to migrate data from
+	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
+	// The server where to migrate data from is secured with SSL
+	SSL *bool `json:"ssl,omitempty"`
+	// User name for authentication with the server where to migrate data from
+	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
+}
+
+type CreateDBAASServiceValkeyRequest struct {
+	ForkFromService DBAASServiceName `json:"fork-from-service,omitempty" validate:"omitempty,gte=0,lte=63"`
+	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
+	IPFilter []string `json:"ip-filter,omitempty"`
+	// Automatic maintenance settings
+	Maintenance *CreateDBAASServiceValkeyRequestMaintenance `json:"maintenance,omitempty"`
+	// Migrate data from existing server
+	Migration *CreateDBAASServiceValkeyRequestMigration `json:"migration,omitempty"`
+	// Subscription plan
+	Plan string `json:"plan" validate:"required,gte=1,lte=128"`
+	// Name of a backup to recover from for services that support backup names
+	RecoveryBackupName string `json:"recovery-backup-name,omitempty" validate:"omitempty,gte=1"`
+	// Service is protected against termination and powering off
+	TerminationProtection *bool `json:"termination-protection,omitempty"`
+	// Valkey settings
+	ValkeySettings *JSONSchemaValkey `json:"valkey-settings,omitempty"`
+}
+
+// Create a DBaaS Valkey service
+func (c Client) CreateDBAASServiceValkey(ctx context.Context, name string, req CreateDBAASServiceValkeyRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type UpdateDBAASServiceValkeyRequestMaintenanceDow string
+
+const (
+	UpdateDBAASServiceValkeyRequestMaintenanceDowSaturday  UpdateDBAASServiceValkeyRequestMaintenanceDow = "saturday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowTuesday   UpdateDBAASServiceValkeyRequestMaintenanceDow = "tuesday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowNever     UpdateDBAASServiceValkeyRequestMaintenanceDow = "never"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowWednesday UpdateDBAASServiceValkeyRequestMaintenanceDow = "wednesday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowSunday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "sunday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowFriday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "friday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowMonday    UpdateDBAASServiceValkeyRequestMaintenanceDow = "monday"
+	UpdateDBAASServiceValkeyRequestMaintenanceDowThursday  UpdateDBAASServiceValkeyRequestMaintenanceDow = "thursday"
+)
+
+// Automatic maintenance settings
+type UpdateDBAASServiceValkeyRequestMaintenance struct {
+	// Day of week for installing updates
+	Dow UpdateDBAASServiceValkeyRequestMaintenanceDow `json:"dow" validate:"required"`
+	// Time for installing updates, UTC
+	Time string `json:"time" validate:"required,gte=8,lte=8"`
+}
+
+// Migrate data from existing server
+type UpdateDBAASServiceValkeyRequestMigration struct {
+	// Database name for bootstrapping the initial connection
+	Dbname string `json:"dbname,omitempty" validate:"omitempty,gte=1,lte=63"`
+	// Hostname or IP address of the server where to migrate data from
+	Host string `json:"host" validate:"required,gte=1,lte=255"`
+	// Comma-separated list of databases, which should be ignored during migration (supported by MySQL only at the moment)
+	IgnoreDbs string              `json:"ignore-dbs,omitempty" validate:"omitempty,gte=1,lte=2048"`
+	Method    EnumMigrationMethod `json:"method,omitempty"`
+	// Password for authentication with the server where to migrate data from
+	Password string `json:"password,omitempty" validate:"omitempty,gte=1,lte=255"`
+	// Port number of the server where to migrate data from
+	Port int64 `json:"port" validate:"required,gte=1,lte=65535"`
+	// The server where to migrate data from is secured with SSL
+	SSL *bool `json:"ssl,omitempty"`
+	// User name for authentication with the server where to migrate data from
+	Username string `json:"username,omitempty" validate:"omitempty,gte=1,lte=255"`
+}
+
+type UpdateDBAASServiceValkeyRequest struct {
+	// Allow incoming connections from CIDR address block, e.g. '10.20.0.0/16'
+	IPFilter []string `json:"ip-filter,omitempty"`
+	// Automatic maintenance settings
+	Maintenance *UpdateDBAASServiceValkeyRequestMaintenance `json:"maintenance,omitempty"`
+	// Migrate data from existing server
+	Migration *UpdateDBAASServiceValkeyRequestMigration `json:"migration,omitempty"`
+	// Subscription plan
+	Plan string `json:"plan,omitempty" validate:"omitempty,gte=1,lte=128"`
+	// Service is protected against termination and powering off
+	TerminationProtection *bool `json:"termination-protection,omitempty"`
+	// Valkey settings
+	ValkeySettings *JSONSchemaValkey `json:"valkey-settings,omitempty"`
+}
+
+// Update a DBaaS Valkey service
+func (c Client) UpdateDBAASServiceValkey(ctx context.Context, name string, req UpdateDBAASServiceValkeyRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v", name)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "update-dbaas-service-valkey")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("UpdateDBAASServiceValkey: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Initiate Valkey maintenance update
+func (c Client) StartDBAASValkeyMaintenance(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/maintenance/start", name)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "start-dbaas-valkey-maintenance")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("StartDBAASValkeyMaintenance: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Stop a DBaaS Valkey migration
+func (c Client) StopDBAASValkeyMigration(ctx context.Context, name string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/migration/stop", name)
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "stop-dbaas-valkey-migration")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("StopDBAASValkeyMigration: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateDBAASValkeyUserRequest struct {
+	Username DBAASUserUsername `json:"username" validate:"required,gte=1,lte=64"`
+}
+
+// Create a DBaaS Valkey user
+func (c Client) CreateDBAASValkeyUser(ctx context.Context, serviceName string, req CreateDBAASValkeyUserRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user", serviceName)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-dbaas-valkey-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateDBAASValkeyUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Delete a DBaaS Valkey user
+func (c Client) DeleteDBAASValkeyUser(ctx context.Context, serviceName string, username string) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v", serviceName, username)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-dbaas-valkey-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteDBAASValkeyUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type ResetDBAASValkeyUserPasswordRequest struct {
+	Password DBAASUserPassword `json:"password,omitempty" validate:"omitempty,gte=8,lte=256"`
+}
+
+// If no password is provided one will be generated automatically.
+func (c Client) ResetDBAASValkeyUserPassword(ctx context.Context, serviceName string, username string, req ResetDBAASValkeyUserPasswordRequest) (*Operation, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v/password/reset", serviceName, username)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reset-dbaas-valkey-user-password")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ResetDBAASValkeyUserPassword: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Reveal the secrets of a DBaaS Valkey user
+func (c Client) RevealDBAASValkeyUserPassword(ctx context.Context, serviceName string, username string) (*DBAASUserValkeySecrets, error) {
+	path := fmt.Sprintf("/dbaas-valkey/%v/user/%v/password/reveal", serviceName, username)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reveal-dbaas-valkey-user-password")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: http response: %w", err)
+	}
+
+	bodyresp := &DBAASUserValkeySecrets{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("RevealDBAASValkeyUserPassword: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -8363,7 +8363,7 @@ type CreateDNSDomainRequest struct {
 }
 
 // Create DNS domain
-func (c Client) CreateDNSDomain(ctx context.Context, req CreateDNSDomainRequest) (*DNSDomain, error) {
+func (c Client) CreateDNSDomain(ctx context.Context, req CreateDNSDomainRequest) (*Operation, error) {
 	path := "/dns-domain"
 
 	body, err := prepareJSONBody(req)
@@ -8405,7 +8405,7 @@ func (c Client) CreateDNSDomain(ctx context.Context, req CreateDNSDomainRequest)
 		return nil, fmt.Errorf("CreateDNSDomain: http response: %w", err)
 	}
 
-	bodyresp := &DNSDomain{}
+	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("CreateDNSDomain: prepare Json response: %w", err)
 	}
@@ -8497,7 +8497,6 @@ const (
 	CreateDNSDomainRecordRequestTypeTXT   CreateDNSDomainRecordRequestType = "TXT"
 	CreateDNSDomainRecordRequestTypeALIAS CreateDNSDomainRecordRequestType = "ALIAS"
 	CreateDNSDomainRecordRequestTypeURL   CreateDNSDomainRecordRequestType = "URL"
-	CreateDNSDomainRecordRequestTypeSPF   CreateDNSDomainRecordRequestType = "SPF"
 )
 
 type CreateDNSDomainRecordRequest struct {
@@ -9294,6 +9293,81 @@ func (c Client) DetachInstanceFromElasticIP(ctx context.Context, id UUID, req De
 	return bodyresp, nil
 }
 
+type GetEnvImpactResponseEnvImpactTotal struct {
+	// Impact Amount
+	Amount float64 `json:"amount,omitempty"`
+	// Impact Unit
+	Unit string `json:"unit,omitempty"`
+}
+
+type GetEnvImpactResponseEnvImpact struct {
+	Total *GetEnvImpactResponseEnvImpactTotal `json:"total,omitempty"`
+}
+
+type GetEnvImpactResponse struct {
+	EnvImpact map[string]GetEnvImpactResponseEnvImpact `json:"env_impact,omitempty"`
+}
+
+type GetEnvImpactOpt func(url.Values)
+
+func GetEnvImpactWithPeriod(period string) GetEnvImpactOpt {
+	return func(q url.Values) {
+		q.Add("period", fmt.Sprint(period))
+	}
+}
+
+// [BETA] Returns environmental impact reports for an organization
+func (c Client) GetEnvImpact(ctx context.Context, opts ...GetEnvImpactOpt) (*GetEnvImpactResponse, error) {
+	path := "/env-impact"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if len(opts) > 0 {
+		q := request.URL.Query()
+		for _, opt := range opts {
+			opt(q)
+		}
+		request.URL.RawQuery = q.Encode()
+	}
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-env-impact")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: http response: %w", err)
+	}
+
+	bodyresp := &GetEnvImpactResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetEnvImpact: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 type ListEventsOpt func(url.Values)
 
 func ListEventsWithFrom(from time.Time) ListEventsOpt {
@@ -9355,7 +9429,7 @@ func (c Client) ListEvents(ctx context.Context, opts ...ListEventsOpt) ([]Event,
 	}
 
 	bodyresp := []Event{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
+	if err := prepareJSONResponse(response, &bodyresp); err != nil {
 		return nil, fmt.Errorf("ListEvents: prepare Json response: %w", err)
 	}
 
@@ -9452,6 +9526,50 @@ func (c Client) UpdateIAMOrganizationPolicy(ctx context.Context, req IAMPolicy) 
 	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("UpdateIAMOrganizationPolicy: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Reset IAM Organization Policy
+func (c Client) ResetIAMOrganizationPolicy(ctx context.Context) (*Operation, error) {
+	path := "/iam-organization-policy:reset"
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "reset-iam-organization-policy")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ResetIAMOrganizationPolicy: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -9861,19 +9979,19 @@ type ListInstancesOpt func(url.Values)
 
 func ListInstancesWithManagerID(managerID UUID) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("managerID", fmt.Sprint(managerID))
+		q.Add("manager-id", fmt.Sprint(managerID))
 	}
 }
 
 func ListInstancesWithManagerType(managerType ListInstancesManagerType) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("managerType", fmt.Sprint(managerType))
+		q.Add("manager-type", fmt.Sprint(managerType))
 	}
 }
 
 func ListInstancesWithIPAddress(ipAddress string) ListInstancesOpt {
 	return func(q url.Values) {
-		q.Add("ipAddress", fmt.Sprint(ipAddress))
+		q.Add("ip-address", fmt.Sprint(ipAddress))
 	}
 }
 
@@ -9946,6 +10064,8 @@ type CreateInstanceRequest struct {
 	// Instance name
 	Name               string             `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	PublicIPAssignment PublicIPAssignment `json:"public-ip-assignment,omitempty"`
+	// Enable secure boot
+	SecurebootEnabled *bool `json:"secureboot-enabled,omitempty"`
 	// Instance Security Groups
 	SecurityGroups []SecurityGroup `json:"security-groups,omitempty"`
 	// SSH key
@@ -9954,6 +10074,8 @@ type CreateInstanceRequest struct {
 	SSHKeys []SSHKey `json:"ssh-keys,omitempty"`
 	// Instance template
 	Template *Template `json:"template" validate:"required"`
+	// Enable Trusted Platform Module (TPM)
+	TpmEnabled *bool `json:"tpm-enabled,omitempty"`
 	// Instance Cloud-init user-data (base64 encoded)
 	UserData string `json:"user-data,omitempty" validate:"omitempty,gte=1,lte=32768"`
 }
@@ -10729,7 +10851,7 @@ func (c Client) GetInstance(ctx context.Context, id UUID) (*Instance, error) {
 }
 
 type UpdateInstanceRequest struct {
-	Labels Labels `json:"labels,omitempty"`
+	Labels Labels `json:"labels"`
 	// Instance name
 	Name               string             `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	PublicIPAssignment PublicIPAssignment `json:"public-ip-assignment,omitempty"`
@@ -10921,6 +11043,50 @@ func (c Client) CreateSnapshot(ctx context.Context, id UUID) (*Operation, error)
 	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("CreateSnapshot: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Enable tpm for the instance.
+func (c Client) EnableTpm(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/instance/%v:enable-tpm", id)
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("EnableTpm: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("EnableTpm: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("EnableTpm: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "enable-tpm")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("EnableTpm: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("EnableTpm: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("EnableTpm: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -13305,8 +13471,8 @@ const (
 
 // ICMP details (default: -1 (ANY))
 type AddRuleToSecurityGroupRequestICMP struct {
-	Code int64 `json:"code,omitempty" validate:"omitempty,gte=-1,lte=254"`
-	Type int64 `json:"type,omitempty" validate:"omitempty,gte=-1,lte=254"`
+	Code *int64 `json:"code,omitempty" validate:"omitempty,gte=-1,lte=254"`
+	Type *int64 `json:"type,omitempty" validate:"omitempty,gte=-1,lte=254"`
 }
 
 type AddRuleToSecurityGroupRequestProtocol string
@@ -13742,19 +13908,28 @@ const (
 )
 
 type CreateSKSClusterRequest struct {
-	// Cluster addons
-	Addons []string `json:"addons,omitempty"`
+	Addons *SKSClusterAddons `json:"addons,omitempty"`
+	// Kubernetes Audit parameters
+	Audit *SKSAuditCreate `json:"audit,omitempty"`
 	// Enable auto upgrade of the control plane to the latest patch version available
 	AutoUpgrade *bool `json:"auto-upgrade,omitempty"`
 	// Cluster CNI
 	Cni CreateSKSClusterRequestCni `json:"cni,omitempty"`
+	// Creates an ad-hoc security group based on the choice of the selected CNI
+	CreateDefaultSecurityGroup *bool `json:"create-default-security-group,omitempty"`
 	// Cluster description
 	Description *string `json:"description,omitempty" validate:"omitempty,lte=255"`
-	Labels      Labels  `json:"labels,omitempty"`
+	// Indicates whether to deploy the Kubernetes network proxy. When unspecified, defaults to `true` unless Cilium CNI is selected
+	EnableKubeProxy *bool `json:"enable-kube-proxy,omitempty"`
+	// A list of Kubernetes-only Alpha features to enable for API server component
+	FeatureGates []string         `json:"feature-gates,omitempty"`
+	Labels       SKSClusterLabels `json:"labels,omitempty"`
 	// Cluster service level
 	Level CreateSKSClusterRequestLevel `json:"level" validate:"required"`
 	// Cluster name
 	Name string `json:"name" validate:"required,gte=1,lte=255"`
+	// Cluster networking configuration.
+	Networking *Networking `json:"networking,omitempty"`
 	// SKS Cluster OpenID config map
 	Oidc *SKSOidc `json:"oidc,omitempty"`
 	// Control plane Kubernetes version
@@ -13849,7 +14024,7 @@ func (c Client) ListSKSClusterDeprecatedResources(ctx context.Context, id UUID) 
 	}
 
 	bodyresp := []SKSClusterDeprecatedResource{}
-	if err := prepareJSONResponse(response, bodyresp); err != nil {
+	if err := prepareJSONResponse(response, &bodyresp); err != nil {
 		return nil, fmt.Errorf("ListSKSClusterDeprecatedResources: prepare Json response: %w", err)
 	}
 
@@ -13919,7 +14094,7 @@ type ListSKSClusterVersionsOpt func(url.Values)
 
 func ListSKSClusterVersionsWithIncludeDeprecated(includeDeprecated string) ListSKSClusterVersionsOpt {
 	return func(q url.Values) {
-		q.Add("includeDeprecated", fmt.Sprint(includeDeprecated))
+		q.Add("include-deprecated", fmt.Sprint(includeDeprecated))
 	}
 }
 
@@ -14064,13 +14239,18 @@ func (c Client) GetSKSCluster(ctx context.Context, id UUID) (*SKSCluster, error)
 }
 
 type UpdateSKSClusterRequest struct {
-	// Cluster addons
-	Addons []string `json:"addons,omitempty"`
+	Addons *SKSClusterAddons `json:"addons,omitempty"`
+	// Kubernetes Audit parameters
+	Audit *SKSAuditUpdate `json:"audit,omitempty"`
 	// Enable auto upgrade of the control plane to the latest patch version available
 	AutoUpgrade *bool `json:"auto-upgrade,omitempty"`
 	// Cluster description
 	Description *string `json:"description,omitempty" validate:"omitempty,lte=255"`
-	Labels      Labels  `json:"labels,omitempty"`
+	// Add or remove the operators certificate authority (CA) from the list of trusted CAs of the api server. The default value is true
+	EnableOperatorsCA *bool `json:"enable-operators-ca,omitempty"`
+	// A list of Kubernetes-only Alpha features to enable for API server component
+	FeatureGates []string         `json:"feature-gates"`
+	Labels       SKSClusterLabels `json:"labels,omitempty"`
 	// Cluster name
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// SKS Cluster OpenID config map
@@ -14253,8 +14433,8 @@ type CreateSKSNodepoolRequest struct {
 	// Compute instance type
 	InstanceType *InstanceType `json:"instance-type" validate:"required"`
 	// Kubelet image GC options
-	KubeletImageGC *KubeletImageGC `json:"kubelet-image-gc,omitempty"`
-	Labels         Labels          `json:"labels,omitempty"`
+	KubeletImageGC *KubeletImageGC   `json:"kubelet-image-gc,omitempty"`
+	Labels         SKSNodepoolLabels `json:"labels,omitempty"`
 	// Nodepool name, lowercase only
 	Name string `json:"name" validate:"required,gte=1,lte=255"`
 	// Nodepool Private Networks
@@ -14428,8 +14608,8 @@ type UpdateSKSNodepoolRequest struct {
 	// Prefix to apply to managed instances names (default: pool), lowercase only
 	InstancePrefix string `json:"instance-prefix,omitempty" validate:"omitempty,gte=1,lte=30"`
 	// Compute instance type
-	InstanceType *InstanceType `json:"instance-type,omitempty"`
-	Labels       Labels        `json:"labels,omitempty"`
+	InstanceType *InstanceType     `json:"instance-type,omitempty"`
+	Labels       SKSNodepoolLabels `json:"labels,omitempty"`
 	// Nodepool name, lowercase only
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// Nodepool Private Networks
@@ -14704,6 +14884,94 @@ func (c Client) RotateSKSCcmCredentials(ctx context.Context, id UUID) (*Operatio
 	return bodyresp, nil
 }
 
+// Rotate Exoscale CSI credentials
+func (c Client) RotateSKSCsiCredentials(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/sks-cluster/%v/rotate-csi-credentials", id)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "rotate-sks-csi-credentials")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("RotateSKSCsiCredentials: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Rotate Exoscale Karpenter credentials
+func (c Client) RotateSKSKarpenterCredentials(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/sks-cluster/%v/rotate-karpenter-credentials", id)
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "rotate-sks-karpenter-credentials")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("RotateSKSKarpenterCredentials: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
 // Rotate operators certificate authority
 func (c Client) RotateSKSOperatorsCA(ctx context.Context, id UUID) (*Operation, error) {
 	path := fmt.Sprintf("/sks-cluster/%v/rotate-operators-ca", id)
@@ -14894,6 +15162,61 @@ func (c Client) ResetSKSClusterField(ctx context.Context, id UUID, field ResetSK
 	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("ResetSKSClusterField: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type GetActiveNodepoolTemplateResponse struct {
+	ActiveTemplate UUID `json:"active-template,omitempty"`
+}
+
+type GetActiveNodepoolTemplateVariant string
+
+const (
+	GetActiveNodepoolTemplateVariantStandard GetActiveNodepoolTemplateVariant = "standard"
+	GetActiveNodepoolTemplateVariantNvidia   GetActiveNodepoolTemplateVariant = "nvidia"
+)
+
+// Get the active template for a given kube version and variant (standard | nvidia)
+func (c Client) GetActiveNodepoolTemplate(ctx context.Context, kubeVersion string, variant GetActiveNodepoolTemplateVariant) (*GetActiveNodepoolTemplateResponse, error) {
+	path := fmt.Sprintf("/sks-template/%v/%v", kubeVersion, variant)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-active-nodepool-template")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: http response: %w", err)
+	}
+
+	bodyresp := &GetActiveNodepoolTemplateResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetActiveNodepoolTemplate: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil
@@ -15884,6 +16207,313 @@ func (c Client) UpdateTemplate(ctx context.Context, id UUID, req UpdateTemplateR
 	bodyresp := &Operation{}
 	if err := prepareJSONResponse(response, bodyresp); err != nil {
 		return nil, fmt.Errorf("UpdateTemplate: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Usage
+type GetUsageReportResponseUsage struct {
+	// Description
+	Description string `json:"description,omitempty"`
+	// Period Start Date
+	From string `json:"from,omitempty"`
+	// Product
+	Product string `json:"product,omitempty"`
+	// Quantity
+	Quantity string `json:"quantity,omitempty"`
+	// Period End Date
+	To string `json:"to,omitempty"`
+	// Unit
+	Unit string `json:"unit,omitempty"`
+	// Variable
+	Variable string `json:"variable,omitempty"`
+}
+
+type GetUsageReportResponse struct {
+	Usage []GetUsageReportResponseUsage `json:"usage,omitempty"`
+}
+
+type GetUsageReportOpt func(url.Values)
+
+func GetUsageReportWithPeriod(period string) GetUsageReportOpt {
+	return func(q url.Values) {
+		q.Add("period", fmt.Sprint(period))
+	}
+}
+
+// Returns aggregated usage reports for an organization
+func (c Client) GetUsageReport(ctx context.Context, opts ...GetUsageReportOpt) (*GetUsageReportResponse, error) {
+	path := "/usage-report"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetUsageReport: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if len(opts) > 0 {
+		q := request.URL.Query()
+		for _, opt := range opts {
+			opt(q)
+		}
+		request.URL.RawQuery = q.Encode()
+	}
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "get-usage-report")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("GetUsageReport: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: http response: %w", err)
+	}
+
+	bodyresp := &GetUsageReportResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("GetUsageReport: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type ListUsersResponse struct {
+	Users []User `json:"users,omitempty"`
+}
+
+// FindUser attempts to find an User by id.
+func (l ListUsersResponse) FindUser(id string) (User, error) {
+	var result []User
+	for i, elem := range l.Users {
+		if string(elem.ID) == id {
+			result = append(result, l.Users[i])
+		}
+	}
+	if len(result) == 1 {
+		return result[0], nil
+	}
+
+	if len(result) > 1 {
+		return User{}, fmt.Errorf("%q too many found in ListUsersResponse: %w", id, ErrConflict)
+	}
+
+	return User{}, fmt.Errorf("%q not found in ListUsersResponse: %w", id, ErrNotFound)
+}
+
+// List Users
+func (c Client) ListUsers(ctx context.Context) (*ListUsersResponse, error) {
+	path := "/user"
+
+	request, err := http.NewRequestWithContext(ctx, "GET", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListUsers: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("ListUsers: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("ListUsers: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "list-users")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("ListUsers: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("ListUsers: http response: %w", err)
+	}
+
+	bodyresp := &ListUsersResponse{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("ListUsers: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type CreateUserRequest struct {
+	// User Email
+	Email string `json:"email" validate:"required"`
+	// IAM Role
+	Role *IAMRole `json:"role,omitempty"`
+}
+
+// Create a User
+func (c Client) CreateUser(ctx context.Context, req CreateUserRequest) (*Operation, error) {
+	path := "/user"
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("CreateUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("CreateUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "create-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("CreateUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("CreateUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+// Delete User
+func (c Client) DeleteUser(ctx context.Context, id UUID) (*Operation, error) {
+	path := fmt.Sprintf("/user/%v", id)
+
+	request, err := http.NewRequestWithContext(ctx, "DELETE", c.serverEndpoint+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteUser: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("DeleteUser: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("DeleteUser: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "delete-user")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteUser: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("DeleteUser: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("DeleteUser: prepare Json response: %w", err)
+	}
+
+	return bodyresp, nil
+}
+
+type UpdateUserRoleRequest struct {
+	// IAM Role
+	Role *IAMRole `json:"role,omitempty"`
+}
+
+// Update a User's IAM role
+func (c Client) UpdateUserRole(ctx context.Context, id UUID, req UpdateUserRoleRequest) (*Operation, error) {
+	path := fmt.Sprintf("/user/%v", id)
+
+	body, err := prepareJSONBody(req)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: prepare Json body: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "PUT", c.serverEndpoint+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: new request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", c.getUserAgent())
+
+	request.Header.Add("Content-Type", "application/json")
+
+	if err := c.executeRequestInterceptors(ctx, request); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: execute request editors: %w", err)
+	}
+
+	if err := c.signRequest(request); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: sign request: %w", err)
+	}
+
+	if c.trace {
+		dumpRequest(request, "update-user-role")
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: http client do: %w", err)
+	}
+
+	if c.trace {
+		dumpResponse(response)
+	}
+
+	if err := handleHTTPErrorResp(response); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: http response: %w", err)
+	}
+
+	bodyresp := &Operation{}
+	if err := prepareJSONResponse(response, bodyresp); err != nil {
+		return nil, fmt.Errorf("UpdateUserRole: prepare Json response: %w", err)
 	}
 
 	return bodyresp, nil

@@ -27,7 +27,7 @@ func NewInstanceManager(client *exoscale.Client, config *Config, clusterMgr *Clu
 }
 
 func (im *InstanceManager) CreateInstance(ctx context.Context, securityGroups []exoscale.SecurityGroup) error {
-	instanceName := fmt.Sprintf("%s-static", im.config.TestID)
+	instanceName := fmt.Sprintf("%s-STATIC", im.config.TestID)
 
 	templateID, err := exoscale.ParseUUID(im.config.TemplateID)
 	if err != nil {

@@ -7,13 +7,7 @@
 -->
 
 ## Checklist
-(For exoscale contributors)
 
 * [ ] Changelog updated (under *Unreleased* block)
-* [ ] Testing
-
-## Testing
-
-<!--
-Describe the tests you did
--->
+* [ ] Unit tests passed
+* [ ] End-to-end tests passed
