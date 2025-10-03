@@ -5,7 +5,7 @@ End-to-end tests for the Exoscale Cloud Controller Manager using Ginkgo framewor
 ## Prerequisites
 
 - Exoscale API credentials (key and secret)
-- Go 1.23+ with Ginkgo CLI installed
+- Go 1.25+ with Ginkgo CLI installed
 
 ## Installation
 
