@@ -4,11 +4,22 @@
 
 ### Bug Fixes
 
-* csr validation: handle hostname case inconsistencies
+* csr validation: handle hostname case inconsistencies (#105)
 
 ### Improvements
 
-* End-to-end testing overhaul
+* Egoscale v3 rewrite (#97)
+* Rework the e2e test suite (#106)
+* chore(golang): bump golang from 1.23 to 1.25 (#119)
+* chore(deps): update busybox docker tag to v1.37.0 (#118)
+* chore(deps): update alpine docker tag to v3.22 (#117)
+* chore(deps): update actions/setup-go action to v6 (#116)
+* fix(deps): update module github.com/google/go-cmp to v0.7.0 (#113)
+* chore(deps): update module golang.org/x/oauth2 to v0.27.0 [security] (#109)
+* fix(deps): update module github.com/stretchr/testify to v1.11.1 (#114)
+* chore(deps): update actions/checkout action to v5 (#115)
+* fix(deps): update module github.com/spf13/pflag to v1.0.10 (#112)
+* chore(deps): update module golang.org/x/net to v0.38.0 [security] (#108)
 
 ## 0.32.0
 
