@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies"],
+  "stabilityDays": 3,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Group Kubernetes dependencies together",
+      "groupName": "kubernetes",
+      "matchPackagePrefixes": [
+        "k8s.io/"
+      ]
+    },
+    {
+      "description": "Group test framework dependencies",
+      "groupName": "test-frameworks",
+      "matchPackagePatterns": [
+        "github.com/onsi/ginkgo",
+        "github.com/onsi/gomega",
+        "github.com/stretchr/testify"
+      ]
+    }
+  ],
+  "gomod": {
+    "enabled": true
+  },
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "ignorePaths": [
+    "**/vendor/**"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}
