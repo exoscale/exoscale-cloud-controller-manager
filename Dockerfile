@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 \
     -o ./bin/exoscale-cloud-controller-manager \
     ./cmd/exoscale-cloud-controller-manager
 
-FROM busybox:1.32.0
+FROM busybox:1.37.0
 
 ARG VERSION
 ARG VCS_REF
