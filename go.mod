@@ -5,7 +5,7 @@ go 1.23.12
 require (
 	github.com/exoscale/egoscale/v3 v3.1.27
 	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/fsnotify.v1 v1.4.7
