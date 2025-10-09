@@ -46,7 +46,7 @@ func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
 		cfg.Global.APIEndpoint = value
 	} else if value, exists := os.LookupEnv("EXOSCALE_API_ENVIRONMENT"); exists {
 		if value == "ppapi" {
-			cfg.Global.APIEndpoint = fmt.Sprintf("https://%s-ch-gva-2.exoscale.com/compute", value)
+			cfg.Global.APIEndpoint = fmt.Sprintf("https://%s-ch-gva-2.exoscale.com/v2", value)
 		}
 	}
 
