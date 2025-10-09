@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.3
+
+### Bug Fixes
+
+* fix: malformed API endpoint
+
 ## 0.32.2
 
 ### Bug Fixes
