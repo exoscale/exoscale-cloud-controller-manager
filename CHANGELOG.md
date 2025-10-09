@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.32.2 (TO BE RELEASED)
+## 0.32.2
 
 ### Bug Fixes
 
