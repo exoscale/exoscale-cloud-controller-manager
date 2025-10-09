@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.2
+
+### Bug Fixes
+
+* Add missing backward compatibility with egoscalev2 environment variables
+
 ## 0.32.1
 
 ### Bug Fixes
