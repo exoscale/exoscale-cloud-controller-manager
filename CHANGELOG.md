@@ -1,5 +1,11 @@
 # Changelog
 
+## UNRELEASED (0.33.0)
+
+### improvements
+
+* chore(deps): bump kubernetes SDK to 1.33.5
+
 ## 0.32.3
 
 ### Bug Fixes
