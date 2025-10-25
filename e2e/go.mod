@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/exoscale/egoscale/v3 v3.1.27
-	github.com/onsi/ginkgo/v2 v2.26.0
+	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 	k8s.io/api v0.33.5
 	k8s.io/apimachinery v0.33.5
