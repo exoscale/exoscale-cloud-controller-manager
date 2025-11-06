@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.34.0
+
+* chore(deps): bump Kubernetes SDK to 0.34.1
+
 ## 0.33.0
 
 ### improvements
