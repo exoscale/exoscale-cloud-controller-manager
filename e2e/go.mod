@@ -3,7 +3,7 @@ module github.com/exoscale/exoscale-cloud-controller-manager/e2e
 go 1.25.0
 
 require (
-	github.com/exoscale/egoscale/v3 v3.1.27
+	github.com/exoscale/egoscale/v3 v3.1.30
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	k8s.io/api v0.34.1
