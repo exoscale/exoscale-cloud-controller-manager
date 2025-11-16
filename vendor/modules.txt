@@ -53,7 +53,7 @@ github.com/elliotwutingfeng/asciiset
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/exoscale/egoscale/v3 v3.1.27
+# github.com/exoscale/egoscale/v3 v3.1.30
 ## explicit; go 1.23.8
 github.com/exoscale/egoscale/v3
 github.com/exoscale/egoscale/v3/credentials

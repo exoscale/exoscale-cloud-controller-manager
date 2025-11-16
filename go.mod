@@ -3,7 +3,7 @@ module github.com/exoscale/exoscale-cloud-controller-manager
 go 1.25.3
 
 require (
-	github.com/exoscale/egoscale/v3 v3.1.27
+	github.com/exoscale/egoscale/v3 v3.1.30
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/pflag v1.0.10
