@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* chore(golang): bump golang to 1.26.x
+
 ## 0.34.0
 
 * chore(deps): bump Kubernetes SDK to 0.34.1
