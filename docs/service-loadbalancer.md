@@ -134,7 +134,7 @@ the Instance Pool ID of the cluster *Nodes* ; this information must be
 specified in case your *Service* is targeting *Pods* that are subject to
 [custom *Node* scheduling][k8s-assign-pod-node].
 
-### `service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name`
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name`
 
 Can be used instead of `exoscale-loadbalancer-service-instancepool-id` for pointing
 the service to an instance pool. The name of a SKS nodepool must be used then.
@@ -144,7 +144,7 @@ with its ID.
 
 When using this you have to specify the sks clustername in the annotation below.
 
-#### `service.beta.kubernetes.io/exoscale-sks-cluster-name`
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-sks-cluster-name`
 
 This is a requirement for
 `service.beta.kubernetes.io/exoscale-loadbalancer-service-sks-nodepool-name`
