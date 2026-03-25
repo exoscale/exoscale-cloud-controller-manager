@@ -152,7 +152,7 @@ func (l *loadBalancer) EnsureLoadBalancer(
 			// Find the SKS node pool ID by name
 			var instancePoolID v3.UUID
 			for _, pool := range sksCluster.Nodepools {
-				if strings.EqualFold(pool.Name, sksNodePoolName) {
+				if strings.EqualFold(pool.Name, sksNodePoolName) && pool.InstancePool != nil {
 					instancePoolID = pool.InstancePool.ID
 					break
 				}
