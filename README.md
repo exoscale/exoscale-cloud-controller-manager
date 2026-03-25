@@ -1,6 +1,6 @@
 # Exoscale Cloud Controller Manager
 
-[![Actions Status](https://github.com/exoscale/exoscale-cloud-controller-manager/workflows/CI/badge.svg)](https://github.com/exoscale/exoscale-cloud-controller-manager/actions?query=workflow%3ACI)
+[![Actions Status](https://github.com/exoscale/exoscale-cloud-controller-manager/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/exoscale/exoscale-cloud-controller-manager/actions/workflows/main.yml)
 
 `exoscale-cloud-controller-manager` is the Kubernetes [Cloud Controller
 Manager][k8s-ccm] (CCM) implementation for Exoscale. This component enables a
