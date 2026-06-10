@@ -32,6 +32,7 @@ type cloudProvider struct {
 	ctx          context.Context
 	client       exoscaleClient
 	instances    cloudprovider.Instances
+	instancesV2  cloudprovider.InstancesV2
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
 	kclient      kubernetes.Interface
@@ -85,6 +86,7 @@ func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 
 	provider.zone = zone
 	provider.instances = newInstances(provider, &config.Instances)
+	provider.instancesV2 = newInstancesV2(provider, &config.Instances)
 	provider.loadBalancer = newLoadBalancer(provider, &config.LoadBalancer)
 	provider.zones = newZones(provider)
 
@@ -145,7 +147,7 @@ func (p *cloudProvider) Instances() (cloudprovider.Instances, bool) {
 // API calls to the cloud provider when registering and syncing nodes.
 // Also returns true if the interface is supported, false otherwise.
 func (p *cloudProvider) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return nil, false
+	return p.instancesV2, !p.cfg.Instances.Disabled
 }
 
 // Zones returns a zones interface.
