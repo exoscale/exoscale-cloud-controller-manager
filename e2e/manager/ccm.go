@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -101,6 +102,9 @@ func (cm *CCMManager) Start(ctx context.Context) error {
 		"--v=3",
 	)
 	cmd.Dir = ccmPath
+	// run in a dedicated process group so Stop() can kill the CCM binary
+	// spawned by `go run` along with `go run` itself
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	var env []string
 	for _, e := range os.Environ() {
@@ -185,7 +189,9 @@ func (cm *CCMManager) Stop() error {
 		cm.cancel()
 	}
 	if cm.cmd != nil && cm.cmd.Process != nil {
+		_ = syscall.Kill(-cm.cmd.Process.Pid, syscall.SIGKILL)
 		_ = cm.cmd.Process.Kill()
+		_ = cm.cmd.Wait()
 	}
 	if cm.logFile != nil {
 		cm.logFile.Close()
