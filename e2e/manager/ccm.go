@@ -24,6 +24,7 @@ type CCMManager struct {
 	logBuffer           *LogBuffer
 	logFile             *os.File
 	cancel              context.CancelFunc
+	CloudConfigExtra string
 }
 
 type LogBuffer struct {
@@ -74,6 +75,10 @@ func (cm *CCMManager) Start(ctx context.Context) error {
   zone: %s
   apiCredentialsFile: %s
 `, cm.config.Zone, cm.credentialsFilePath)
+
+	if cm.CloudConfigExtra != "" {
+		cloudConfig += cm.CloudConfigExtra + "\n"
+	}
 
 	if err := os.WriteFile(cm.cloudConfigPath, []byte(cloudConfig), 0600); err != nil {
 		return fmt.Errorf("failed to write cloud config: %w", err)

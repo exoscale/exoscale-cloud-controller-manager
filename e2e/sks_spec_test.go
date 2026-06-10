@@ -7,6 +7,7 @@ import (
 	"time"
 
 	exoscale "github.com/exoscale/egoscale/v3"
+	"github.com/exoscale/exoscale-cloud-controller-manager/e2e/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -156,6 +157,22 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 				Expect(externalIPv4).To(Equal(instanceIP), "External IP should match instance IP")
 				GinkgoWriter.Printf("Static node addresses - External: %s, Internal: %s\n",
 					externalIPv4, internalIPv4)
+			})
+
+			It("should have topology and instance-type labels", func() {
+				node, err := suite.K8sClient.WaitForNodeProviderID(ctx, staticNode.Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(node.Labels).To(HaveKeyWithValue("topology.kubernetes.io/region", suite.Config.Zone))
+				// the zone topology label is only applied through the InstancesV2 metadata
+				Expect(node.Labels).To(HaveKeyWithValue("topology.kubernetes.io/zone", suite.Config.Zone))
+				Expect(node.Labels).To(HaveKey("node.kubernetes.io/instance-type"))
+				Expect(node.Labels["node.kubernetes.io/instance-type"]).NotTo(BeEmpty())
+
+				GinkgoWriter.Printf("Static node labels - region: %s, zone: %s, instance-type: %s\n",
+					node.Labels["topology.kubernetes.io/region"],
+					node.Labels["topology.kubernetes.io/zone"],
+					node.Labels["node.kubernetes.io/instance-type"])
 			})
 		})
 	})
@@ -315,6 +332,9 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 
 					Expect(node.Labels).To(HaveKey("topology.kubernetes.io/region"))
 					Expect(node.Labels["topology.kubernetes.io/region"]).To(Equal(suite.Config.Zone))
+					Expect(node.Labels).To(HaveKey("topology.kubernetes.io/zone"))
+					Expect(node.Labels["topology.kubernetes.io/zone"]).To(Equal(suite.Config.Zone))
+					Expect(node.Labels).To(HaveKey("node.kubernetes.io/instance-type"))
 				}
 
 				Expect(node.Status.Addresses).NotTo(BeEmpty())
@@ -785,6 +805,44 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 					}
 				}
 			})
+		})
+	})
+
+	Describe("Controller Gating", Ordered, func() {
+		var gatingCCM *manager.CCMManager
+
+		BeforeAll(func() {
+			GinkgoWriter.Println("Stopping main CCM...")
+			Expect(suite.CCMMgr.Stop()).To(Succeed())
+
+			// use a dedicated test ID so the gating CCM does not overwrite the
+			// main CCM credentials/cloud-config/log files
+			gatingConfig := *suite.Config
+			gatingConfig.TestID = suite.Config.TestID + "-gating"
+
+			gatingCCM = manager.NewCCMManager(&gatingConfig, kubeconfigPath)
+			gatingCCM.CloudConfigExtra = `instances:
+  disabled: true
+loadBalancer:
+  disabled: true`
+
+			GinkgoWriter.Println("Starting CCM with instances and loadBalancer controllers disabled...")
+			Expect(gatingCCM.Start(ctx)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			if gatingCCM != nil {
+				_ = gatingCCM.Stop()
+			}
+		})
+
+		It("should not start the cloud node controller when instances are disabled", func() {
+			logCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+			defer cancel()
+
+			found, err := gatingCCM.WaitForLog("failed to start cloud node controller: cloud provider does not support instances", logCtx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue(), "cloud node controller should be skipped when instances.disabled is set")
 		})
 	})
 
