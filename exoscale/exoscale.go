@@ -139,7 +139,7 @@ func (p *cloudProvider) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 // Instances returns an instances interface.
 // Also returns true if the interface is supported, false otherwise.
 func (p *cloudProvider) Instances() (cloudprovider.Instances, bool) {
-	return p.instances, !p.cfg.LoadBalancer.Disabled
+	return p.instances, !p.cfg.Instances.Disabled
 }
 
 // InstancesV2 is an implementation for instances and should only be implemented by external cloud providers.
