@@ -19,6 +19,7 @@ type CCMManager struct {
 	kubeconfigPath      string
 	cloudConfigPath     string
 	credentialsFilePath string
+	binaryPath          string
 	logFilePath         string
 	cmd                 *exec.Cmd
 	logReader           io.ReadCloser
@@ -90,9 +91,16 @@ func (cm *CCMManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to get absolute path for kubeconfig: %w", err)
 	}
 
-	ccmPath := filepath.Join("..", "cmd", "exoscale-cloud-controller-manager")
+	// build the CCM and run the binary directly: running it through `go run`
+	// would leave the CCM behind as an orphaned child process on Stop()
+	cm.binaryPath = filepath.Join(workDir, fmt.Sprintf("ccm-binary-%s", cm.config.TestID))
+	build := exec.Command("go", "build", "-o", cm.binaryPath, ".")
+	build.Dir = filepath.Join("..", "cmd", "exoscale-cloud-controller-manager")
+	if out, err := build.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to build CCM: %w (%s)", err, out)
+	}
 
-	cmd := exec.CommandContext(ctx, "go", "run", "main.go",
+	cmd := exec.CommandContext(ctx, cm.binaryPath,
 		"--kubeconfig="+kubeconfigPath,
 		"--authentication-kubeconfig="+kubeconfigPath,
 		"--authorization-kubeconfig="+kubeconfigPath,
@@ -101,10 +109,11 @@ func (cm *CCMManager) Start(ctx context.Context) error {
 		"--allow-untagged-cloud",
 		"--v=3",
 	)
-	cmd.Dir = ccmPath
-	// run in a dedicated process group so Stop() can kill the CCM binary
-	// spawned by `go run` along with `go run` itself
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// terminate gracefully on Stop(), hard-kill if still alive after 10s
+	cmd.Cancel = func() error {
+		return cmd.Process.Signal(syscall.SIGTERM)
+	}
+	cmd.WaitDelay = 10 * time.Second
 
 	var env []string
 	for _, e := range os.Environ() {
@@ -189,8 +198,8 @@ func (cm *CCMManager) Stop() error {
 		cm.cancel()
 	}
 	if cm.cmd != nil && cm.cmd.Process != nil {
-		_ = syscall.Kill(-cm.cmd.Process.Pid, syscall.SIGKILL)
-		_ = cm.cmd.Process.Kill()
+		// blocks until the process has exited (WaitDelay enforces a kill),
+		// so a subsequent CCM instance can bind the same ports
 		_ = cm.cmd.Wait()
 	}
 	if cm.logFile != nil {
@@ -202,6 +211,9 @@ func (cm *CCMManager) Stop() error {
 	}
 	if cm.cloudConfigPath != "" {
 		_ = os.Remove(cm.cloudConfigPath)
+	}
+	if cm.binaryPath != "" {
+		_ = os.Remove(cm.binaryPath)
 	}
 	return nil
 }
