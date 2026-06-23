@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* feat(instances): implement the `InstancesV2` interface
+* fix(instances): honor `instances.disabled` in the cloud-config
 * chore(golang): bump golang to 1.26.x
 * fix: set correct ipool id in annotation when using sks nodepool & cluster name #136
 
