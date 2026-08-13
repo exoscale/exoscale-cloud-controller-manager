@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.34.1
 
 * feat(instances): implement the `InstancesV2` interface
 * fix(instances): honor `instances.disabled` in the cloud-config
