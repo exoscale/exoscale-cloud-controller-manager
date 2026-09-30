@@ -419,6 +419,31 @@ func (kc *KubernetesClient) WaitForDeploymentAvailable(ctx context.Context, name
 	}
 }
 
+func (kc *KubernetesClient) WaitForDaemonSetReady(ctx context.Context, namespace, name string, timeout time.Duration) error {
+	timeoutCh := time.After(timeout)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeoutCh:
+			return fmt.Errorf("timeout waiting for daemonset %s/%s to be ready", namespace, name)
+		case <-ticker.C:
+			daemonSet, err := retryKubeAPICall(func() (*appsv1.DaemonSet, error) {
+				return kc.clientset.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+			})
+			if err != nil {
+				continue
+			}
+
+			if daemonSet.Status.DesiredNumberScheduled > 0 &&
+				daemonSet.Status.NumberReady == daemonSet.Status.DesiredNumberScheduled {
+				return nil
+			}
+		}
+	}
+}
+
 func (kc *KubernetesClient) TestHTTPEndpoint(ctx context.Context, url string) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

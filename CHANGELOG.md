@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* feat(loadbalancer): expose Services over IPv6 with a dual-stack NLB (`ip-address-type: dualstack` annotation)
 * fix(client): validate Exoscale API credentials, which switching zone no longer does
 * chore(deps): bump egoscale v3 to v3.1.53
 

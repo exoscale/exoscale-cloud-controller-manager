@@ -93,7 +93,15 @@ Exoscale Cloud Controller Manager
 │   ├── Simple LoadBalancer Service
 │   ├── NGINX Ingress Controller
 │   ├── Ingress with Hello App
-│   └── UDP Echo Service with External NLB
+│   ├── UDP Echo Service with External NLB
+│   └── Dual-stack NLB (hostNetwork)
+│       ├── IPv4 and IPv6 addresses in the Service status
+│       ├── IPv6 NLB targeting the hostNetwork port
+│       ├── Healthy IPv6 backends
+│       ├── HTTP over IPv4
+│       ├── HTTP over IPv6 (skipped without IPv6 on the test runner)
+│       ├── NLB address family conflict
+│       └── Release of the IPv6 NLB when going back to IPv4
 └── Nodepool Scaling
     ├── Scale Up
     │   ├── Node count increase
@@ -103,6 +111,11 @@ Exoscale Cloud Controller Manager
     └── Scale Down
         └── Node count decrease
 ```
+
+The nodepool is created dual-stack (public IPv4 and IPv6 addresses), as the
+dual-stack NLB tests require it. GitHub-hosted runners have no IPv6
+connectivity: there, the IPv6 data path is only checked through the NLB health
+checks, and the HTTP over IPv6 test is skipped.
 
 ## Ginkgo Features
 
