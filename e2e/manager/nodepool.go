@@ -47,6 +47,8 @@ func (nm *NodepoolManager) CreateNodepool(ctx context.Context, size int64) error
 		InstanceType: &instanceType,
 		Size:         size,
 		DiskSize:     nm.config.DiskSize,
+		// Dual-stack nodes, required by the dual-stack NLB tests.
+		PublicIPAssignment: exoscale.CreateSKSNodepoolRequestPublicIPAssignmentDual,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, nm.config.Timeouts.NodepoolCreate)
@@ -168,6 +170,66 @@ func (nm *NodepoolManager) GetInstancePoolSecurityGroups(ctx context.Context) ([
 	}
 
 	return securityGroups, nil
+}
+
+// AddIPv6IngressRule allows IPv6 TCP traffic to the given port on the nodepool instances,
+// in the first security group of the nodepool Instance Pool.
+func (nm *NodepoolManager) AddIPv6IngressRule(ctx context.Context, port int64, description string) error {
+	securityGroups, err := nm.GetInstancePoolSecurityGroups(ctx)
+	if err != nil {
+		return err
+	}
+
+	op, err := nm.client.AddRuleToSecurityGroup(ctx, securityGroups[0].ID, exoscale.AddRuleToSecurityGroupRequest{
+		Description:   description,
+		FlowDirection: exoscale.AddRuleToSecurityGroupRequestFlowDirectionIngress,
+		Network:       "::/0",
+		Protocol:      exoscale.AddRuleToSecurityGroupRequestProtocolTCP,
+		StartPort:     port,
+		EndPort:       port,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add security group rule: %w", err)
+	}
+
+	if _, err = nm.client.Wait(ctx, op, exoscale.OperationStateSuccess); err != nil {
+		return fmt.Errorf("failed to wait for security group rule creation: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteSecurityGroupRules deletes the rules with the given description from the nodepool Instance Pool
+// security groups.
+func (nm *NodepoolManager) DeleteSecurityGroupRules(ctx context.Context, description string) error {
+	securityGroups, err := nm.GetInstancePoolSecurityGroups(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, sg := range securityGroups {
+		securityGroup, err := nm.client.GetSecurityGroup(ctx, sg.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get security group: %w", err)
+		}
+
+		for _, rule := range securityGroup.Rules {
+			if rule.Description != description {
+				continue
+			}
+
+			op, err := nm.client.DeleteRuleFromSecurityGroup(ctx, sg.ID, rule.ID)
+			if err != nil {
+				return fmt.Errorf("failed to delete security group rule: %w", err)
+			}
+
+			if _, err = nm.client.Wait(ctx, op, exoscale.OperationStateSuccess); err != nil {
+				return fmt.Errorf("failed to wait for security group rule deletion: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (nm *NodepoolManager) WaitForNodepoolRunning(ctx context.Context) error {

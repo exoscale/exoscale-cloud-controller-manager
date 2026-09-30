@@ -2,7 +2,11 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -13,6 +17,7 @@ import (
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -23,6 +28,41 @@ func isPodReady(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+// hasIPv6Connectivity reports whether the test runner can reach the Internet over IPv6
+// (GitHub-hosted runners can't).
+func hasIPv6Connectivity() bool {
+	conn, err := net.DialTimeout("tcp6", "[2606:4700:4700::1111]:443", 5*time.Second)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+func httpGet(ctx context.Context, url string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("HTTP %d from %s", resp.StatusCode, url)
+	}
+
+	return string(body), nil
 }
 
 var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
@@ -652,6 +692,208 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 				Expect(externalIP).NotTo(BeEmpty())
 				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 				Expect(svc.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolUDP))
+			})
+		})
+
+		Describe("Dual-stack NLB (hostNetwork)", Ordered, func() {
+			const (
+				manifestPath   = "manifests/hostnetwork-dualstack.yaml"
+				serviceName    = "whoami-dualstack"
+				ipv6TargetPort = 8080
+
+				annotationPrefix = "service.beta.kubernetes.io/exoscale-loadbalancer-"
+			)
+
+			var (
+				sgRuleDescription string
+				nlbIPv4Address    string
+				nlbIPv6Address    string
+				nlbIPv6ID         exoscale.UUID
+			)
+
+			getService := func(name string) *corev1.Service {
+				svc, err := suite.K8sClient.Clientset().CoreV1().Services("default").Get(ctx, name, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				return svc
+			}
+
+			BeforeAll(func() {
+				sgRuleDescription = fmt.Sprintf("%s-dualstack", suite.Config.TestID)
+
+				GinkgoWriter.Printf("Allowing IPv6 traffic to port %d on the nodes...\n", ipv6TargetPort)
+				err := suite.NodepoolMgr.AddIPv6IngressRule(ctx, ipv6TargetPort, sgRuleDescription)
+				Expect(err).NotTo(HaveOccurred())
+
+				GinkgoWriter.Println("Deploying the hostNetwork application and its dual-stack Service...")
+				err = suite.K8sClient.ApplyManifestWithReplacements(ctx, kubeconfigPath, manifestPath, suite.GetManifestReplacements())
+				Expect(err).NotTo(HaveOccurred())
+
+				err = suite.K8sClient.WaitForDaemonSetReady(ctx, "default", "whoami-hostnetwork", 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterAll(func() {
+				cleanupCtx := context.Background()
+				_ = suite.K8sClient.DeleteManifest(cleanupCtx, kubeconfigPath, manifestPath)
+				_ = suite.NodepoolMgr.DeleteSecurityGroupRules(cleanupCtx, sgRuleDescription)
+			})
+
+			It("should publish both the IPv4 and IPv6 addresses", func() {
+				Eventually(func(g Gomega) {
+					svc := getService(serviceName)
+					g.Expect(svc.Status.LoadBalancer.Ingress).To(HaveLen(2))
+				}).WithTimeout(suite.Config.Timeouts.NLBServiceStart).WithPolling(5 * time.Second).Should(Succeed())
+
+				svc := getService(serviceName)
+				nlbIPv4Address = svc.Status.LoadBalancer.Ingress[0].IP
+				nlbIPv6Address = svc.Status.LoadBalancer.Ingress[1].IP
+				GinkgoWriter.Printf("Dual-stack NLB addresses: %s, %s\n", nlbIPv4Address, nlbIPv6Address)
+
+				Expect(net.ParseIP(nlbIPv4Address).To4()).NotTo(BeNil(), "first address should be IPv4")
+				Expect(net.ParseIP(nlbIPv6Address)).NotTo(BeNil())
+				Expect(net.ParseIP(nlbIPv6Address).To4()).To(BeNil(), "second address should be IPv6")
+
+				nlbIPv6ID = exoscale.UUID(svc.Annotations[annotationPrefix+"ipv6-id"])
+				Expect(nlbIPv6ID).NotTo(BeEmpty(), "IPv6 NLB ID should be persisted in the Service annotations")
+			})
+
+			It("should create an IPv6 NLB targeting the hostNetwork port", func() {
+				svc := getService(serviceName)
+				instancePoolID := suite.NodepoolMgr.GetNodepool().InstancePool.ID
+
+				nlb, err := suite.Client.GetLoadBalancer(ctx, exoscale.UUID(svc.Annotations[annotationPrefix+"id"]))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nlb.Addressfamily).To(BeElementOf(exoscale.LoadBalancerAddressfamily(""), exoscale.LoadBalancerAddressfamilyInet4))
+				Expect(nlb.IP.String()).To(Equal(nlbIPv4Address))
+				Expect(nlb.Services).To(HaveLen(1))
+				Expect(nlb.Services[0].TargetPort).To(Equal(int64(svc.Spec.Ports[0].NodePort)), "IPv4 should still target the NodePort")
+
+				nlbIPv6, err := suite.Client.GetLoadBalancer(ctx, nlbIPv6ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nlbIPv6.Addressfamily).To(Equal(exoscale.LoadBalancerAddressfamilyInet6))
+				Expect(nlbIPv6.IP.String()).To(Equal(nlbIPv6Address))
+				Expect(nlbIPv6.Services).To(HaveLen(1))
+				Expect(nlbIPv6.Services[0].TargetPort).To(Equal(int64(ipv6TargetPort)))
+				Expect(nlbIPv6.Services[0].Healthcheck.Port).To(Equal(int64(ipv6TargetPort)))
+				Expect(nlbIPv6.Services[0].InstancePool.ID).To(Equal(instancePoolID))
+			})
+
+			It("should have healthy IPv6 backends", func() {
+				// Proves the IPv6 data path (NLB -> node IPv6 -> hostNetwork port, through the security group)
+				// even when the test runner has no IPv6 connectivity.
+				Eventually(func(g Gomega) {
+					nlbIPv6, err := suite.Client.GetLoadBalancer(ctx, nlbIPv6ID)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(nlbIPv6.Services).To(HaveLen(1))
+
+					statuses := nlbIPv6.Services[0].HealthcheckStatus
+					g.Expect(statuses).To(HaveLen(int(suite.Config.NodepoolSize)))
+					for _, status := range statuses {
+						GinkgoWriter.Printf("IPv6 backend %s: %s\n", status.PublicIP, status.Status)
+						g.Expect(status.Status).To(Equal(exoscale.LoadBalancerServerStatusStatusSuccess))
+					}
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
+			})
+
+			It("should serve HTTP over IPv4", func() {
+				Eventually(func() error {
+					return suite.K8sClient.TestHTTPEndpoint(ctx, fmt.Sprintf("http://%s", nlbIPv4Address))
+				}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			})
+
+			It("should serve HTTP over IPv6, preserving the client address", func() {
+				if !hasIPv6Connectivity() {
+					Skip("the test runner has no IPv6 connectivity")
+				}
+
+				Eventually(func(g Gomega) {
+					body, err := httpGet(ctx, fmt.Sprintf("http://[%s]", nlbIPv6Address))
+					g.Expect(err).NotTo(HaveOccurred())
+					// whoami echoes the client address, which the NLB preserves.
+					g.Expect(body).To(ContainSubstring("RemoteAddr: ["))
+				}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			})
+
+			It("should fail on an NLB address family conflict", func() {
+				const conflictServiceName = "dualstack-conflict"
+
+				GinkgoWriter.Println("Creating an external IPv4 NLB, then referencing it as the IPv6 NLB...")
+				op, err := suite.Client.CreateLoadBalancer(ctx, exoscale.CreateLoadBalancerRequest{
+					Name: fmt.Sprintf("%s-conflict", suite.Config.TestID),
+				})
+				Expect(err).NotTo(HaveOccurred())
+				op, err = suite.Client.Wait(ctx, op, exoscale.OperationStateSuccess)
+				Expect(err).NotTo(HaveOccurred())
+				nlbID := op.Reference.ID
+
+				DeferCleanup(func() {
+					cleanupCtx := context.Background()
+					services := suite.K8sClient.Clientset().CoreV1().Services("default")
+					_ = services.Delete(cleanupCtx, conflictServiceName, metav1.DeleteOptions{})
+					Eventually(func() error {
+						_, err := services.Get(cleanupCtx, conflictServiceName, metav1.GetOptions{})
+						return err
+					}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).ShouldNot(Succeed())
+
+					if op, err := suite.Client.DeleteLoadBalancer(cleanupCtx, nlbID); err == nil {
+						_, _ = suite.Client.Wait(cleanupCtx, op, exoscale.OperationStateSuccess)
+					}
+				})
+
+				_, err = suite.K8sClient.Clientset().CoreV1().Services("default").Create(ctx, &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      conflictServiceName,
+						Namespace: "default",
+						Annotations: map[string]string{
+							annotationPrefix + "external":                "true",
+							annotationPrefix + "id":                      nlbID.String(),
+							annotationPrefix + "ipv6-id":                 nlbID.String(),
+							annotationPrefix + "ip-address-type":         "dualstack",
+							annotationPrefix + "ipv6-target-ports":       fmt.Sprintf("80:%d", ipv6TargetPort),
+							annotationPrefix + "service-instancepool-id": suite.NodepoolMgr.GetNodepool().InstancePool.ID.String(),
+						},
+					},
+					Spec: corev1.ServiceSpec{
+						Type:     corev1.ServiceTypeLoadBalancer,
+						Selector: map[string]string{"app": "whoami-hostnetwork"},
+						Ports: []corev1.ServicePort{{
+							Port:       80,
+							TargetPort: intstr.FromInt(ipv6TargetPort),
+							Protocol:   corev1.ProtocolTCP,
+						}},
+					},
+				}, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(func(g Gomega) {
+					events, err := suite.K8sClient.Clientset().CoreV1().Events("default").List(ctx, metav1.ListOptions{
+						FieldSelector: fmt.Sprintf("involvedObject.name=%s,reason=SyncLoadBalancerFailed", conflictServiceName),
+					})
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(events.Items).To(ContainElement(HaveField("Message",
+						ContainSubstring(`has address family "inet4", expected "inet6"`))))
+				}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+				nlb, err := suite.Client.GetLoadBalancer(ctx, nlbID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nlb.Services).To(BeEmpty(), "the conflicting NLB should be left untouched")
+			})
+
+			It("should release the IPv6 NLB when the Service goes back to IPv4", func() {
+				patch := fmt.Sprintf(`{"metadata":{"annotations":{%q:null}}}`, annotationPrefix+"ip-address-type")
+				_, err := suite.K8sClient.Clientset().CoreV1().Services("default").Patch(
+					ctx, serviceName, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(func(g Gomega) {
+					svc := getService(serviceName)
+					g.Expect(svc.Annotations).NotTo(HaveKey(annotationPrefix + "ipv6-id"))
+					g.Expect(svc.Status.LoadBalancer.Ingress).To(HaveLen(1))
+					g.Expect(svc.Status.LoadBalancer.Ingress[0].IP).To(Equal(nlbIPv4Address))
+				}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+				_, err = suite.Client.GetLoadBalancer(ctx, nlbIPv6ID)
+				Expect(errors.Is(err, exoscale.ErrNotFound)).To(BeTrue(), "IPv6 NLB should be deleted, got: %v", err)
 			})
 		})
 	})

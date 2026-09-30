@@ -203,6 +203,47 @@ The Exoscale NLB service health checking retries before considering a target
 *down*. Defaults to `1`.
 
 
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-ip-address-type`
+
+The IP address type of the *Service*: `ipv4` (default) or `dualstack`. With
+`dualstack`, the CCM manages a second, IPv6 NLB instance and publishes both
+addresses in the *Service* status (see section *Exposing a Service over IPv6
+with a dual-stack NLB*).
+
+> Note: `ipv6` alone is not supported yet.
+
+
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-target-ports`
+
+Required with `dualstack`: the port on which each *Service* port is served on
+the *Nodes*' IPv6 addresses, as a comma-separated list of `<service
+port>:<target port>` pairs (e.g. `80:8000,443:8443`). If the *Service* has a
+single port, the target port alone is accepted (e.g. `8000`).
+
+
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-healthcheck-port`
+
+Forces the health check port of the IPv6 NLB services. Defaults to their target
+port (see `exoscale-loadbalancer-ipv6-target-ports`). The other health check
+settings are shared with the IPv4 NLB services.
+
+
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-id`
+
+The ID of the IPv6 NLB instance of a `dualstack` *Service*. Like
+`exoscale-loadbalancer-id` for the IPv4 NLB instance, it is set automatically
+by the Exoscale CCM after having created the NLB instance, or can be set to use
+an externally managed one.
+
+
+#### `service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-name`
+
+The name of the IPv6 NLB instance of a `dualstack` *Service*. Defaults to the
+IPv4 NLB instance name followed by `-ipv6`. Like `exoscale-loadbalancer-name`,
+it can be set instead of `exoscale-loadbalancer-ipv6-id` to use an externally
+managed NLB instance.
+
+
 ### Using a Kubernetes Ingress Controller behind an Exoscale NLB
 
 If you wish to expose a Kubernetes [Ingress Controller][k8s-ingress-controller]
@@ -339,6 +380,76 @@ spec:
   K8s Service port**.
 
 
+### Exposing a Service over IPv6 with a dual-stack NLB
+
+Kubernetes *Pods* and *Services* in SKS clusters are IPv4-only, but *Nodes* can
+have a public IPv6 address, and Exoscale NLB instances forward IPv6 traffic as
+IPv6 to their targets. A *Service* served by *Pods* using the *Node* network
+(`hostNetwork: true`) and listening on IPv6, typically an Ingress or Gateway
+controller such as [Traefik][traefik], can therefore be exposed over IPv6.
+
+With the `exoscale-loadbalancer-ip-address-type: dualstack` annotation, the
+Exoscale CCM manages two NLB instances for the *Service*:
+
+* the IPv4 NLB instance, forwarding traffic to the *Service* `nodePort`s, as
+  usual;
+* an IPv6 NLB instance, forwarding traffic to the *Nodes*' IPv6 addresses on the
+  ports given by the `exoscale-loadbalancer-ipv6-target-ports` annotation, since
+  nothing serves the `nodePort`s over IPv6.
+
+Both addresses are published in the *Service* `status.loadBalancer.ingress`,
+IPv4 first, so that tools like [ExternalDNS][external-dns] create both `A` and
+`AAAA` records.
+
+**Prerequisites:**
+
+* The Instance Pool (e.g. SKS nodepool) targeted by the *Service* must assign
+  public IPv6 addresses to its instances, otherwise the CCM refuses to reconcile
+  the *Service*. Enable it when creating the nodepool
+  (`exo compute sks nodepool add ... --public-ip dual`), or on an existing one
+  (`exo compute sks nodepool update ... --ipv6`): existing instances get their
+  IPv6 address within a minute.
+* The [Security Groups][exo-sg] of the Instance Pool must accept ingress IPv6
+  traffic (`::/0`) on the IPv6 target ports, which also carry the NLB health
+  checks, e.g.:
+  `exo compute security-group rule add <security group> --network ::/0 --port 8000`
+
+For example, with the Traefik [Helm chart][traefik-helm] deployed with these
+values, Traefik runs on every *Node* and listens on ports `8000` and `8443` of
+all the *Node* addresses:
+
+```yaml
+deployment:
+  kind: DaemonSet
+hostNetwork: true
+updateStrategy:  # Traefik can't run twice on a Node, as both would bind the same ports
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0
+service:
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-ip-address-type: "dualstack"
+    service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-target-ports: "80:8000,443:8443"
+```
+
+A standalone example is also available in
+[`examples/service-load-balancer-dualstack.yml`](examples/service-load-balancer-dualstack.yml).
+
+**Notes:**
+
+* The NLB preserves the client address: an HTTP proxy like Traefik passes the
+  client IPv6 address to the applications in the `X-Forwarded-For` header,
+  which is not possible for other protocols.
+* Removing the annotation, or setting it back to `ipv4`, deletes the IPv6 NLB
+  instance and releases its address.
+* When using externally managed NLB instances, specify the IPv6 one with the
+  `exoscale-loadbalancer-ipv6-id` or `exoscale-loadbalancer-ipv6-name`
+  annotation. The CCM refuses to reconcile a *Service* referencing an NLB
+  instance of the wrong address family (e.g. an IPv4 NLB instance as IPv6 one).
+* For UDP *Service* ports, the IPv6 target port can't be health checked in
+  `tcp` mode: set `exoscale-loadbalancer-ipv6-healthcheck-port` to a TCP port.
+
+
 ## ⚠️ Important Notes
 
 * As `NodePort` created by K8s *Services* are picked randomly [within a defined
@@ -353,6 +464,7 @@ spec:
 [exo-nlb]: https://community.exoscale.com/documentation/compute/network-load-balancer/
 [exo-tf-provider]: https://registry.terraform.io/providers/exoscale/exoscale/latest/docs
 [exo-sg]: https://community.exoscale.com/documentation/compute/security-groups/
+[external-dns]: https://github.com/kubernetes-sigs/external-dns
 [ingress-nginx]: https://kubernetes.github.io/ingress-nginx/
 [k8s-assign-pod-node]: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 [k8s-ingress-controller]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
@@ -362,3 +474,5 @@ spec:
 [k8s-service-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#service-v1-core
 [k8s-serviceport-spec]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#serviceport-v1-core
 [k8s-same-port-bug]: https://github.com/kubernetes/kubernetes/issues/105610
+[traefik]: https://doc.traefik.io/traefik/
+[traefik-helm]: https://github.com/traefik/traefik-helm-chart
