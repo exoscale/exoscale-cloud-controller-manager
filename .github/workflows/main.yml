@@ -9,6 +9,11 @@ on:
     tags-ignore:
     - 'v**' # Don't run CI tests on release tags
 
+env:
+  # Maximum number of e2e runs at a time: they share the quotas (NLBs, SKS clusters)
+  # of the Exoscale organization they run in.
+  E2E_SLOTS: 5
+
 jobs:
   unit-test:
     runs-on: ubuntu-latest
@@ -22,7 +27,23 @@ jobs:
       - name: Run tests
         run: make test-verbose
 
+  # Assigns each run one of E2E_SLOTS e2e slots, round-robin.
+  e2e-slot:
+    runs-on: ubuntu-latest
+    outputs:
+      slot: ${{ steps.slot.outputs.slot }}
+    steps:
+      - id: slot
+        shell: bash
+        run: echo "slot=$(( ${{ github.run_number }} % E2E_SLOTS ))" >> "$GITHUB_OUTPUT"
+
   e2e-test:
+    needs: e2e-slot
+    # One e2e run at a time per slot: the others wait for it. A slot only keeps its newest
+    # waiting run, older ones waiting in the same slot are cancelled.
+    concurrency:
+      group: e2e-slot-${{ needs.e2e-slot.outputs.slot }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
