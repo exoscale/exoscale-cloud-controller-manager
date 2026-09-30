@@ -39,11 +39,11 @@ jobs:
 
   e2e-test:
     needs: e2e-slot
-    # One e2e run at a time per slot: the others wait for it. A slot only keeps its newest
-    # waiting run, older ones waiting in the same slot are cancelled.
+    # One e2e run at a time per slot: the others wait for their turn (up to 100 per slot).
     concurrency:
       group: e2e-slot-${{ needs.e2e-slot.outputs.slot }}
       cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
