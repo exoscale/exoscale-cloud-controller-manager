@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* fix(client): validate Exoscale API credentials, which switching zone no longer does
+* chore(deps): bump egoscale v3 to v3.1.53
+
 ## 0.34.1
 
 * feat(instances): implement the `InstancesV2` interface
