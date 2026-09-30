@@ -22,6 +22,7 @@ type exoscaleClient interface {
 	DeleteLoadBalancer(ctx context.Context, id v3.UUID) (*v3.Operation, error)
 	DeleteLoadBalancerService(ctx context.Context, id v3.UUID, serviceID v3.UUID) (*v3.Operation, error)
 	GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error)
+	GetInstancePool(ctx context.Context, id v3.UUID) (*v3.InstancePool, error)
 	GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error)
 	GetLoadBalancer(ctx context.Context, id v3.UUID) (*v3.LoadBalancer, error)
 	ListInstances(ctx context.Context, opts ...v3.ListInstancesOpt) (*v3.ListInstancesResponse, error)

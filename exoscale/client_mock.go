@@ -51,6 +51,11 @@ func (m *exoscaleClientMock) GetInstance(ctx context.Context, id v3.UUID) (*v3.I
 	return args.Get(0).(*v3.Instance), args.Error(1)
 }
 
+func (m *exoscaleClientMock) GetInstancePool(ctx context.Context, id v3.UUID) (*v3.InstancePool, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*v3.InstancePool), args.Error(1)
+}
+
 func (m *exoscaleClientMock) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(*v3.InstanceType), args.Error(1)
