@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	v3 "github.com/exoscale/egoscale/v3"
@@ -48,16 +49,42 @@ type refreshableExoscaleClient struct {
 type switchZone func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error)
 
 var switchZoneCallback switchZone = func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error) {
-	if zone == "" {
-		return client, nil
+	if zone != "" {
+		zoneEndpoint, err := client.GetZoneAPIEndpoint(ctx, zone)
+		if err != nil {
+			return nil, err
+		}
+
+		client = client.WithEndpoint(zoneEndpoint)
 	}
 
-	zoneEndpoint, err := client.GetZoneAPIEndpoint(ctx, zone)
-	if err != nil {
+	if err := validateCredentials(ctx, client); err != nil {
 		return nil, err
 	}
 
-	return client.WithEndpoint(zoneEndpoint), nil
+	return client, nil
+}
+
+// validateCredentials returns an error if the Exoscale API rejects the client credentials.
+// Listing zones doesn't require authentication, so switching zone doesn't validate them:
+// a cheap authenticated call does. Only an authentication failure is reported, so that
+// valid credentials missing the IAM permission for this call are still accepted.
+func validateCredentials(ctx context.Context, client *v3.Client) error {
+	_, err := client.ListLoadBalancers(ctx)
+	if err == nil {
+		return nil
+	}
+
+	var apiErr *v3.APIError
+	if errors.Is(err, v3.ErrUnauthorized) ||
+		(errors.Is(err, v3.ErrForbidden) && errors.As(err, &apiErr) &&
+			strings.Contains(strings.ToLower(apiErr.Message), "invalid key")) {
+		return fmt.Errorf("invalid Exoscale API credentials: %w", err)
+	}
+
+	infof("warning: unable to validate Exoscale API credentials: %v", err)
+
+	return nil
 }
 
 func newRefreshableExoscaleClient(ctx context.Context, config *globalConfig, zone v3.ZoneName, zoneCallback switchZone) (*refreshableExoscaleClient, error) {

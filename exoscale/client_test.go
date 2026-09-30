@@ -3,12 +3,18 @@ package exoscale
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"sync"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	v3 "github.com/exoscale/egoscale/v3"
+	"github.com/exoscale/egoscale/v3/credentials"
 )
 
 var testZoneCallback switchZone = func(ctx context.Context, client *v3.Client, zone v3.ZoneName) (*v3.Client, error) {
@@ -92,4 +98,51 @@ func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_watchCredentialsF
 	defer client.RUnlock()
 	ts.Require().Equal(testAPICredentials, client.apiCredentials)
 	ts.Require().NotNil(client.exo)
+}
+
+func Test_validateCredentials(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		body    string
+		wantErr bool
+	}{
+		{name: "valid", status: http.StatusOK, body: `{"load-balancers":[]}`},
+		{name: "invalid key", status: http.StatusForbidden, body: `{"message":"Invalid key or request signature"}`, wantErr: true},
+		{name: "unauthorized", status: http.StatusUnauthorized, body: `{"message":"Unauthorized"}`, wantErr: true},
+		// Valid credentials, but the IAM role doesn't allow listing NLBs: don't reject them.
+		{name: "operation not allowed", status: http.StatusForbidden, body: `{"message":"Operation list-load-balancers is not allowed"}`},
+		{name: "other error", status: http.StatusConflict, body: `{"message":"Conflict"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "/load-balancer", r.URL.Path)
+				require.NotEmpty(t, r.Header.Get("Authorization"), "request should be signed")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer server.Close()
+
+			client, err := v3.NewClient(
+				credentials.NewStaticCredentials(testAPIKey, testAPISecret),
+				v3.ClientOptWithEndpoint(v3.Endpoint(server.URL)),
+				v3.ClientOptWithHTTPClient(&http.Client{}),
+			)
+			require.NoError(t, err)
+
+			err = validateCredentials(context.Background(), client)
+			if tt.wantErr {
+				require.ErrorContains(t, err, "invalid Exoscale API credentials")
+				return
+			}
+			require.NoError(t, err)
+
+			// switchZoneCallback validates the credentials too.
+			_, err = switchZoneCallback(context.Background(), client, "")
+			require.NoError(t, err)
+		})
+	}
 }
