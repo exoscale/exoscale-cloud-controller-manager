@@ -1,0 +1,43 @@
+# Exposes a hostNetwork HTTP server over both IPv4 and IPv6 with a dual-stack NLB.
+# Requirements (see docs/service-loadbalancer.md):
+#   - the Instance Pool (SKS nodepool) assigns public IPv6 addresses to its instances
+#   - its Security Groups accept IPv6 traffic (::/0) on TCP port 8080
+kind: Service
+apiVersion: v1
+metadata:
+  name: whoami
+  annotations:
+    service.beta.kubernetes.io/exoscale-loadbalancer-ip-address-type: "dualstack"
+    # IPv4 traffic goes to the NodePort, IPv6 traffic to port 8080 of the Nodes' IPv6 address
+    service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-target-ports: "80:8080"
+    # Optional, defaults to the IPv6 target port
+    # service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-healthcheck-port: "8080"
+spec:
+  selector:
+    app: whoami
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: whoami
+spec:
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami
+    spec:
+      # Listen on the Node addresses, IPv6 included
+      hostNetwork: true
+      containers:
+      - name: whoami
+        image: traefik/whoami:v1.10
+        args: ["--port", "8080"]
+        ports:
+        - containerPort: 8080
