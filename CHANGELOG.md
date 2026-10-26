@@ -4,6 +4,7 @@
 
 * fix(client): validate Exoscale API credentials, which switching zone no longer does
 * chore(deps): bump egoscale v3 to v3.1.53
+* chore(deps): bump golang.org/x/net to v0.60.0 (security)
 
 ## 0.34.1
 
