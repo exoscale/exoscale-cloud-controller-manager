@@ -10,7 +10,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          # Latest Go, like the rest of the CI: go.mod's "go 1.26.0" is a minimum,
+          # scanning with it would report standard library fixes we already ship.
+          go-version: 'stable'
           cache-dependency-path: 'go.sum'
           check-latest: true
       - name: Install govulncheck
