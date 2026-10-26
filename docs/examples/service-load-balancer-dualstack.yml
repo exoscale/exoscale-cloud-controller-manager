@@ -8,7 +8,7 @@ metadata:
   name: whoami
   annotations:
     service.beta.kubernetes.io/exoscale-loadbalancer-ip-address-type: "dualstack"
-    # IPv4 traffic goes to the NodePort, IPv6 traffic to port 8080 of the Nodes' IPv6 address
+    # Required with dualstack: IPv4 traffic goes to the NodePort, IPv6 traffic to port 8080 of the Nodes' IPv6 address
     service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-target-ports: "80:8080"
     # Optional, defaults to the IPv6 target port
     # service.beta.kubernetes.io/exoscale-loadbalancer-ipv6-healthcheck-port: "8080"
