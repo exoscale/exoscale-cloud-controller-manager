@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/exoscale/egoscale/v3 v3.1.53
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
