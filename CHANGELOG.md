@@ -1,11 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.34.2
 
 * feat(loadbalancer): expose Services over IPv6 with a dual-stack NLB (`ip-address-type: dualstack` annotation)
 * fix(client): validate Exoscale API credentials, which switching zone no longer does
 * chore(deps): bump egoscale v3 to v3.1.53
 * chore(deps): bump golang.org/x/net to v0.60.0 (security)
+* chore(deps): bump google.golang.org/grpc to v1.83.2 (security)
+* chore(deps): bump golang.org/x/crypto, github.com/google/cel-go and go.opentelemetry.io/otel (security)
+* chore(golang): bump golang to 1.27.x
+* chore(docker): bump alpine to 3.24 and busybox to 1.38.0
 
 ## 0.34.1
 
