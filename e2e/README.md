@@ -102,15 +102,28 @@ Exoscale Cloud Controller Manager
 │       ├── HTTP over IPv6 (skipped without IPv6 on the test runner)
 │       ├── NLB address family conflict
 │       └── Release of the IPv6 NLB when going back to IPv4
-└── Nodepool Scaling
-    ├── Scale Up
-    │   ├── Node count increase
-    │   ├── CSR approval for new nodes
-    │   ├── Node metadata
-    │   └── LoadBalancer maintenance
-    └── Scale Down
-        └── Node count decrease
+├── Nodepool Scaling
+│   ├── Scale Up
+│   │   ├── Node count increase
+│   │   ├── CSR approval for new nodes
+│   │   ├── Node metadata
+│   │   └── LoadBalancer maintenance
+│   └── Scale Down
+│       └── Node count decrease
+├── Controller Gating
+│   └── Cloud node controller skipped when instances are disabled
+└── VPC Routes (configured through the EXOSCALE_ROUTES_* environment variables)
+    ├── Routed instance (ip-forwarding) joining the cluster
+    ├── Node instance attached to the Nodes Subnet
+    ├── Pod CIDR route in the Nodes and additional Subnets
+    ├── Route refused for a Node lacking ip-forwarding
+    └── Routes deleted once the Node is gone
 ```
+
+The VPC Routes tests create their own VPC and two standalone instances, one
+with `ip-forwarding` (SKS nodepools can't be) and one without. SKS allocates the Node Pod CIDRs
+from `192.168.0.0/16`, the CCM `--cluster-cidr`. Only the control plane is checked: the cluster
+uses Calico, so the Pod traffic itself still goes through the overlay.
 
 The nodepool is created dual-stack (public IPv4 and IPv6 addresses), as the
 dual-stack NLB tests require it. GitHub-hosted runners have no IPv6

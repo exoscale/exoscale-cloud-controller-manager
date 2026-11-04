@@ -1088,6 +1088,228 @@ loadBalancer:
 		})
 	})
 
+	Describe("VPC Routes", Ordered, func() {
+		// SKS allocates the Node Pod CIDRs from the Calico default Pod CIDR
+		const clusterCIDR = "192.168.0.0/16"
+
+		var (
+			vpcMgr      *manager.VPCManager
+			nodesSubnet exoscale.UUID
+			extraSubnet exoscale.UUID
+			routesCCM   *manager.CCMManager
+			routedMgr   *manager.InstanceManager
+			unroutedMgr *manager.InstanceManager
+			routedNode  *corev1.Node
+			routedCIDR  string
+			routedIP    string
+		)
+
+		clusterName := func() string { return suite.Config.TestID }
+
+		// clusterRoutes returns the routes of a Subnet owned by the routes CCM.
+		clusterRoutes := func(g Gomega, subnet exoscale.UUID) []exoscale.ListRouteEntry {
+			routes, err := vpcMgr.ListRoutes(ctx, subnet)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			var owned []exoscale.ListRouteEntry
+			for _, route := range routes {
+				if strings.HasPrefix(route.Description, "k8s/"+clusterName()+"/") {
+					owned = append(owned, route)
+				}
+			}
+			return owned
+		}
+
+		// assignPodCIDR gives a Node the Pod CIDR the route controller acts on, unless it already
+		// has one, and returns the Node Pod CIDR.
+		assignPodCIDR := func(name, cidr string) string {
+			node, err := suite.K8sClient.GetNodeByName(ctx, name)
+			Expect(err).NotTo(HaveOccurred())
+
+			if node.Spec.PodCIDR == "" {
+				patch := fmt.Sprintf(`{"spec":{"podCIDR":%q,"podCIDRs":[%q]}}`, cidr, cidr)
+				node, err = suite.K8sClient.Clientset().CoreV1().Nodes().Patch(
+					ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			_, cluster, _ := net.ParseCIDR(clusterCIDR)
+			podIP, _, err := net.ParseCIDR(node.Spec.PodCIDR)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cluster.Contains(podIP)).To(BeTrue(),
+				"Node %s Pod CIDR %s is outside of the routes CCM --cluster-cidr %s", name, node.Spec.PodCIDR, clusterCIDR)
+
+			return node.Spec.PodCIDR
+		}
+
+		BeforeAll(func() {
+			vpcMgr = manager.NewVPCManager(suite.Client, suite.Config)
+			Expect(vpcMgr.CreateVPC(ctx)).To(Succeed())
+
+			var err error
+			nodesSubnet, err = vpcMgr.CreateSubnet(ctx, "nodes", "172.16.0.0/24")
+			Expect(err).NotTo(HaveOccurred())
+			extraSubnet, err = vpcMgr.CreateSubnet(ctx, "extra", "172.16.1.0/24")
+			Expect(err).NotTo(HaveOccurred())
+			GinkgoWriter.Printf("VPC %s created (Nodes Subnet %s, additional Subnet %s)\n",
+				vpcMgr.GetVPCID(), nodesSubnet, extraSubnet)
+
+			// dedicated test ID, so as not to overwrite the main CCM files
+			routesConfig := *suite.Config
+			routesConfig.TestID = suite.Config.TestID + "-routes"
+
+			// the routes configuration goes through the environment, not the cloud-config file
+			routesCCM = manager.NewCCMManager(&routesConfig, kubeconfigPath)
+			routesCCM.ExtraArgs = []string{
+				"--configure-cloud-routes=true",
+				"--cluster-cidr=" + clusterCIDR,
+				"--cluster-name=" + clusterName(),
+			}
+			routesCCM.ExtraEnv = []string{
+				"EXOSCALE_ROUTES_ENABLED=true",
+				"EXOSCALE_ROUTES_VPC=" + vpcMgr.GetVPCID(),
+				"EXOSCALE_ROUTES_SUBNET=" + nodesSubnet.String(),
+				"EXOSCALE_ROUTES_ADDITIONAL_SUBNETS=" + extraSubnet.String(),
+			}
+
+			GinkgoWriter.Println("Starting CCM with VPC routes enabled...")
+			Expect(routesCCM.Start(ctx)).To(Succeed())
+
+			// Route targets need ip-forwarding, which SKS nodepools don't offer: use a standalone
+			// instance, deliberately not attached to the VPC so that the CCM attaches it.
+			routedMgr = manager.NewInstanceManager(suite.Client, suite.Config, suite.ClusterMgr)
+			routedMgr.NameSuffix = "ROUTED"
+			routedMgr.IPForwarding = true
+
+			// the same, without ip-forwarding, to check that the CCM refuses to route it
+			unroutedMgr = manager.NewInstanceManager(suite.Client, suite.Config, suite.ClusterMgr)
+			unroutedMgr.NameSuffix = "UNROUTED"
+
+			securityGroups, err := suite.NodepoolMgr.GetInstancePoolSecurityGroups(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			for _, im := range []*manager.InstanceManager{routedMgr, unroutedMgr} {
+				Expect(im.CreateInstance(ctx, securityGroups)).To(Succeed())
+			}
+			for _, im := range []*manager.InstanceManager{routedMgr, unroutedMgr} {
+				Expect(im.WaitForInstanceRunning(ctx)).To(Succeed())
+			}
+		})
+
+		AfterAll(func() {
+			if routesCCM != nil {
+				GinkgoWriter.Println("--- Routes CCM route logs ---")
+				for _, line := range routesCCM.GetLogs() {
+					if strings.Contains(strings.ToLower(line), "route") {
+						GinkgoWriter.Println(line)
+					}
+				}
+				_ = routesCCM.Stop()
+			}
+
+			if skipCleanup {
+				return
+			}
+
+			cleanupCtx := context.Background()
+			for _, im := range []*manager.InstanceManager{routedMgr, unroutedMgr} {
+				if im == nil {
+					continue
+				}
+				if err := im.DeleteInstance(cleanupCtx); err != nil {
+					GinkgoWriter.Printf("Note: instance %s cleanup: %v\n", im.GetInstanceID(), err)
+				}
+			}
+			if vpcMgr != nil {
+				if err := vpcMgr.DeleteVPC(cleanupCtx); err != nil {
+					GinkgoWriter.Printf("Note: VPC cleanup: %v\n", err)
+				}
+			}
+		})
+
+		It("should join the routed instance to the cluster", func() {
+			var err error
+			routedNode, err = suite.K8sClient.WaitForStaticNodeToJoin(ctx, routedMgr.GetInstance().PublicIP.String())
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = suite.K8sClient.WaitForNodeProviderID(ctx, routedNode.Name)
+			Expect(err).NotTo(HaveOccurred())
+			GinkgoWriter.Printf("Routed node joined: %s\n", routedNode.Name)
+		})
+
+		It("should attach the Node instance to the Nodes Subnet", func() {
+			routedCIDR = assignPodCIDR(routedNode.Name, "192.168.250.0/24")
+			GinkgoWriter.Printf("Routed node Pod CIDR: %s\n", routedCIDR)
+
+			Eventually(func(g Gomega) {
+				subnet, err := vpcMgr.GetSubnet(ctx, nodesSubnet)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				routedIP = ""
+				for _, i := range subnet.Instances {
+					if i.ID.String() == routedMgr.GetInstanceID() {
+						routedIP = i.Ipv4.String()
+					}
+				}
+				g.Expect(routedIP).NotTo(BeEmpty(), "instance should be attached to the Nodes Subnet")
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			GinkgoWriter.Printf("Routed instance VPC address: %s\n", routedIP)
+		})
+
+		It("should route the Node Pod CIDR to the Node in every Subnet", func() {
+			for _, subnet := range []exoscale.UUID{nodesSubnet, extraSubnet} {
+				Eventually(func(g Gomega) {
+					routes := clusterRoutes(g, subnet)
+					g.Expect(routes).To(HaveLen(1))
+					g.Expect(routes[0].Destination).To(Equal(routedCIDR))
+					g.Expect(routes[0].Target).To(Equal("ip=" + routedIP))
+					g.Expect(routes[0].Description).To(Equal("k8s/" + clusterName() + "/" + routedNode.Name))
+				}).WithTimeout(2*time.Minute).WithPolling(5*time.Second).Should(Succeed(), "Subnet %s", subnet)
+			}
+		})
+
+		It("should refuse to route a Node lacking ip-forwarding", func() {
+			unroutedNode, err := suite.K8sClient.WaitForStaticNodeToJoin(ctx, unroutedMgr.GetInstance().PublicIP.String())
+			Expect(err).NotTo(HaveOccurred())
+
+			// a Node lacking a provider ID is refused before the ip-forwarding check
+			_, err = suite.K8sClient.WaitForNodeProviderID(ctx, unroutedNode.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			unroutedCIDR := assignPodCIDR(unroutedNode.Name, "192.168.251.0/24")
+
+			Eventually(func(g Gomega) {
+				events, err := suite.K8sClient.Clientset().CoreV1().Events("").List(ctx, metav1.ListOptions{
+					FieldSelector: "reason=FailedToCreateRoute,involvedObject.name=" + unroutedNode.Name,
+				})
+				g.Expect(err).NotTo(HaveOccurred())
+				// events with different messages aren't aggregated: any of them may be the refusal
+				g.Expect(events.Items).To(ContainElement(
+					HaveField("Message", ContainSubstring("was not created with ip-forwarding"))))
+
+				node, err := suite.K8sClient.GetNodeByName(ctx, unroutedNode.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(node.Status.Conditions).To(ContainElement(And(
+					HaveField("Type", corev1.NodeNetworkUnavailable),
+					HaveField("Status", corev1.ConditionTrue),
+				)))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			for _, subnet := range []exoscale.UUID{nodesSubnet, extraSubnet} {
+				Expect(clusterRoutes(Default, subnet)).NotTo(ContainElement(HaveField("Destination", unroutedCIDR)))
+			}
+		})
+
+		It("should delete the routes once the Node is gone", func() {
+			Expect(routedMgr.DeleteInstance(ctx)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				for _, subnet := range []exoscale.UUID{nodesSubnet, extraSubnet} {
+					g.Expect(clusterRoutes(g, subnet)).To(BeEmpty(), "Subnet %s", subnet)
+				}
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+		})
+	})
+
 	Describe("Test Finalization", func() {
 		It("should dump remaining CCM logs for debugging", func() {
 			GinkgoWriter.Println("\n=== CCM Log Summary ===")
