@@ -35,6 +35,7 @@ type cloudProvider struct {
 	instancesV2  cloudprovider.InstancesV2
 	zones        cloudprovider.Zones
 	loadBalancer cloudprovider.LoadBalancer
+	routes       cloudprovider.Routes
 	kclient      kubernetes.Interface
 	zone         string
 
@@ -89,6 +90,7 @@ func newExoscaleCloud(config *cloudConfig) (cloudprovider.Interface, error) {
 	provider.instancesV2 = newInstancesV2(provider, &config.Instances)
 	provider.loadBalancer = newLoadBalancer(provider, &config.LoadBalancer)
 	provider.zones = newZones(provider)
+	provider.routes = newRoutes(provider, &config.Routes)
 
 	return provider, nil
 }
@@ -161,9 +163,10 @@ func (p *cloudProvider) Clusters() (cloudprovider.Clusters, bool) {
 	return nil, false
 }
 
-// Routes is not implemented.
+// Routes returns a routes interface, routing each Node Pod CIDR to the Node through the VPC.
+// Also returns true if the interface is supported, false otherwise.
 func (p *cloudProvider) Routes() (cloudprovider.Routes, bool) {
-	return nil, false
+	return p.routes, p.cfg.Routes.Enabled
 }
 
 // ProviderName returns the cloud provider ID.

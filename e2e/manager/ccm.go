@@ -26,7 +26,9 @@ type CCMManager struct {
 	logBuffer           *LogBuffer
 	logFile             *os.File
 	cancel              context.CancelFunc
-	CloudConfigExtra string
+	CloudConfigExtra    string
+	ExtraArgs           []string
+	ExtraEnv            []string
 }
 
 type LogBuffer struct {
@@ -100,15 +102,16 @@ func (cm *CCMManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to build CCM: %w (%s)", err, out)
 	}
 
-	cmd := exec.CommandContext(ctx, cm.binaryPath,
-		"--kubeconfig="+kubeconfigPath,
-		"--authentication-kubeconfig="+kubeconfigPath,
-		"--authorization-kubeconfig="+kubeconfigPath,
-		"--cloud-config="+cm.cloudConfigPath,
+	args := append([]string{
+		"--kubeconfig=" + kubeconfigPath,
+		"--authentication-kubeconfig=" + kubeconfigPath,
+		"--authorization-kubeconfig=" + kubeconfigPath,
+		"--cloud-config=" + cm.cloudConfigPath,
 		"--leader-elect=false",
 		"--allow-untagged-cloud",
 		"--v=3",
-	)
+	}, cm.ExtraArgs...)
+	cmd := exec.CommandContext(ctx, cm.binaryPath, args...)
 	// terminate gracefully on Stop(), hard-kill if still alive after 10s
 	cmd.Cancel = func() error {
 		return cmd.Process.Signal(syscall.SIGTERM)
@@ -122,6 +125,7 @@ func (cm *CCMManager) Start(ctx context.Context) error {
 		}
 	}
 	env = append(env, "EXOSCALE_SKS_AGENT_RUNNERS=node-csr-validation")
+	env = append(env, cm.ExtraEnv...)
 	cmd.Env = env
 
 	stdout, err := cmd.StdoutPipe()

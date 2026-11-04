@@ -16,6 +16,9 @@ type InstanceManager struct {
 	clusterMgr *ClusterManager
 	instanceID exoscale.UUID
 	instance   *exoscale.Instance
+	// NameSuffix is appended to the test ID to name the instance (default: STATIC).
+	NameSuffix   string
+	IPForwarding bool
 }
 
 func NewInstanceManager(client *exoscale.Client, config *Config, clusterMgr *ClusterManager) *InstanceManager {
@@ -27,7 +30,11 @@ func NewInstanceManager(client *exoscale.Client, config *Config, clusterMgr *Clu
 }
 
 func (im *InstanceManager) CreateInstance(ctx context.Context, securityGroups []exoscale.SecurityGroup) error {
-	instanceName := fmt.Sprintf("%s-STATIC", im.config.TestID)
+	suffix := im.NameSuffix
+	if suffix == "" {
+		suffix = "STATIC"
+	}
+	instanceName := fmt.Sprintf("%s-%s", im.config.TestID, suffix)
 
 	templateID, err := exoscale.ParseUUID(im.config.TemplateID)
 	if err != nil {
@@ -56,6 +63,7 @@ func (im *InstanceManager) CreateInstance(ctx context.Context, securityGroups []
 		Template:       &exoscale.Template{ID: templateID},
 		UserData:       userData,
 		SecurityGroups: securityGroups,
+		IPForwarding:   &im.IPForwarding,
 	}
 
 	fmt.Printf("[CreateInstance] Creating instance '%s' with TestID: %s\n", instanceName, im.config.TestID)

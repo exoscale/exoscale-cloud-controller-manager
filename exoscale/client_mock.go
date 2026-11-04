@@ -115,3 +115,42 @@ func (m *exoscaleClientMock) Wait(
 	args := m.Called(ctx, op, states)
 	return args.Get(0).(*v3.Operation), args.Error(1)
 }
+
+func (m *exoscaleClientMock) AttachInstanceToSubnet(
+	ctx context.Context,
+	vpcID v3.UUID,
+	subnetID v3.UUID,
+	req v3.AttachInstanceToSubnetRequest,
+) (*v3.Operation, error) {
+	args := m.Called(ctx, vpcID, subnetID, req)
+	return args.Get(0).(*v3.Operation), args.Error(1)
+}
+
+func (m *exoscaleClientMock) CreateRoute(
+	ctx context.Context,
+	vpcID v3.UUID,
+	subnetID v3.UUID,
+	req v3.CreateRouteRequest,
+) (*v3.Route, error) {
+	args := m.Called(ctx, vpcID, subnetID, req)
+	return args.Get(0).(*v3.Route), args.Error(1)
+}
+
+func (m *exoscaleClientMock) DeleteRoute(ctx context.Context, vpcID v3.UUID, subnetID v3.UUID, id v3.UUID) error {
+	args := m.Called(ctx, vpcID, subnetID, id)
+	return args.Error(0)
+}
+
+func (m *exoscaleClientMock) GetSubnet(ctx context.Context, vpcID v3.UUID, id v3.UUID) (*v3.Subnet, error) {
+	args := m.Called(ctx, vpcID, id)
+	return args.Get(0).(*v3.Subnet), args.Error(1)
+}
+
+func (m *exoscaleClientMock) ListRoutes(
+	ctx context.Context,
+	vpcID v3.UUID,
+	subnetID v3.UUID,
+) (*v3.ListRoutesResponse, error) {
+	args := m.Called(ctx, vpcID, subnetID)
+	return args.Get(0).(*v3.ListRoutesResponse), args.Error(1)
+}

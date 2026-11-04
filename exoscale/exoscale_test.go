@@ -34,6 +34,7 @@ func (ts *exoscaleCCMTestSuite) SetupTest() {
 	ts.p.instancesV2 = &instancesV2{p: ts.p, cfg: &testConfig_typical.Instances}
 	ts.p.loadBalancer = &loadBalancer{p: ts.p, cfg: &testConfig_typical.LoadBalancer}
 	ts.p.zones = &zones{p: ts.p}
+	ts.p.routes = &routes{p: ts.p, cfg: &testConfig_routes}
 }
 
 func (ts *exoscaleCCMTestSuite) TearDownTest() {
