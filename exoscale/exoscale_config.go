@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,6 +14,7 @@ type cloudConfig struct {
 	Global       globalConfig
 	Instances    instancesConfig
 	LoadBalancer loadBalancerConfig `yaml:"loadBalancer"`
+	Routes       routesConfig
 }
 
 type globalConfig struct {
@@ -47,6 +50,27 @@ func readExoscaleConfig(config io.Reader) (cloudConfig, error) {
 	} else if value, exists := os.LookupEnv("EXOSCALE_API_ENVIRONMENT"); exists {
 		if value == "ppapi" {
 			cfg.Global.APIEndpoint = fmt.Sprintf("https://%s-ch-gva-2.exoscale.com/v2", value)
+		}
+	}
+	if value, exists := os.LookupEnv("EXOSCALE_ROUTES_ENABLED"); exists {
+		enabled, err := strconv.ParseBool(value)
+		if err != nil {
+			return cloudConfig{}, fmt.Errorf("invalid EXOSCALE_ROUTES_ENABLED: %w", err)
+		}
+		cfg.Routes.Enabled = enabled
+	}
+	if value, exists := os.LookupEnv("EXOSCALE_ROUTES_VPC"); exists {
+		cfg.Routes.VPC = value
+	}
+	if value, exists := os.LookupEnv("EXOSCALE_ROUTES_SUBNET"); exists {
+		cfg.Routes.Subnet = value
+	}
+	if value, exists := os.LookupEnv("EXOSCALE_ROUTES_ADDITIONAL_SUBNETS"); exists {
+		cfg.Routes.AdditionalSubnets = nil
+		for _, subnet := range strings.Split(value, ",") {
+			if subnet = strings.TrimSpace(subnet); subnet != "" {
+				cfg.Routes.AdditionalSubnets = append(cfg.Routes.AdditionalSubnets, subnet)
+			}
 		}
 	}
 

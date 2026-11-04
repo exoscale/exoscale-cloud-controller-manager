@@ -102,6 +102,26 @@ func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_typical() {
 	ts.Require().Equal("", cfg.Global.APICredentialsFile)
 }
 
+func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_env_routes() {
+	ts.T().Setenv("EXOSCALE_ROUTES_ENABLED", "true")
+	ts.T().Setenv("EXOSCALE_ROUTES_VPC", "vpc")
+	ts.T().Setenv("EXOSCALE_ROUTES_SUBNET", "subnet")
+	ts.T().Setenv("EXOSCALE_ROUTES_ADDITIONAL_SUBNETS", "a, b,")
+
+	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
+	ts.Require().NoError(err)
+	ts.Require().Equal(routesConfig{
+		Enabled:           true,
+		VPC:               "vpc",
+		Subnet:            "subnet",
+		AdditionalSubnets: []string{"a", "b"},
+	}, cfg.Routes)
+
+	ts.T().Setenv("EXOSCALE_ROUTES_ENABLED", "nope")
+	_, err = readExoscaleConfig(strings.NewReader(testConfigYAML_empty))
+	ts.Require().Error(err)
+}
+
 func (ts *exoscaleCCMTestSuite) Test_readExoscaleConfig_disabled() {
 	cfg, err := readExoscaleConfig(strings.NewReader(testConfigYAML_disabled))
 	ts.Require().NoError(err)

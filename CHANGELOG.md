@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* feat(routes): implement the `Routes` interface, routing each Node Pod CIDR through a VPC Subnet ([docs](docs/routes.md))
+
 ## 0.34.2
 
 * feat(loadbalancer): expose Services over IPv6 with a dual-stack NLB (`ip-address-type: dualstack` annotation)
