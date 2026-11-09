@@ -262,31 +262,76 @@ type CreateDeploymentRequest struct {
 	// Deployment name
 	Name string `json:"name" validate:"required,gte=1"`
 	// Billing identifier for this deployment. Used by the Router for usage counters and Kafka events.
-	ProductName string `json:"product-name,omitempty" validate:"omitempty,gte=1"`
+	ProductName string `json:"product-name,omitempty" validate:"omitempty,gte=1,lte=256"`
 	// Number of replicas (>=1)
 	Replicas int64 `json:"replicas" validate:"required,gte=1"`
 }
+
+type CreateKeyStoreRequestType string
+
+const (
+	CreateKeyStoreRequestTypeExternalKeyStore CreateKeyStoreRequestType = "external-key-store"
+)
+
+type CreateKeyStoreRequest struct {
+	// An optional detailed description providing additional context about the key store's intended use case.
+	Description string `json:"description,omitempty" validate:"omitempty,lte=1024"`
+	// A human-readable display name uniquely identifying the key store within the organization.
+	Name  string         `json:"name" validate:"required,gte=1,lte=256"`
+	Proxy *KeyStoreProxy `json:"proxy" validate:"required"`
+	// The key store type. Only external key stores are supported for this API version.
+	Type CreateKeyStoreRequestType `json:"type,omitempty"`
+}
+
+type CreateKmsKeyRequestKeySpec string
+
+const (
+	CreateKmsKeyRequestKeySpecAES256          CreateKmsKeyRequestKeySpec = "AES_256"
+	CreateKmsKeyRequestKeySpecECCNISTP256     CreateKmsKeyRequestKeySpec = "ECC_NIST_P256"
+	CreateKmsKeyRequestKeySpecECCNISTP384     CreateKmsKeyRequestKeySpec = "ECC_NIST_P384"
+	CreateKmsKeyRequestKeySpecECCNISTP521     CreateKmsKeyRequestKeySpec = "ECC_NIST_P521"
+	CreateKmsKeyRequestKeySpecECCEDWARDS25519 CreateKmsKeyRequestKeySpec = "ECC_EDWARDS25519"
+	CreateKmsKeyRequestKeySpecRSA3072         CreateKmsKeyRequestKeySpec = "RSA_3072"
+	CreateKmsKeyRequestKeySpecRSA4096         CreateKmsKeyRequestKeySpec = "RSA_4096"
+	CreateKmsKeyRequestKeySpecMLDSA65         CreateKmsKeyRequestKeySpec = "ML_DSA_65"
+	CreateKmsKeyRequestKeySpecMLDSA87         CreateKmsKeyRequestKeySpec = "ML_DSA_87"
+)
+
+type CreateKmsKeyRequestSource string
+
+const (
+	CreateKmsKeyRequestSourceExoscaleKms      CreateKmsKeyRequestSource = "exoscale-kms"
+	CreateKmsKeyRequestSourceExternalKeyStore CreateKmsKeyRequestSource = "external-key-store"
+)
 
 type CreateKmsKeyRequestUsage string
 
 const (
 	CreateKmsKeyRequestUsageEncryptDecrypt CreateKmsKeyRequestUsage = "encrypt-decrypt"
+	CreateKmsKeyRequestUsageSignVerify     CreateKmsKeyRequestUsage = "sign-verify"
 )
 
 type CreateKmsKeyRequest struct {
 	// An optional detailed description providing additional context about the key's intended use case.
 	Description string `json:"description,omitempty"`
+	// The cryptographic key specification defining the key's algorithm and, for asymmetric keys, its curve or modulus size.
+	KeySpec CreateKmsKeyRequestKeySpec `json:"key-spec,omitempty"`
 	// True if this is a multi-zone key.
 	MultiZone *bool `json:"multi-zone,omitempty"`
 	// A human-readable display name uniquely identifying the KMS key within the tenant space.
-	Name  string                   `json:"name" validate:"required"`
-	Usage CreateKmsKeyRequestUsage `json:"usage,omitempty"`
+	Name string `json:"name" validate:"required"`
+	// Indicates the source of the key material, either generated and held within Exoscale KMS, or backed by an external key store ([BETA]).
+	Source CreateKmsKeyRequestSource `json:"source,omitempty"`
+	Usage  CreateKmsKeyRequestUsage  `json:"usage,omitempty"`
+	// [BETA] External key store reference of a KMS Key with source `external-key-store`.
+	Xks *XksKey `json:"xks,omitempty"`
 }
 
 type CreateKmsKeyResponseSource string
 
 const (
-	CreateKmsKeyResponseSourceExoscaleKms CreateKmsKeyResponseSource = "exoscale-kms"
+	CreateKmsKeyResponseSourceExoscaleKms      CreateKmsKeyResponseSource = "exoscale-kms"
+	CreateKmsKeyResponseSourceExternalKeyStore CreateKmsKeyResponseSource = "external-key-store"
 )
 
 type CreateKmsKeyResponseStatus string
@@ -304,19 +349,25 @@ type CreateKmsKeyResponse struct {
 	Description string `json:"description,omitempty"`
 	// The globally unique identifier (UUID) assigned to the newly created KMS key.
 	ID UUID `json:"id" validate:"required"`
+	// The cryptographic key specification used to generate the key, defining its algorithm and, for asymmetric keys, its curve or modulus size.
+	KeySpec string `json:"key-spec" validate:"required"`
 	// True if this is a multi-zone key.
 	MultiZone *bool `json:"multi-zone" validate:"required"`
 	// The display name assigned to the KMS key.
 	Name string `json:"name" validate:"required"`
 	// The creation zone of the KMS key.
-	OriginZone string                     `json:"origin-zone" validate:"required"`
-	Revision   *RevisionStamp             `json:"revision" validate:"required"`
-	Source     CreateKmsKeyResponseSource `json:"source" validate:"required"`
-	Status     CreateKmsKeyResponseStatus `json:"status" validate:"required"`
+	OriginZone string             `json:"origin-zone" validate:"required"`
+	Revision   *RevisionStamp     `json:"revision" validate:"required"`
+	Rotation   *KeyRotationConfig `json:"rotation,omitempty"`
+	// Indicates the source of the key material, either generated and held within Exoscale KMS, or backed by an external key store ([BETA]).
+	Source CreateKmsKeyResponseSource `json:"source" validate:"required"`
+	Status CreateKmsKeyResponseStatus `json:"status" validate:"required"`
 	// The timestamp indicating exactly when the current key status was last transitioned.
 	StatusSince time.Time `json:"status-since" validate:"required"`
 	// The cryptographic operation constraints allowed on this key.
 	Usage string `json:"usage" validate:"required"`
+	// [BETA] External key store reference of a KMS Key with source `external-key-store`.
+	Xks *XksKey `json:"xks,omitempty"`
 }
 
 // AI model
@@ -1042,11 +1093,9 @@ type DBAASPGPoolUsername string
 type DBAASPGTargetVersions string
 
 const (
-	DBAASPGTargetVersions14 DBAASPGTargetVersions = "14"
 	DBAASPGTargetVersions17 DBAASPGTargetVersions = "17"
 	DBAASPGTargetVersions15 DBAASPGTargetVersions = "15"
 	DBAASPGTargetVersions18 DBAASPGTargetVersions = "18"
-	DBAASPGTargetVersions13 DBAASPGTargetVersions = "13"
 	DBAASPGTargetVersions16 DBAASPGTargetVersions = "16"
 )
 
@@ -1134,7 +1183,7 @@ type DBAASServiceClickhouse struct {
 	ConnectionInfo *DBAASServiceClickhouseConnectionInfo `json:"connection-info,omitempty"`
 	// Service creation timestamp (ISO 8601)
 	CreatedAT time.Time `json:"created-at,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1147,7 +1196,7 @@ type DBAASServiceClickhouse struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1178,7 +1227,7 @@ type DBAASServiceClickhouse struct {
 type DBAASServiceCommon struct {
 	// Service creation timestamp (ISO 8601)
 	CreatedAT time.Time `json:"created-at,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1187,7 +1236,7 @@ type DBAASServiceCommon struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// Service notifications
 	Notifications []DBAASServiceNotification `json:"notifications,omitempty"`
@@ -1281,7 +1330,7 @@ type DBAASServiceGrafana struct {
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// DbaaS service description
 	Description string `json:"description,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Grafana settings
 	GrafanaSettings *JSONSchemaGrafana `json:"grafana-settings,omitempty"`
@@ -1296,7 +1345,7 @@ type DBAASServiceGrafana struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1380,7 +1429,7 @@ type DBAASServiceKafka struct {
 	ConnectionInfo *DBAASServiceKafkaConnectionInfo `json:"connection-info,omitempty"`
 	// Service creation timestamp (ISO 8601)
 	CreatedAT time.Time `json:"created-at,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1403,7 +1452,7 @@ type DBAASServiceKafka struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1525,7 +1574,7 @@ type DBAASServiceMysql struct {
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// List of MySQL databases
 	Databases []DBAASMysqlDatabaseName `json:"databases,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1540,7 +1589,7 @@ type DBAASServiceMysql struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1674,7 +1723,7 @@ type DBAASServiceOpensearch struct {
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// DbaaS service description
 	Description string `json:"description,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Allows you to create glob style patterns and set a max number of indexes matching this pattern you want to keep. Creating indexes exceeding this value will cause the oldest one to get deleted. You could for example create a pattern looking like 'logs.?' and then create index logs.1, logs.2 etc, it will delete logs.1 once you create logs.6. Do note 'logs.?' does not apply to logs.10. Note: Setting max_index_count to 0 will do nothing and the pattern gets ignored.
 	IndexPatterns []DBAASServiceOpensearchIndexPatterns `json:"index-patterns,omitempty"`
@@ -1695,7 +1744,7 @@ type DBAASServiceOpensearch struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1796,7 +1845,7 @@ type DBAASServicePG struct {
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// List of PostgreSQL databases
 	Databases []DBAASDatabaseName `json:"databases,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1811,7 +1860,7 @@ type DBAASServicePG struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -1898,7 +1947,7 @@ type DBAASServiceThanos struct {
 	ConnectionInfo *DBAASServiceThanosConnectionInfo `json:"connection-info,omitempty"`
 	// Service creation timestamp (ISO 8601)
 	CreatedAT time.Time `json:"created-at,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -1911,7 +1960,7 @@ type DBAASServiceThanos struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -2017,7 +2066,7 @@ type DBAASServiceValkey struct {
 	ConnectionInfo *DBAASServiceValkeyConnectionInfo `json:"connection-info,omitempty"`
 	// Service creation timestamp (ISO 8601)
 	CreatedAT time.Time `json:"created-at,omitempty"`
-	// TODO UNIT disk space for data storage
+	// Disk space for data storage, in bytes
 	DiskSize int64 `json:"disk-size,omitempty" validate:"omitempty,gte=0"`
 	// Service integrations
 	Integrations []DBAASIntegration `json:"integrations,omitempty"`
@@ -2030,7 +2079,7 @@ type DBAASServiceValkey struct {
 	NodeCount int64 `json:"node-count,omitempty" validate:"omitempty,gte=0"`
 	// Number of CPUs for each node
 	NodeCPUCount int64 `json:"node-cpu-count,omitempty" validate:"omitempty,gte=0"`
-	// TODO UNIT of memory for each node
+	// Memory of each node, in bytes
 	NodeMemory int64 `json:"node-memory,omitempty" validate:"omitempty,gte=0"`
 	// State of individual service nodes
 	NodeStates []DBAASNodeState `json:"node-states,omitempty"`
@@ -2066,12 +2115,17 @@ type DBAASTaskResultCodes struct {
 }
 
 type DBAASTask struct {
-	CreateTime  time.Time              `json:"create-time,omitempty"`
-	ID          UUID                   `json:"id,omitempty"`
-	Result      string                 `json:"result,omitempty"`
-	ResultCodes []DBAASTaskResultCodes `json:"result-codes,omitempty"`
-	Success     *bool                  `json:"success,omitempty"`
-	TaskType    string                 `json:"task-type,omitempty"`
+	CreateTime         time.Time              `json:"create-time,omitempty"`
+	DurationSeconds    float64                `json:"duration-seconds,omitempty"`
+	ID                 UUID                   `json:"id,omitempty"`
+	Result             string                 `json:"result,omitempty"`
+	ResultCodes        []DBAASTaskResultCodes `json:"result-codes,omitempty"`
+	SourceMysqlVersion string                 `json:"source-mysql-version,omitempty"`
+	SourcePGVersion    string                 `json:"source-pg-version,omitempty"`
+	Success            *bool                  `json:"success,omitempty"`
+	TargetMysqlVersion string                 `json:"target-mysql-version,omitempty"`
+	TargetPGVersion    string                 `json:"target-pg-version,omitempty"`
+	TaskType           string                 `json:"task-type,omitempty"`
 }
 
 // ClickHouse User secrets
@@ -2176,14 +2230,32 @@ type DBAASValkeyUsers struct {
 	Users []DBAASValkeyUser `json:"users,omitempty"`
 }
 
+type DecryptRequestEncryptionAlgorithm string
+
+const (
+	DecryptRequestEncryptionAlgorithmAES256          DecryptRequestEncryptionAlgorithm = "AES_256"
+	DecryptRequestEncryptionAlgorithmRSAESOAEPSHA256 DecryptRequestEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type DecryptRequest struct {
 	// The Base64-encoded ciphertext payload to be decrypted.
 	Ciphertext []byte `json:"ciphertext" validate:"required"`
+	// The encryption algorithm this key must use. Validated against the key's actual cryptographic profile. Required for asymmetric keys. Symmetric keys use AES_256 when it is omitted.
+	EncryptionAlgorithm DecryptRequestEncryptionAlgorithm `json:"encryption-algorithm,omitempty"`
 	// The exact Base64-encoded Additional Authenticated Data (AAD) used during encryption to verify data integrity.
 	EncryptionContext *[]byte `json:"encryption-context,omitempty"`
 }
 
+type DecryptResponseEncryptionAlgorithm string
+
+const (
+	DecryptResponseEncryptionAlgorithmAES256          DecryptResponseEncryptionAlgorithm = "AES_256"
+	DecryptResponseEncryptionAlgorithmRSAESOAEPSHA256 DecryptResponseEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type DecryptResponse struct {
+	// The encryption algorithm that was used to decrypt this ciphertext.
+	EncryptionAlgorithm DecryptResponseEncryptionAlgorithm `json:"encryption-algorithm" validate:"required"`
 	// The recovered Base64-encoded original plaintext payload.
 	Plaintext []byte `json:"plaintext" validate:"required"`
 }
@@ -2347,16 +2419,34 @@ type EnableKmsKeyRotationResponse struct {
 	Rotation *KeyRotationConfig `json:"rotation" validate:"required"`
 }
 
+type EncryptRequestEncryptionAlgorithm string
+
+const (
+	EncryptRequestEncryptionAlgorithmAES256          EncryptRequestEncryptionAlgorithm = "AES_256"
+	EncryptRequestEncryptionAlgorithmRSAESOAEPSHA256 EncryptRequestEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type EncryptRequest struct {
+	// The encryption algorithm this key must use. Validated against the key's actual cryptographic profile. Required for asymmetric keys. Symmetric keys use AES_256 when it is omitted.
+	EncryptionAlgorithm EncryptRequestEncryptionAlgorithm `json:"encryption-algorithm,omitempty"`
 	// Base64-encoded bytes to be used as the Additional Authenticated Data (AAD) for encryption integrity.
 	EncryptionContext *[]byte `json:"encryption-context,omitempty"`
 	// The Base64-encoded plaintext data you wish to encrypt.
 	Plaintext []byte `json:"plaintext" validate:"required"`
 }
 
+type EncryptResponseEncryptionAlgorithm string
+
+const (
+	EncryptResponseEncryptionAlgorithmAES256          EncryptResponseEncryptionAlgorithm = "AES_256"
+	EncryptResponseEncryptionAlgorithmRSAESOAEPSHA256 EncryptResponseEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type EncryptResponse struct {
 	// The resulting Base64-encoded ciphertext after encryption.
 	Ciphertext []byte `json:"ciphertext" validate:"required"`
+	// The encryption algorithm that was used to encrypt this plaintext.
+	EncryptionAlgorithm EncryptResponseEncryptionAlgorithm `json:"encryption-algorithm" validate:"required"`
 }
 
 type EnumComponentRoute string
@@ -2469,8 +2559,7 @@ const (
 type EnumPGVariant string
 
 const (
-	EnumPGVariantTimescale EnumPGVariant = "timescale"
-	EnumPGVariantAiven     EnumPGVariant = "aiven"
+	EnumPGVariantAiven EnumPGVariant = "aiven"
 )
 
 type EnumRsyslogFormat string
@@ -2551,6 +2640,8 @@ type ErrorResponse struct {
 	Title string `json:"title" validate:"required"`
 	// An absolute or relative URI reference pointing to human-readable documentation concerning the specific problem type encountered.
 	Type string `json:"type" validate:"required"`
+	// [BETA] Error reported by the customer-managed XKS proxy of an external key store.
+	XksProxyError *XksProxyErrorDetail `json:"xks-proxy-error,omitempty"`
 }
 
 // A notable Mutation Event which happened on the infrastructure
@@ -2707,10 +2798,43 @@ type GetInferenceEngineHelpResponse struct {
 	Parameters []InferenceEngineParameterEntry `json:"parameters" validate:"required"`
 }
 
+type GetKeyStoreResponseStatus string
+
+const (
+	GetKeyStoreResponseStatusConnected    GetKeyStoreResponseStatus = "connected"
+	GetKeyStoreResponseStatusDisconnected GetKeyStoreResponseStatus = "disconnected"
+)
+
+type GetKeyStoreResponseType string
+
+const (
+	GetKeyStoreResponseTypeExternalKeyStore GetKeyStoreResponseType = "external-key-store"
+)
+
+type GetKeyStoreResponse struct {
+	// The creation timestamp.
+	CreatedAT time.Time `json:"created-at,omitempty"`
+	// An optional detailed description providing additional context about the key store's intended use case.
+	Description string          `json:"description,omitempty"`
+	Health      *KeyStoreHealth `json:"health,omitempty"`
+	// The globally unique identifier assigned to the key store.
+	ID UUID `json:"id,omitempty"`
+	// The display name assigned to the key store.
+	Name  string                 `json:"name,omitempty"`
+	Proxy *KeyStoreProxyResponse `json:"proxy,omitempty"`
+	// The current connection status of the key store.
+	Status GetKeyStoreResponseStatus `json:"status,omitempty"`
+	// The timestamp indicating when the current key store status last transitioned.
+	StatusSince time.Time `json:"status-since,omitempty"`
+	// The key store type.
+	Type GetKeyStoreResponseType `json:"type,omitempty"`
+}
+
 type GetKmsKeyResponseSource string
 
 const (
-	GetKmsKeyResponseSourceExoscaleKms GetKmsKeyResponseSource = "exoscale-kms"
+	GetKmsKeyResponseSourceExoscaleKms      GetKmsKeyResponseSource = "exoscale-kms"
+	GetKmsKeyResponseSourceExternalKeyStore GetKmsKeyResponseSource = "external-key-store"
 )
 
 type GetKmsKeyResponseStatus string
@@ -2728,7 +2852,9 @@ type GetKmsKeyResponse struct {
 	// An optional detailed description providing additional context about the key's intended use case.
 	Description string `json:"description,omitempty"`
 	// The globally unique identifier (UUID) of the retrieved KMS key.
-	ID       UUID         `json:"id" validate:"required"`
+	ID UUID `json:"id" validate:"required"`
+	// The cryptographic key specification used to generate the key, defining its algorithm and, for asymmetric keys, its curve or modulus size.
+	KeySpec  string       `json:"key-spec" validate:"required"`
 	Material *KeyMaterial `json:"material" validate:"required"`
 	// True if this is a multi-zone key.
 	MultiZone *bool `json:"multi-zone" validate:"required"`
@@ -2739,15 +2865,18 @@ type GetKmsKeyResponse struct {
 	// A list of availability zones where this specific key has active replica mirrors.
 	Replicas []string `json:"replicas,omitempty"`
 	// Detailed synchronization metrics for each regional replica mirror.
-	ReplicasStatus []ReplicaState          `json:"replicas-status,omitempty"`
-	Revision       *RevisionStamp          `json:"revision" validate:"required"`
-	Rotation       *KeyRotationConfig      `json:"rotation" validate:"required"`
-	Source         GetKmsKeyResponseSource `json:"source" validate:"required"`
-	Status         GetKmsKeyResponseStatus `json:"status" validate:"required"`
+	ReplicasStatus []ReplicaState     `json:"replicas-status,omitempty"`
+	Revision       *RevisionStamp     `json:"revision" validate:"required"`
+	Rotation       *KeyRotationConfig `json:"rotation" validate:"required"`
+	// Indicates the source of the key material, either generated and held within Exoscale KMS, or backed by an external key store ([BETA]).
+	Source GetKmsKeyResponseSource `json:"source" validate:"required"`
+	Status GetKmsKeyResponseStatus `json:"status" validate:"required"`
 	// The timestamp indicating exactly when the current key status was last transitioned.
 	StatusSince time.Time `json:"status-since" validate:"required"`
 	// The cryptographic operation constraints allowed on this key.
 	Usage string `json:"usage" validate:"required"`
+	// [BETA] External key store reference of a KMS Key with source `external-key-store`.
+	Xks *XksKey `json:"xks,omitempty"`
 }
 
 type GetModelResponseLifecycleStatus string
@@ -2799,10 +2928,15 @@ type GetModelResponse struct {
 	Visibility GetModelResponseVisibility `json:"visibility,omitempty"`
 }
 
-// GPU usage for an organization
-type GetOrganizationUsageResponse struct {
-	// Total GPU count
-	Gpu int64 `json:"gpu" validate:"required,gte=0"`
+type GetPublicKeyResponse struct {
+	// The UUID of the KMS key the public key material belongs to.
+	KeyID UUID `json:"key-id,omitempty"`
+	// The cryptographic key specification of the key pair, defining its algorithm and curve.
+	KeySpec string `json:"key-spec,omitempty"`
+	// The Base64-encoded X.509 SubjectPublicKeyInfo (SPKI) DER encoding of the key's public key.
+	PublicKey []byte `json:"public-key,omitempty"`
+	// The usage of the key pair, either `encrypt-decrypt` or `sign-verify`.
+	Usage string `json:"usage,omitempty"`
 }
 
 // IAM API Key
@@ -2990,6 +3124,8 @@ const (
 	InferenceEngineVersion0280 InferenceEngineVersion = "0.28.0"
 	InferenceEngineVersion0290 InferenceEngineVersion = "0.29.0"
 	InferenceEngineVersion0300 InferenceEngineVersion = "0.30.0"
+	InferenceEngineVersion0310 InferenceEngineVersion = "0.31.0"
+	InferenceEngineVersion0320 InferenceEngineVersion = "0.32.0"
 )
 
 // Router flush payload: the router's full in-memory usage map with flush identity fields
@@ -3060,7 +3196,7 @@ type Instance struct {
 	ID UUID `json:"id,omitempty"`
 	// Compute instance type
 	InstanceType *InstanceType `json:"instance-type,omitempty"`
-	// VPC ip forwarding
+	// Indicates if the instance can act as a router in a VPC network
 	IPForwarding *bool `json:"ip-forwarding,omitempty"`
 	// Instance IPv6 address
 	Ipv6Address string `json:"ipv6-address,omitempty"`
@@ -3196,10 +3332,12 @@ const (
 	InstanceStateExpunging  InstanceState = "expunging"
 	InstanceStateStarting   InstanceState = "starting"
 	InstanceStateDestroying InstanceState = "destroying"
+	InstanceStateResetting  InstanceState = "resetting"
 	InstanceStateRunning    InstanceState = "running"
 	InstanceStateStopping   InstanceState = "stopping"
 	InstanceStateStopped    InstanceState = "stopped"
 	InstanceStateMigrating  InstanceState = "migrating"
+	InstanceStateRebooting  InstanceState = "rebooting"
 	InstanceStateError      InstanceState = "error"
 	InstanceStateDestroyed  InstanceState = "destroyed"
 )
@@ -3980,12 +4118,22 @@ type JSONSchemaOpensearchIsmHistory struct {
 
 // ML Commons settings
 type JSONSchemaOpensearchMlCommons struct {
+	// When set to true, the setting allows admins to control access and permissions to the connector API using backend_roles. Defaults to false.
+	MlCommonsConnectorAccessControlEnabled *bool `json:"ml_commons_connector_access_control_enabled,omitempty"`
+	// Maximum number of ML models that can be deployed on a single ML node. Defaults to 10.
+	MlCommonsMaxModelOnNode int `json:"ml_commons_max_model_on_node,omitempty" validate:"omitempty,gte=1"`
 	// Enable or disable model access control for ML Commons. When enabled, access to ML models is controlled by security permissions. Defaults to false.
 	MlCommonsModelAccessControlEnabled *bool `json:"ml_commons_model_access_control_enabled,omitempty"`
+	// For externally hosted models only: automatically deploy a model on its first predict request instead of requiring an explicit deploy call first. Defaults to true.
+	MlCommonsModelAutoDeployEnable *bool `json:"ml_commons_model_auto_deploy_enable,omitempty"`
+	// Automatically redeploy deployed or partially deployed models after ML nodes rejoin the cluster, e.g. after a node replacement. Defaults to true.
+	MlCommonsModelAutoRedeployEnable *bool `json:"ml_commons_model_auto_redeploy_enable,omitempty"`
 	// Native memory threshold percentage for ML Commons. Controls the maximum percentage of native memory that can be used by ML Commons operations. Defaults to 90%.
 	MlCommonsNativeMemoryThreshold int `json:"ml_commons_native_memory_threshold,omitempty" validate:"omitempty,gte=1,lte=100"`
 	// Enable or disable running ML Commons tasks only on ML nodes. When enabled, ML tasks will only execute on nodes designated as ML nodes. Defaults to true.
 	MlCommonsOnlyRunOnMlNode *bool `json:"ml_commons_only_run_on_ml_node,omitempty"`
+	// Adds the trusted endpoints to the cluster settings. Supports Java regex expressions.
+	MlCommonsTrustedConnectorEndpointsRegex []string `json:"ml_commons_trusted_connector_endpoints_regex,omitempty"`
 }
 
 type JSONSchemaOpensearchRemoteStore struct {
@@ -4212,10 +4360,16 @@ type JSONSchemaOpensearch struct {
 	IndicesRecoveryMaxConcurrentFileChunks int `json:"indices_recovery_max_concurrent_file_chunks,omitempty" validate:"omitempty,gte=2,lte=5"`
 	// Opensearch ISM History Settings
 	IsmHistory *JSONSchemaOpensearchIsmHistory `json:"ism-history,omitempty"`
+	// Enable or disable removing KNN graphs from the cache when they are idle. Disabled by default.
+	KnnCacheItemExpiryEnabled *bool `json:"knn_cache_item_expiry_enabled,omitempty"`
+	// If enabled, the amount of time in minutes a KNN graph can be idle in the cache before being evicted.
+	KnnCacheItemExpiryMinutes *int `json:"knn_cache_item_expiry_minutes,omitempty" validate:"omitempty,gte=1,lte=10080"`
+	// The native memory usage, as a percentage below the KNN memory circuit breaker limit, at which a tripped circuit breaker resets. Defaults to 5%.
+	KnnCircuitBreakerUnsetPercentage *float64 `json:"knn_circuit_breaker_unset_percentage,omitempty" validate:"omitempty,gte=0,lte=100"`
 	// Enable or disable KNN memory circuit breaker. Defaults to true.
 	KnnMemoryCircuitBreakerEnabled *bool `json:"knn_memory_circuit_breaker_enabled,omitempty"`
-	// Maximum amount of memory that can be used for KNN index. Defaults to 50% of the JVM heap size.
-	KnnMemoryCircuitBreakerLimit int `json:"knn_memory_circuit_breaker_limit,omitempty" validate:"omitempty,gte=3,lte=100"`
+	// Maximum amount of memory in percentage that can be used for the KNN index. Defaults to 50% of the JVM heap size. 0 is used to set it to null which can be used to invalidate caches.
+	KnnMemoryCircuitBreakerLimit int `json:"knn_memory_circuit_breaker_limit,omitempty" validate:"omitempty,gte=0,lte=100"`
 	// ML Commons settings
 	MlCommons *JSONSchemaOpensearchMlCommons `json:"ml-commons,omitempty"`
 	// Defines a limit of how much total remote data can be referenced as a ratio of the size of the disk reserved for the file cache. This is designed to be a safeguard to prevent oversubscribing a cluster. Defaults to 5gb. Requires restarting all OpenSearch nodes.
@@ -4232,6 +4386,10 @@ type JSONSchemaOpensearch struct {
 	SearchInsightsTopQueries  *JSONSchemaOpensearchSearchInsightsTopQueries `json:"search.insights.top_queries,omitempty"`
 	// Search Backpressure Settings
 	SearchBackpressure *JSONSchemaOpensearchSearchBackpressure `json:"search_backpressure,omitempty"`
+	// Hard limit for search requests. When it is reached, the search task is cancelled and the request fails. OpenSearch default value is used when this is not defined.
+	SearchCancelAfterTimeInterval *string `json:"search_cancel_after_time_interval,omitempty"`
+	// Soft timeout for search requests that don't set their own timeout. When it is reached, the search returns partial results with `timed_out: true`, and the search task keeps running unless it is cancelled. OpenSearch default value is used when this is not defined.
+	SearchDefaultSearchTimeout *string `json:"search_default_search_timeout,omitempty"`
 	// Maximum number of aggregation buckets allowed in a single response. OpenSearch default value is used when this is not defined.
 	SearchMaxBuckets *int `json:"search_max_buckets,omitempty" validate:"omitempty,gte=1,lte=1e+06"`
 	// Segment Replication Backpressure Settings
@@ -4557,23 +4715,23 @@ type JSONSchemaSchemaRegistry struct {
 // Configuration options for Thanos Compactor.
 type JSONSchemaThanosCompactor struct {
 	// Retention time for data in days for each resolution (5m, 1h, raw)
-	RetentionDays int `json:"retention.days,omitempty" validate:"omitempty,gte=0"`
+	RetentionDays int `json:"retention-days,omitempty" validate:"omitempty,gte=0"`
 }
 
 // Configuration options for Thanos Query.
 type JSONSchemaThanosQuery struct {
 	// Set the default evaluation interval for subqueries.
-	QueryDefaultEvaluationInterval string `json:"query.default-evaluation-interval,omitempty" validate:"omitempty,lte=20"`
+	DefaultEvaluationInterval string `json:"default-evaluation-interval,omitempty" validate:"omitempty,lte=20"`
 	// The maximum lookback duration for retrieving metrics during expression evaluations in PromQL. PromQL always evaluates the query for a certain timestamp, and it looks back for the given amount of time to get the latest sample. If it exceeds the maximum lookback delta, it assumes the series is stale and returns none (a gap). The lookback delta should be set to at least 2 times the slowest scrape interval. If unset, it will use the promql default of 5m.
-	QueryLookbackDelta string `json:"query.lookback-delta,omitempty" validate:"omitempty,lte=20"`
+	LookbackDelta string `json:"lookback-delta,omitempty" validate:"omitempty,lte=20"`
 	// The default metadata time range duration for retrieving labels through Labels and Series API when the range parameters are not specified. The zero value means the range covers the time since the beginning.
-	QueryMetadataDefaultTimeRange string `json:"query.metadata.default-time-range,omitempty" validate:"omitempty,lte=20"`
-	// Maximum time to process a query by the query node.
-	QueryTimeout string `json:"query.timeout,omitempty" validate:"omitempty,lte=20"`
+	MetadataDefaultTimeRange string `json:"metadata-default-time-range,omitempty" validate:"omitempty,lte=20"`
 	// The maximum samples allowed for a single Series request. The Series call fails if this limit is exceeded. Set to 0 for no limit. NOTE: For efficiency, the limit is internally implemented as 'chunks limit' considering each chunk contains a maximum of 120 samples. The default value is 100 * store.limits.request-series.
-	StoreLimitsRequestSamples int `json:"store.limits.request-samples,omitempty" validate:"omitempty,gte=0,lte=1e+08"`
+	RequestSamplesLimits int `json:"request-samples-limits,omitempty" validate:"omitempty,gte=0,lte=1e+08"`
 	// The maximum series allowed for a single Series request. The Series call fails if this limit is exceeded. Set to 0 for no limit. The default value is 1000 * cpu_count.
-	StoreLimitsRequestSeries int `json:"store.limits.request-series,omitempty" validate:"omitempty,gte=0,lte=1e+08"`
+	RequestSeriesLimits int `json:"request-series-limits,omitempty" validate:"omitempty,gte=0,lte=1e+08"`
+	// Maximum time to process a query by the query node.
+	Timeout string `json:"timeout,omitempty" validate:"omitempty,lte=20"`
 }
 
 // Configuration options for Thanos Query Frontend.
@@ -4675,6 +4833,51 @@ type KeyRotationConfig struct {
 	RotationPeriod int `json:"rotation-period" validate:"required"`
 }
 
+type KeyStoreHealthStatus string
+
+const (
+	KeyStoreHealthStatusHealthy   KeyStoreHealthStatus = "healthy"
+	KeyStoreHealthStatusUnhealthy KeyStoreHealthStatus = "unhealthy"
+	KeyStoreHealthStatusUnknown   KeyStoreHealthStatus = "unknown"
+)
+
+type KeyStoreHealth struct {
+	// Timestamp of the latest completed health check.
+	CheckedAT time.Time `json:"checked-at,omitempty"`
+	// Normalized error detail for unhealthy observations.
+	ErrorDetail string `json:"error-detail,omitempty"`
+	// Base64-encoded documented fields of the successful AWS GetHealthStatus JSON metadata.
+	MetadataJSON []byte `json:"metadata-json,omitempty"`
+	// Latest normalized XKS proxy health status.
+	Status KeyStoreHealthStatus `json:"status,omitempty"`
+	// Normalized reason for the latest status.
+	StatusReason string `json:"status-reason,omitempty"`
+}
+
+type KeyStoreProxy struct {
+	Auth *KeyStoreProxyAuth `json:"auth" validate:"required"`
+	// Public URL used to route communication to the customer-managed XKS proxy. Its host must resolve to a public IP address.
+	Endpoint string `json:"endpoint" validate:"required"`
+}
+
+type KeyStoreProxyAuth struct {
+	// Access key used to sign requests sent to the XKS proxy.
+	Key string `json:"key" validate:"required"`
+	// Secret key used to sign requests sent to the XKS proxy. This value is never returned by the API.
+	Secret string `json:"secret" validate:"required"`
+}
+
+type KeyStoreProxyAuthResponse struct {
+	// Access key used to sign requests sent to the XKS proxy.
+	Key string `json:"key,omitempty"`
+}
+
+type KeyStoreProxyResponse struct {
+	Auth *KeyStoreProxyAuthResponse `json:"auth,omitempty"`
+	// Public URL used to route communication to the customer-managed XKS proxy.
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
 // Kubelet image GC options
 type KubeletImageGC struct {
 	HighThreshold int64  `json:"high-threshold,omitempty" validate:"omitempty,gte=0"`
@@ -4755,6 +4958,42 @@ type ListDeploymentsResponseEntry struct {
 	UpdatedAT time.Time `json:"updated-at,omitempty"`
 }
 
+type ListKeyStoresResponse struct {
+	// The key stores configured for the organization.
+	KeyStores []ListKeyStoresResponseEntry `json:"key-stores,omitempty"`
+}
+
+type ListKeyStoresResponseEntryStatus string
+
+const (
+	ListKeyStoresResponseEntryStatusConnected    ListKeyStoresResponseEntryStatus = "connected"
+	ListKeyStoresResponseEntryStatusDisconnected ListKeyStoresResponseEntryStatus = "disconnected"
+)
+
+type ListKeyStoresResponseEntryType string
+
+const (
+	ListKeyStoresResponseEntryTypeExternalKeyStore ListKeyStoresResponseEntryType = "external-key-store"
+)
+
+type ListKeyStoresResponseEntry struct {
+	// The creation timestamp.
+	CreatedAT time.Time `json:"created-at,omitempty"`
+	// An optional detailed description providing additional context about the key store's intended use case.
+	Description string `json:"description,omitempty"`
+	// The globally unique identifier assigned to the key store.
+	ID UUID `json:"id,omitempty"`
+	// The display name assigned to the key store.
+	Name  string                 `json:"name,omitempty"`
+	Proxy *KeyStoreProxyResponse `json:"proxy,omitempty"`
+	// The current connection status of the key store.
+	Status ListKeyStoresResponseEntryStatus `json:"status,omitempty"`
+	// The timestamp indicating when the current key store status last transitioned.
+	StatusSince time.Time `json:"status-since,omitempty"`
+	// The key store type.
+	Type ListKeyStoresResponseEntryType `json:"type,omitempty"`
+}
+
 type ListKmsKeyRotationsResponse struct {
 	// A chronologically ordered collection tracking historical rotation lifecycle occurrences for this resource.
 	Rotations []ListKmsKeyRotationsResponseEntry `json:"rotations" validate:"required"`
@@ -4777,7 +5016,8 @@ type ListKmsKeysResponse struct {
 type ListKmsKeysResponseEntrySource string
 
 const (
-	ListKmsKeysResponseEntrySourceExoscaleKms ListKmsKeysResponseEntrySource = "exoscale-kms"
+	ListKmsKeysResponseEntrySourceExoscaleKms      ListKmsKeysResponseEntrySource = "exoscale-kms"
+	ListKmsKeysResponseEntrySourceExternalKeyStore ListKmsKeysResponseEntrySource = "external-key-store"
 )
 
 type ListKmsKeysResponseEntryStatus string
@@ -4795,7 +5035,9 @@ type ListKmsKeysResponseEntry struct {
 	// An optional detailed description providing additional context about the key's intended use case.
 	Description string `json:"description,omitempty"`
 	// The globally unique identifier (UUID) tracking this key entity.
-	ID       UUID         `json:"id" validate:"required"`
+	ID UUID `json:"id" validate:"required"`
+	// The cryptographic key specification used to generate the key, defining its algorithm and, for asymmetric keys, its curve or modulus size.
+	KeySpec  string       `json:"key-spec" validate:"required"`
 	Material *KeyMaterial `json:"material" validate:"required"`
 	// True if this is a multi-zone key.
 	MultiZone *bool `json:"multi-zone" validate:"required"`
@@ -4804,15 +5046,18 @@ type ListKmsKeysResponseEntry struct {
 	// The creation zone of the KMS key.
 	OriginZone string `json:"origin-zone" validate:"required"`
 	// Array tracking target zones currently maintaining copies of this item.
-	Replicas []string                       `json:"replicas,omitempty"`
-	Revision *RevisionStamp                 `json:"revision" validate:"required"`
-	Rotation *KeyRotationConfig             `json:"rotation" validate:"required"`
-	Source   ListKmsKeysResponseEntrySource `json:"source" validate:"required"`
-	Status   ListKmsKeysResponseEntryStatus `json:"status" validate:"required"`
+	Replicas []string           `json:"replicas,omitempty"`
+	Revision *RevisionStamp     `json:"revision" validate:"required"`
+	Rotation *KeyRotationConfig `json:"rotation" validate:"required"`
+	// Indicates the source of the key material, either generated and held within Exoscale KMS, or backed by an external key store ([BETA]).
+	Source ListKmsKeysResponseEntrySource `json:"source" validate:"required"`
+	Status ListKmsKeysResponseEntryStatus `json:"status" validate:"required"`
 	// The precise time when the key entered its current configuration phase.
 	StatusSince time.Time `json:"status-since" validate:"required"`
 	// The cryptographic operation constraints allowed on this key.
 	Usage string `json:"usage" validate:"required"`
+	// [BETA] External key store reference of a KMS Key with source `external-key-store`.
+	Xks *XksKey `json:"xks,omitempty"`
 }
 
 // AI model list
@@ -4876,15 +5121,12 @@ const (
 
 // Route
 type ListRouteEntry struct {
-	// Route description
 	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
-	// Route destination CIDR
-	Destination string `json:"destination,omitempty"`
-	// Route ID
-	ID UUID `json:"id,omitempty"`
-	// Route kind
-	Kind ListRouteEntryKind `json:"kind,omitempty"`
-	// Route target
+	// The CIDR used to match on which packets the routing rule should be applied
+	Destination string             `json:"destination,omitempty"`
+	ID          UUID               `json:"id,omitempty"`
+	Kind        ListRouteEntryKind `json:"kind,omitempty"`
+	// Where the packets should be sent to
 	Target string `json:"target,omitempty"`
 }
 
@@ -4903,38 +5145,30 @@ const (
 
 // Subnet
 type ListSubnetEntry struct {
-	// Subnet address space
+	// Whether the subnet is private or public
 	AddressSpace ListSubnetEntryAddressSpace `json:"address-space,omitempty"`
-	// Subnet address family
+	// Whether the subnet supports IPv4 and/or IPv6
 	Addressfamily ListSubnetEntryAddressfamily `json:"addressfamily,omitempty"`
-	// Subnet creation date
-	CreatedAT time.Time `json:"created-at,omitempty"`
-	// Subnet description
-	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
-	// Subnet ID
-	ID UUID `json:"id,omitempty"`
+	CreatedAT     time.Time                    `json:"created-at,omitempty"`
+	Description   string                       `json:"description,omitempty" validate:"omitempty,lte=4096"`
+	ID            UUID                         `json:"id,omitempty"`
 	// Subnet ipv4 CIDR
 	Ipv4Block string `json:"ipv4-block,omitempty"`
 	Labels    Labels `json:"labels,omitempty"`
-	// Subnet name
-	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
+	Name      string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 }
 
 // VPC
 type ListVpcEntry struct {
-	// VPC creation date
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// Indicates if this is the organization's default VPC
-	Default *bool `json:"default,omitempty"`
-	// VPC description
+	Default     *bool  `json:"default,omitempty"`
 	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
 	// VPC DHCP options
 	DHCPOptions *VpcDHCPOptions `json:"dhcp-options,omitempty"`
-	// VPC ID
-	ID     UUID   `json:"id,omitempty"`
-	Labels Labels `json:"labels,omitempty"`
-	// VPC name
-	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
+	ID          UUID            `json:"id,omitempty"`
+	Labels      Labels          `json:"labels,omitempty"`
+	Name        string          `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 }
 
 // Live balance
@@ -5036,6 +5270,10 @@ type LoadBalancerService struct {
 	ID UUID `json:"id,omitempty"`
 	// Instance Pool
 	InstancePool *InstancePool `json:"instance-pool,omitempty"`
+	// Instances the network traffic is forwarded to, from the instance pool and the label selector
+	Instances []LoadBalancerServiceInstance `json:"instances,omitempty"`
+	// Label selector: the instances carrying all of its labels are backends
+	LabelSelector *LoadBalancerServiceLabelSelector `json:"label-selector,omitempty"`
 	// Load Balancer Service name
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// Port exposed on the Load Balancer's public IP
@@ -5076,6 +5314,28 @@ type LoadBalancerServiceHealthcheck struct {
 	URI string `json:"uri,omitempty" validate:"omitempty,gte=1,lte=255"`
 }
 
+type LoadBalancerServiceInstanceHealthcheckStatus string
+
+const (
+	LoadBalancerServiceInstanceHealthcheckStatusFailure LoadBalancerServiceInstanceHealthcheckStatus = "failure"
+	LoadBalancerServiceInstanceHealthcheckStatusSuccess LoadBalancerServiceInstanceHealthcheckStatus = "success"
+)
+
+// Instance the network traffic is forwarded to
+type LoadBalancerServiceInstance struct {
+	// Status of the instance's healthcheck
+	HealthcheckStatus LoadBalancerServiceInstanceHealthcheckStatus `json:"healthcheck-status,omitempty"`
+	// Instance ID
+	ID UUID `json:"id,omitempty"`
+	// Instance IP the network traffic is forwarded to
+	PublicIP net.IP `json:"public-ip,omitempty"`
+}
+
+// Label selector: the instances carrying all of its labels are backends
+type LoadBalancerServiceLabelSelector struct {
+	Labels Labels `json:"labels" validate:"required"`
+}
+
 type ManagerType string
 
 const (
@@ -5101,9 +5361,13 @@ type ModelRef struct {
 
 // Accumulated Unit Of Measurement (UOM) counters for one model over a flush window
 type ModelUsageCounters struct {
+	// Prompt/input UOM served from prefix cache across all calls in this flush window (excluded from input-uom); optional, defaults to 0
+	CacheReadInputUom int `json:"cache-read-input-uom,omitempty" validate:"omitempty,gte=0"`
+	// Subset of input-uom written to prefix cache across all calls in this flush window; optional, defaults to 0
+	CacheWriteInputUom int `json:"cache-write-input-uom,omitempty" validate:"omitempty,gte=0"`
 	// Number of inference calls in this flush window
 	CallCount int `json:"call-count" validate:"required,gte=1"`
-	// Total prompt/input Unit Of Measurement (UOM) across all calls in this flush window (e.g., tokens for LLMs, minutes for TTS, pages for OCR)
+	// Uncached prompt/input Unit Of Measurement (UOM) across all calls in this flush window (total prompt minus cache-read)
 	InputUom int `json:"input-uom" validate:"required,gte=0"`
 	// Total completion/output Unit Of Measurement (UOM) across all calls in this flush window (e.g., tokens for LLMs, minutes for TTS, pages for OCR)
 	OutputUom int `json:"output-uom" validate:"required,gte=0"`
@@ -5243,10 +5507,10 @@ type Organization struct {
 	Postcode string `json:"postcode,omitempty"`
 }
 
-// Organization GPU usage
+// Organization usage
 type OrganizationUsage struct {
-	// Total GPU count (sum of all GPU types)
-	Gpu int64 `json:"gpu" validate:"required,gte=0"`
+	// Count of active AI API keys
+	AIAPIKey int64 `json:"ai-api-key,omitempty" validate:"omitempty,gte=0"`
 	// GPU3 count
 	Gpu3 int64 `json:"gpu3,omitempty" validate:"omitempty,gte=0"`
 	// GPU3080TI count
@@ -5334,16 +5598,34 @@ type RateLimited struct {
 	RetryAfter float64 `json:"retry_after,omitempty"`
 }
 
+type ReEncryptRequestDestinationEncryptionAlgorithm string
+
+const (
+	ReEncryptRequestDestinationEncryptionAlgorithmAES256          ReEncryptRequestDestinationEncryptionAlgorithm = "AES_256"
+	ReEncryptRequestDestinationEncryptionAlgorithmRSAESOAEPSHA256 ReEncryptRequestDestinationEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type ReEncryptRequestDestination struct {
+	// The encryption algorithm the destination key must use. Validated against the key's actual cryptographic profile. Required for asymmetric keys. Symmetric keys use AES_256 when it is omitted.
+	EncryptionAlgorithm ReEncryptRequestDestinationEncryptionAlgorithm `json:"encryption-algorithm,omitempty"`
 	// Optional new Base64-encoded encryption context to apply under the target destination envelope.
 	EncryptionContext *[]byte `json:"encryption-context,omitempty"`
 	// The ID of the target key chosen to encapsulate the newly shifted data translation.
 	Key UUID `json:"key" validate:"required"`
 }
 
+type ReEncryptRequestSourceEncryptionAlgorithm string
+
+const (
+	ReEncryptRequestSourceEncryptionAlgorithmAES256          ReEncryptRequestSourceEncryptionAlgorithm = "AES_256"
+	ReEncryptRequestSourceEncryptionAlgorithmRSAESOAEPSHA256 ReEncryptRequestSourceEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type ReEncryptRequestSource struct {
 	// The Base64-encoded encrypted payload package ready to undergo source-side key decryption.
 	Ciphertext []byte `json:"ciphertext" validate:"required"`
+	// The encryption algorithm the source key must use. Validated against the key's actual cryptographic profile. Required for asymmetric keys. Symmetric keys use AES_256 when it is omitted.
+	EncryptionAlgorithm ReEncryptRequestSourceEncryptionAlgorithm `json:"encryption-algorithm,omitempty"`
 	// Optional Base64-encoded encryption context originally appended to the AAD to confirm package validation rules.
 	EncryptionContext *[]byte `json:"encryption-context,omitempty"`
 	// The ID of the source key currently protecting the data payload.
@@ -5355,9 +5637,27 @@ type ReEncryptRequest struct {
 	Source      *ReEncryptRequestSource      `json:"source" validate:"required"`
 }
 
+type ReEncryptResponseDestinationEncryptionAlgorithm string
+
+const (
+	ReEncryptResponseDestinationEncryptionAlgorithmAES256          ReEncryptResponseDestinationEncryptionAlgorithm = "AES_256"
+	ReEncryptResponseDestinationEncryptionAlgorithmRSAESOAEPSHA256 ReEncryptResponseDestinationEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
+type ReEncryptResponseSourceEncryptionAlgorithm string
+
+const (
+	ReEncryptResponseSourceEncryptionAlgorithmAES256          ReEncryptResponseSourceEncryptionAlgorithm = "AES_256"
+	ReEncryptResponseSourceEncryptionAlgorithmRSAESOAEPSHA256 ReEncryptResponseSourceEncryptionAlgorithm = "RSAES_OAEP_SHA_256"
+)
+
 type ReEncryptResponse struct {
 	// The new Base64-encoded ciphertext block safely wrapped by the chosen destination key parameters.
 	Ciphertext []byte `json:"ciphertext" validate:"required"`
+	// The encryption algorithm that was used to encrypt the destination ciphertext.
+	DestinationEncryptionAlgorithm ReEncryptResponseDestinationEncryptionAlgorithm `json:"destination-encryption-algorithm" validate:"required"`
+	// The encryption algorithm that was used to decrypt the source ciphertext.
+	SourceEncryptionAlgorithm ReEncryptResponseSourceEncryptionAlgorithm `json:"source-encryption-algorithm" validate:"required"`
 }
 
 // Response from bundle recompute operation
@@ -5406,12 +5706,6 @@ type Resource struct {
 	Name string `json:"name,omitempty"`
 }
 
-// AI deployment inference endpoint authentication key
-type RevealDeploymentAPIKeyResponse struct {
-	// Inference endpoint authentication key
-	APIKey string `json:"api-key" validate:"required"`
-}
-
 type ReverseDNSRecord struct {
 	DomainName DomainName `json:"domain-name,omitempty" validate:"omitempty,gte=1,lte=253"`
 }
@@ -5436,15 +5730,12 @@ const (
 
 // Route
 type Route struct {
-	// Route description
 	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
-	// Route destination CIDR
-	Destination string `json:"destination,omitempty"`
-	// Route ID
-	ID UUID `json:"id,omitempty"`
-	// Route kind
-	Kind RouteKind `json:"kind,omitempty"`
-	// Route target
+	// The CIDR used to match on which packets the routing rule should be applied
+	Destination string    `json:"destination,omitempty"`
+	ID          UUID      `json:"id,omitempty"`
+	Kind        RouteKind `json:"kind,omitempty"`
+	// Where the packets should be sent to
 	Target string `json:"target,omitempty"`
 }
 
@@ -5555,6 +5846,48 @@ type SecurityGroupRule struct {
 type SetOrgConsumptionQuotaRequest struct {
 	// Per-org Unit Of Measurement (UOM) consumption quota (UOM/min). Pass null to remove the limit. UOM represents weighted units across different AI workloads (e.g., tokens for LLMs, minutes for TTS, pages for OCR).
 	QuotaUomPerMinute *int `json:"quota-uom-per-minute,omitempty" validate:"omitempty,gte=0"`
+}
+
+type SignRequestMessageType string
+
+const (
+	SignRequestMessageTypeRaw    SignRequestMessageType = "raw"
+	SignRequestMessageTypeDigest SignRequestMessageType = "digest"
+)
+
+type SignRequestSigningAlgorithm string
+
+const (
+	SignRequestSigningAlgorithmRSASSAPSSSHA256      SignRequestSigningAlgorithm = "RSASSA_PSS_SHA_256"
+	SignRequestSigningAlgorithmRSASSAPSSSHA384      SignRequestSigningAlgorithm = "RSASSA_PSS_SHA_384"
+	SignRequestSigningAlgorithmRSASSAPSSSHA512      SignRequestSigningAlgorithm = "RSASSA_PSS_SHA_512"
+	SignRequestSigningAlgorithmRSASSAPKCS1V15SHA256 SignRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256"
+	SignRequestSigningAlgorithmRSASSAPKCS1V15SHA384 SignRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_384"
+	SignRequestSigningAlgorithmRSASSAPKCS1V15SHA512 SignRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_512"
+	SignRequestSigningAlgorithmECDSASHA256          SignRequestSigningAlgorithm = "ECDSA_SHA_256"
+	SignRequestSigningAlgorithmECDSASHA384          SignRequestSigningAlgorithm = "ECDSA_SHA_384"
+	SignRequestSigningAlgorithmECDSASHA512          SignRequestSigningAlgorithm = "ECDSA_SHA_512"
+	SignRequestSigningAlgorithmEDDSAED25519         SignRequestSigningAlgorithm = "EDDSA_ED25519"
+	SignRequestSigningAlgorithmED25519PHSHA512      SignRequestSigningAlgorithm = "ED25519_PH_SHA_512"
+	SignRequestSigningAlgorithmMLDSASHAKE256        SignRequestSigningAlgorithm = "ML_DSA_SHAKE_256"
+)
+
+type SignRequest struct {
+	// The Base64-encoded message to sign (1-4096 decoded bytes). Its meaning depends on `message-type`, either the raw plaintext message or an already-hashed digest.
+	Message []byte `json:"message" validate:"required,gte=1,lte=5464"`
+	// How `message` should be interpreted.
+	MessageType SignRequestMessageType `json:"message-type,omitempty"`
+	// The signing algorithm to use. Must match the family implied by the key's `key-spec`.
+	SigningAlgorithm SignRequestSigningAlgorithm `json:"signing-algorithm" validate:"required"`
+}
+
+type SignResponse struct {
+	// The cryptographic key specification used to produce the signature.
+	KeySpec string `json:"key-spec" validate:"required"`
+	// The resulting Base64-encoded signature.
+	Signature []byte `json:"signature" validate:"required"`
+	// The signing algorithm used to produce the signature, echoing the request's `signing-algorithm`.
+	SigningAlgorithm string `json:"signing-algorithm" validate:"required"`
 }
 
 // Kubernetes Audit parameters
@@ -5683,6 +6016,8 @@ type SKSClusterRef struct {
 type SKSKubeconfigRequest struct {
 	// List of roles. The certificate present in the Kubeconfig will have these roles set in the Org field.
 	Groups []string `json:"groups" validate:"required"`
+	// Cluster and context name in the generated Kubeconfig (default: cluster ID)
+	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 	// Validity in seconds of the Kubeconfig user certificate (default: 30 days)
 	Ttl int64 `json:"ttl,omitempty" validate:"omitempty,gt=0"`
 	// User name in the generated Kubeconfig. The certificate present in the Kubeconfig will also have this name set for the CN field.
@@ -5707,6 +6042,13 @@ const (
 	SKSNodepoolStateScaling       SKSNodepoolState = "scaling"
 	SKSNodepoolStateUpdating      SKSNodepoolState = "updating"
 	SKSNodepoolStateError         SKSNodepoolState = "error"
+)
+
+type SKSNodepoolTemplateSelection string
+
+const (
+	SKSNodepoolTemplateSelectionPinned SKSNodepoolTemplateSelection = "pinned"
+	SKSNodepoolTemplateSelectionAuto   SKSNodepoolTemplateSelection = "auto"
 )
 
 // SKS Nodepool
@@ -5740,6 +6082,8 @@ type SKSNodepool struct {
 	Labels         SKSNodepoolLabels `json:"labels,omitempty"`
 	// Nodepool name
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
+	// Expose the GPUs with the NVIDIA DRA driver instead of the NVIDIA device plugin. Requires a GPU instance type and Kubernetes 1.34 or greater.
+	NvidiaDraDriver *bool `json:"nvidia-dra-driver,omitempty"`
 	// Nvidia MIG Profiles enabled
 	NvidiaMigProfiles *NvidiaMigProfiles `json:"nvidia-mig-profiles,omitempty"`
 	// Nodepool Private Networks
@@ -5757,6 +6101,10 @@ type SKSNodepool struct {
 	Taints SKSNodepoolTaints `json:"taints,omitempty"`
 	// Template reference
 	Template *Template `json:"template,omitempty"`
+	// Nodepool template selection:
+	// * `pinned`: the template set with `update-sks-nodepool`.
+	// * `pinned`: the template set with `update-sks-nodepool`.
+	TemplateSelection SKSNodepoolTemplateSelection `json:"template-selection,omitempty"`
 	// Nodepool version
 	Version string `json:"version,omitempty"`
 }
@@ -5780,6 +6128,18 @@ type SKSNodepoolTaint struct {
 }
 
 type SKSNodepoolTaints map[string]SKSNodepoolTaint
+
+// SKS Nodepool template
+type SKSNodepoolTemplate struct {
+	// Template registration date
+	CreatedAT time.Time `json:"created-at,omitempty"`
+	// Template ID
+	ID UUID `json:"id,omitempty"`
+	// Template name
+	Name string `json:"name,omitempty"`
+	// Template variant: standard | nvidia
+	Variant string `json:"variant,omitempty"`
+}
 
 // SKS Cluster OpenID config map
 type SKSOidc struct {
@@ -5883,35 +6243,29 @@ const (
 	SubnetAddressfamilyDual  SubnetAddressfamily = "dual"
 )
 
-// Subnet attachements
+// Subnet attachments
 type SubnetInstances struct {
-	// Instance uuid
 	ID UUID `json:"id,omitempty"`
-	// Instance Ipv4 address
+	// The ipv4 associated with the instance in this subnet
 	Ipv4 net.IP `json:"ipv4,omitempty"`
-	// Instance name
 	Name string `json:"name,omitempty"`
 }
 
 // Subnet
 type Subnet struct {
-	// Subnet address space
+	// Whether the subnet is private or public
 	AddressSpace SubnetAddressSpace `json:"address-space,omitempty"`
-	// Subnet address family
+	// Whether the subnet support IPv4 and/or IPv6
 	Addressfamily SubnetAddressfamily `json:"addressfamily,omitempty"`
-	// Subnet creation date
-	CreatedAT time.Time `json:"created-at,omitempty"`
-	// Subnet description
-	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
-	// Subnet ID
-	ID UUID `json:"id,omitempty"`
+	CreatedAT     time.Time           `json:"created-at,omitempty"`
+	Description   string              `json:"description,omitempty" validate:"omitempty,lte=4096"`
+	ID            UUID                `json:"id,omitempty"`
 	// Instances attached to the subnet
 	Instances []SubnetInstances `json:"instances,omitempty"`
 	// Subnet ipv4 CIDR
 	Ipv4Block string `json:"ipv4-block,omitempty"`
 	Labels    Labels `json:"labels,omitempty"`
-	// Subnet name
-	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
+	Name      string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 }
 
 type SuccessResponseStatus string
@@ -6021,6 +6375,20 @@ type UpdateDeploymentRequest struct {
 	Name string `json:"name,omitempty" validate:"omitempty,gte=1"`
 }
 
+// New customer-managed XKS proxy settings.
+type UpdateKeyStoreProxy struct {
+	Auth *KeyStoreProxyAuth `json:"auth,omitempty"`
+	// New public URL used to route communication to the customer-managed XKS proxy. Its host must resolve to a public IP address.
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
+type UpdateKeyStoreRequest struct {
+	// A new detailed description providing additional context about the key store's intended use case.
+	Description string `json:"description,omitempty" validate:"omitempty,lte=1024"`
+	// New customer-managed XKS proxy settings.
+	Proxy *UpdateKeyStoreProxy `json:"proxy,omitempty"`
+}
+
 // User
 type User struct {
 	// User Email
@@ -6037,31 +6405,85 @@ type User struct {
 	TwoFactorAuthentication *bool `json:"two-factor-authentication,omitempty"`
 }
 
+type VerifyRequestMessageType string
+
+const (
+	VerifyRequestMessageTypeRaw    VerifyRequestMessageType = "raw"
+	VerifyRequestMessageTypeDigest VerifyRequestMessageType = "digest"
+)
+
+type VerifyRequestSigningAlgorithm string
+
+const (
+	VerifyRequestSigningAlgorithmRSASSAPSSSHA256      VerifyRequestSigningAlgorithm = "RSASSA_PSS_SHA_256"
+	VerifyRequestSigningAlgorithmRSASSAPSSSHA384      VerifyRequestSigningAlgorithm = "RSASSA_PSS_SHA_384"
+	VerifyRequestSigningAlgorithmRSASSAPSSSHA512      VerifyRequestSigningAlgorithm = "RSASSA_PSS_SHA_512"
+	VerifyRequestSigningAlgorithmRSASSAPKCS1V15SHA256 VerifyRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256"
+	VerifyRequestSigningAlgorithmRSASSAPKCS1V15SHA384 VerifyRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_384"
+	VerifyRequestSigningAlgorithmRSASSAPKCS1V15SHA512 VerifyRequestSigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_512"
+	VerifyRequestSigningAlgorithmECDSASHA256          VerifyRequestSigningAlgorithm = "ECDSA_SHA_256"
+	VerifyRequestSigningAlgorithmECDSASHA384          VerifyRequestSigningAlgorithm = "ECDSA_SHA_384"
+	VerifyRequestSigningAlgorithmECDSASHA512          VerifyRequestSigningAlgorithm = "ECDSA_SHA_512"
+	VerifyRequestSigningAlgorithmEDDSAED25519         VerifyRequestSigningAlgorithm = "EDDSA_ED25519"
+	VerifyRequestSigningAlgorithmED25519PHSHA512      VerifyRequestSigningAlgorithm = "ED25519_PH_SHA_512"
+	VerifyRequestSigningAlgorithmMLDSASHAKE256        VerifyRequestSigningAlgorithm = "ML_DSA_SHAKE_256"
+)
+
+type VerifyRequest struct {
+	// The Base64-encoded message to verify (1-4096 decoded bytes), with the same semantics as `sign`'s `message` field.
+	Message []byte `json:"message" validate:"required,gte=1,lte=5464"`
+	// How `message` should be interpreted, with the same semantics as `sign`'s `message-type` field.
+	MessageType VerifyRequestMessageType `json:"message-type,omitempty"`
+	// The Base64-encoded signature to verify against `message` (1-6144 decoded bytes).
+	Signature []byte `json:"signature" validate:"required,gte=1,lte=8192"`
+	// The signing algorithm `signature` was produced with. Must match the family implied by the key's `key-spec`, with the same semantics as `sign`'s `signing-algorithm` field.
+	SigningAlgorithm VerifyRequestSigningAlgorithm `json:"signing-algorithm" validate:"required"`
+}
+
+type VerifyResponse struct {
+	// The UUID of the KMS key used to verify the signature.
+	KeyID UUID `json:"key-id" validate:"required"`
+	// The cryptographic key specification used to verify the signature.
+	KeySpec string `json:"key-spec" validate:"required"`
+	// Whether `signature` is a valid signature over `message` produced by this KMS key.
+	SignatureValid *bool `json:"signature-valid" validate:"required"`
+}
+
 // VPC
 type Vpc struct {
-	// VPC creation date
 	CreatedAT time.Time `json:"created-at,omitempty"`
 	// Indicates if this is the organization's default VPC
-	Default *bool `json:"default,omitempty"`
-	// VPC description
+	Default     *bool  `json:"default,omitempty"`
 	Description string `json:"description,omitempty" validate:"omitempty,lte=4096"`
 	// VPC DHCP options
 	DHCPOptions *VpcDHCPOptions `json:"dhcp-options,omitempty"`
-	// VPC ID
-	ID     UUID   `json:"id,omitempty"`
-	Labels Labels `json:"labels,omitempty"`
-	// VPC name
-	Name string `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
+	ID          UUID            `json:"id,omitempty"`
+	Labels      Labels          `json:"labels,omitempty"`
+	Name        string          `json:"name,omitempty" validate:"omitempty,gte=1,lte=255"`
 }
 
 // VPC DHCP options
 type VpcDHCPOptions struct {
-	// DNS Servers
 	DNSServers []net.IP `json:"dns-servers,omitempty"`
 	// Domain search list, limited to 255 octets post RFC3397 compression
 	DomainSearch []string `json:"domain-search,omitempty"`
-	// NTP Servers
-	NtpServers []net.IP `json:"ntp-servers,omitempty"`
+	NtpServers   []net.IP `json:"ntp-servers,omitempty"`
+}
+
+// [BETA] External key store reference of a KMS Key with source `external-key-store`.
+type XksKey struct {
+	// [BETA] The identifier of the key as known to the external key store, used to reference the key material outside of Exoscale.
+	ExternalKeyID string `json:"external-key-id" validate:"required,gte=1,lte=128"`
+	// [BETA] The Exoscale-generated id of the external key store resource that this key is associated with.
+	XksID UUID `json:"xks-id" validate:"required"`
+}
+
+// [BETA] Error reported by the customer-managed XKS proxy of an external key store.
+type XksProxyErrorDetail struct {
+	// [BETA] Optional bounded XKS proxy `errorMessage`.
+	ErrorMessage string `json:"error-message,omitempty"`
+	// [BETA] XKS proxy `errorName` from a valid proxy error envelope.
+	ErrorName string `json:"error-name" validate:"required"`
 }
 
 // Zone
@@ -6089,6 +6511,7 @@ const (
 	ZoneNameDEFra1 ZoneName = "de-fra-1"
 	ZoneNameBGSof1 ZoneName = "bg-sof-1"
 	ZoneNameATVie2 ZoneName = "at-vie-2"
+	ZoneNameESMad1 ZoneName = "es-mad-1"
 	ZoneNameHrZag1 ZoneName = "hr-zag-1"
 )
 
