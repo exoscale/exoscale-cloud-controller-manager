@@ -1,6 +1,6 @@
 # Changelog
 
-## UNRELEASES
+## 0.34.3
 
 * chore(deps): bump egoscale v3 to v3.1.63
 * chore(deps): bump kubernetes client to v0.34.3
