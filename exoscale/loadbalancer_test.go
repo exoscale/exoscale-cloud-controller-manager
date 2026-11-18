@@ -846,7 +846,7 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_update() {
 	)
 
 	expectedNLBService := v3.UpdateLoadBalancerServiceRequest{
-		Description: testNLBServiceDescription,
+		Description: new(testNLBServiceDescription),
 		Healthcheck: &v3.LoadBalancerServiceHealthcheck{
 			Interval: int64(func() time.Duration {
 				d, _ := time.ParseDuration(defaultNLBServiceHealthcheckInterval)
@@ -861,11 +861,11 @@ func (ts *exoscaleCCMTestSuite) Test_loadBalancer_updateLoadBalancer_update() {
 				return d
 			}().Seconds()),
 		},
-		Name:       testNLBServiceName,
-		Port:       int64(k8sServicePortPort),
+		Name:       new(testNLBServiceName),
+		Port:       new(int64(k8sServicePortPort)),
 		Protocol:   v3.UpdateLoadBalancerServiceRequestProtocol(testNLBServiceProtocol),
 		Strategy:   v3.UpdateLoadBalancerServiceRequestStrategy(testNLBServiceStrategy),
-		TargetPort: int64(k8sServicePortNodePort),
+		TargetPort: new(int64(k8sServicePortNodePort)),
 	}
 
 	ts.p.client.(*exoscaleClientMock).

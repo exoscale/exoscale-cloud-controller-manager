@@ -1,4 +1,4 @@
-# cel.dev/expr v0.25.2
+# cel.dev/expr v0.26.0
 ## explicit; go 1.23.0
 cel.dev/expr
 # github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161
@@ -53,7 +53,7 @@ github.com/elliotwutingfeng/asciiset
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/exoscale/egoscale/v3 v3.1.53
+# github.com/exoscale/egoscale/v3 v3.1.63
 ## explicit; go 1.25
 github.com/exoscale/egoscale/v3
 github.com/exoscale/egoscale/v3/credentials
@@ -292,7 +292,7 @@ github.com/spf13/cast
 # github.com/spf13/cobra v1.9.1
 ## explicit; go 1.15
 github.com/spf13/cobra
-# github.com/spf13/pflag v1.0.10
+# github.com/spf13/pflag v1.1.0
 ## explicit; go 1.12
 github.com/spf13/pflag
 # github.com/spf13/viper v1.18.2
@@ -671,7 +671,7 @@ gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.34.1
+# k8s.io/api v0.34.3
 ## explicit; go 1.24.0
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -733,7 +733,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apimachinery v0.34.1
+# k8s.io/apimachinery v0.34.3
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -804,7 +804,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.34.1
+# k8s.io/apiserver v0.34.3
 ## explicit; go 1.24.0
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration
@@ -965,7 +965,7 @@ k8s.io/apiserver/plugin/pkg/audit/webhook
 k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook/metrics
-# k8s.io/client-go v0.34.1
+# k8s.io/client-go v0.34.3
 ## explicit; go 1.24.0
 k8s.io/client-go/applyconfigurations
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
@@ -1308,7 +1308,7 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/cloud-provider v0.34.1
+# k8s.io/cloud-provider v0.34.3
 ## explicit; go 1.24.0
 k8s.io/cloud-provider
 k8s.io/cloud-provider/api
@@ -1329,7 +1329,7 @@ k8s.io/cloud-provider/names
 k8s.io/cloud-provider/node/helpers
 k8s.io/cloud-provider/options
 k8s.io/cloud-provider/service/helpers
-# k8s.io/component-base v0.34.1
+# k8s.io/component-base v0.34.3
 ## explicit; go 1.24.0
 k8s.io/component-base/cli/flag
 k8s.io/component-base/cli/globalflag
@@ -1366,10 +1366,10 @@ k8s.io/component-base/zpages/features
 k8s.io/component-base/zpages/flagz
 k8s.io/component-base/zpages/httputil
 k8s.io/component-base/zpages/statusz
-# k8s.io/component-helpers v0.34.1
+# k8s.io/component-helpers v0.34.3
 ## explicit; go 1.24.0
 k8s.io/component-helpers/node/util
-# k8s.io/controller-manager v0.34.1
+# k8s.io/controller-manager v0.34.3
 ## explicit; go 1.24.0
 k8s.io/controller-manager/app
 k8s.io/controller-manager/config
@@ -1386,8 +1386,8 @@ k8s.io/controller-manager/pkg/informerfactory
 k8s.io/controller-manager/pkg/leadermigration
 k8s.io/controller-manager/pkg/leadermigration/config
 k8s.io/controller-manager/pkg/leadermigration/options
-# k8s.io/klog/v2 v2.130.1
-## explicit; go 1.18
+# k8s.io/klog/v2 v2.140.0
+## explicit; go 1.21
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
 k8s.io/klog/v2/internal/clock
@@ -1397,7 +1397,7 @@ k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
 k8s.io/klog/v2/internal/verbosity
 k8s.io/klog/v2/textlogger
-# k8s.io/kms v0.34.1
+# k8s.io/kms v0.34.3
 ## explicit; go 1.24.0
 k8s.io/kms/apis/v1beta1
 k8s.io/kms/apis/v2
@@ -1425,8 +1425,8 @@ k8s.io/kube-openapi/pkg/validation/errors
 k8s.io/kube-openapi/pkg/validation/spec
 k8s.io/kube-openapi/pkg/validation/strfmt
 k8s.io/kube-openapi/pkg/validation/strfmt/bson
-# k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-## explicit; go 1.18
+# k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab
+## explicit; go 1.26
 k8s.io/utils/buffer
 k8s.io/utils/clock
 k8s.io/utils/internal/third_party/forked/golang/golang-lru
@@ -1435,7 +1435,6 @@ k8s.io/utils/lru
 k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/ptr
-k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2
 ## explicit; go 1.21

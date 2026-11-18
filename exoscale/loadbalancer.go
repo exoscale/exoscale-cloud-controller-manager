@@ -465,8 +465,8 @@ func (l *loadBalancer) reconcileLoadBalancer(
 		infof("updating NLB %q", nlbCurrent.Name)
 
 		if _, err = l.p.client.UpdateLoadBalancer(ctx, nlbUpdate.ID, v3.UpdateLoadBalancerRequest{
-			Name:        nlbUpdate.Name,
-			Description: nlbCurrent.Description,
+			Name:        new(nlbUpdate.Name),
+			Description: new(nlbCurrent.Description),
 			Labels:      nlbUpdate.Labels,
 		}); err != nil {
 			return err
@@ -680,10 +680,10 @@ next:
 				nlbUpdate.ID,
 				nlbServiceUpdate.ID,
 				v3.UpdateLoadBalancerServiceRequest{
-					Name:        nlbServiceUpdate.Name,
-					Description: nlbServiceUpdate.Description,
-					Port:        nlbServiceUpdate.Port,
-					TargetPort:  nlbServiceUpdate.TargetPort,
+					Name:        new(nlbServiceUpdate.Name),
+					Description: new(nlbServiceUpdate.Description),
+					Port:        new(nlbServiceUpdate.Port),
+					TargetPort:  new(nlbServiceUpdate.TargetPort),
 					Protocol:    v3.UpdateLoadBalancerServiceRequestProtocol(nlbServiceUpdate.Protocol),
 					Strategy:    v3.UpdateLoadBalancerServiceRequestStrategy(nlbServiceUpdate.Strategy),
 					Healthcheck: nlbServiceUpdate.Healthcheck,

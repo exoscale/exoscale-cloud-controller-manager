@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8swatch "k8s.io/apimachinery/pkg/watch"
 	cloudproviderapi "k8s.io/cloud-provider/api"
-	"k8s.io/utils/strings/slices"
 )
 
 const (
