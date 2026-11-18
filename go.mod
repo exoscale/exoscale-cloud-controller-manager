@@ -3,24 +3,23 @@ module github.com/exoscale/exoscale-cloud-controller-manager
 go 1.26.0
 
 require (
-	github.com/exoscale/egoscale/v3 v3.1.53
+	github.com/exoscale/egoscale/v3 v3.1.63
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-cmp v0.7.0
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.34.1
-	k8s.io/apimachinery v0.34.1
-	k8s.io/client-go v0.34.1
-	k8s.io/cloud-provider v0.34.1
-	k8s.io/component-base v0.34.1
-	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/api v0.34.3
+	k8s.io/apimachinery v0.34.3
+	k8s.io/client-go v0.34.3
+	k8s.io/cloud-provider v0.34.3
+	k8s.io/component-base v0.34.3
+	k8s.io/klog/v2 v2.140.0
 )
 
 require (
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/expr v0.26.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -124,11 +123,12 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	k8s.io/apiserver v0.34.1 // indirect
-	k8s.io/component-helpers v0.34.1 // indirect
-	k8s.io/controller-manager v0.34.1 // indirect
-	k8s.io/kms v0.34.1 // indirect
+	k8s.io/apiserver v0.34.3 // indirect
+	k8s.io/component-helpers v0.34.3 // indirect
+	k8s.io/controller-manager v0.34.3 // indirect
+	k8s.io/kms v0.34.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
+	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect

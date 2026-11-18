@@ -1,5 +1,12 @@
 # Changelog
 
+## UNRELEASES
+
+* chore(deps): bump egoscale v3 to v3.1.63
+* chore(deps): bump kubernetes client to v0.34.3
+* chore(deps): bump klog/v2 to v2.140.0
+* feat: add support for es-mad-1 zone
+
 ## 0.34.2
 
 * feat(loadbalancer): expose Services over IPv6 with a dual-stack NLB (`ip-address-type: dualstack` annotation)
