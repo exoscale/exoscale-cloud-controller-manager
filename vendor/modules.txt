@@ -53,11 +53,12 @@ github.com/elliotwutingfeng/asciiset
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/exoscale/egoscale/v3 v3.1.63
+# github.com/exoscale/egoscale/v3 v3.1.64-0.20261118150649-0ad5d255d01f
 ## explicit; go 1.25
 github.com/exoscale/egoscale/v3
 github.com/exoscale/egoscale/v3/credentials
 github.com/exoscale/egoscale/v3/metadata
+github.com/exoscale/egoscale/v3/utils
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
@@ -656,9 +657,6 @@ gopkg.in/djherbis/times.v1
 # gopkg.in/evanphx/json-patch.v4 v4.12.0
 ## explicit
 gopkg.in/evanphx/json-patch.v4
-# gopkg.in/fsnotify.v1 v1.4.7
-## explicit
-gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0

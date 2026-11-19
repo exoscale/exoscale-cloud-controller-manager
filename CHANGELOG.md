@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* feat(client): reload a rotated API credentials file with egoscale's reloadable credentials, which also picks up Kubernetes Secret updates
+* chore(deps): bump egoscale v3 to master (reloadable credentials)
+
 ## 0.34.3
 
 * chore(deps): bump egoscale v3 to v3.1.63
