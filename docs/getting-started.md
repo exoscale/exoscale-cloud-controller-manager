@@ -48,8 +48,8 @@ In order to interact with the Exoscale API, the Exoscale CCM must be configured
 with API credentials. This can be achieved:
 * using Kubernetes [*Secrets*][k8s-secrets], by exposing those as container
   environment variables
-* as a separate (JSON) credentials file, which will be watched for changes
-  (allowing API credentials to be dymically set/refreshed)
+* as a separate (JSON) credentials file, which is reloaded when it changes
+  (allowing API credentials to be rotated without restarting the CCM)
 * using the (YAML) configuration file
   (`--cloud-config`; see below for further details)
 
@@ -158,7 +158,7 @@ The following parameters are available to configure overrides:
 
 ### Using API Credentials File
 
-Exoscale API credentials may be dynamically set/refreshed using a
+Exoscale API credentials may be rotated without restarting the CCM using a
 JSON-formatted file:
 
 ``` json
@@ -170,6 +170,13 @@ JSON-formatted file:
 
 Which path is specified using the `EXOSCALE_API_CREDENTIALS_FILE` environment variable
 or `apiCredentialsFile` Cloud Configuration File parameter.
+
+The file is read at startup, then again every 30 seconds and as soon as the Exoscale API rejects
+the current API key: the rejected request is then retried once with the new key. It can be a
+Kubernetes Secret mounted as a volume, whose updates are picked up the same way.
+New credentials are used as soon as they are read. If the file is missing, incomplete or doesn't
+hold a valid API key and secret, the CCM keeps the last ones and logs the error at every re-read
+(at startup, it exits with an error).
 
 ### Deploying the Exoscale Cloud Controller Manager
 

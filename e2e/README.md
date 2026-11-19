@@ -84,8 +84,9 @@ Exoscale Cloud Controller Manager
 │   ├── CSR rejection for invalid IPv4 addresses
 │   ├── CSR rejection for invalid IPv6 addresses
 │   ├── Node initialization logging
-│   ├── Invalid credentials detection
-│   ├── Credentials refresh (valid)
+│   ├── Credentials reload (rejected by the API)
+│   ├── Malformed credentials kept out
+│   ├── Credentials reload (valid)
 │   └── Finalization (dump logs)
 ├── Kubernetes Nodes
 │   └── Provider IDs and metadata

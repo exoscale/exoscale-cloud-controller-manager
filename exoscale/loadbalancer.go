@@ -914,13 +914,10 @@ func (l *loadBalancer) patchAnnotation(ctx context.Context, service *v1.Service,
 	return patcher.Patch()
 }
 
-func (c *refreshableExoscaleClient) CreateLoadBalancer(
+func (c *apiClient) CreateLoadBalancer(
 	ctx context.Context,
 	req v3.CreateLoadBalancerRequest,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.CreateLoadBalancer(
 		ctx,
 		req,
@@ -932,14 +929,11 @@ func (c *refreshableExoscaleClient) CreateLoadBalancer(
 	return c.exo.Wait(ctx, op, v3.OperationStateSuccess)
 }
 
-func (c *refreshableExoscaleClient) AddServiceToLoadBalancer(
+func (c *apiClient) AddServiceToLoadBalancer(
 	ctx context.Context,
 	id v3.UUID,
 	req v3.AddServiceToLoadBalancerRequest,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.AddServiceToLoadBalancer(
 		ctx,
 		id,
@@ -952,13 +946,10 @@ func (c *refreshableExoscaleClient) AddServiceToLoadBalancer(
 	return c.exo.Wait(ctx, op, v3.OperationStateSuccess)
 }
 
-func (c *refreshableExoscaleClient) DeleteLoadBalancer(
+func (c *apiClient) DeleteLoadBalancer(
 	ctx context.Context,
 	id v3.UUID,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.DeleteLoadBalancer(
 		ctx,
 		id,
@@ -970,14 +961,11 @@ func (c *refreshableExoscaleClient) DeleteLoadBalancer(
 	return c.exo.Wait(ctx, op, v3.OperationStateSuccess)
 }
 
-func (c *refreshableExoscaleClient) DeleteLoadBalancerService(
+func (c *apiClient) DeleteLoadBalancerService(
 	ctx context.Context,
 	id v3.UUID,
 	serviceID v3.UUID,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.DeleteLoadBalancerService(
 		ctx,
 		id,
@@ -990,51 +978,39 @@ func (c *refreshableExoscaleClient) DeleteLoadBalancerService(
 	return c.exo.Wait(ctx, op, v3.OperationStateSuccess)
 }
 
-func (c *refreshableExoscaleClient) GetLoadBalancer(
+func (c *apiClient) GetLoadBalancer(
 	ctx context.Context,
 	id v3.UUID,
 ) (*v3.LoadBalancer, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	return c.exo.GetLoadBalancer(
 		ctx,
 		id,
 	)
 }
 
-func (c *refreshableExoscaleClient) GetInstancePool(
+func (c *apiClient) GetInstancePool(
 	ctx context.Context,
 	id v3.UUID,
 ) (*v3.InstancePool, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	return c.exo.GetInstancePool(
 		ctx,
 		id,
 	)
 }
 
-func (c *refreshableExoscaleClient) ListLoadBalancers(
+func (c *apiClient) ListLoadBalancers(
 	ctx context.Context,
 ) (*v3.ListLoadBalancersResponse, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	return c.exo.ListLoadBalancers(
 		ctx,
 	)
 }
 
-func (c *refreshableExoscaleClient) UpdateLoadBalancer(
+func (c *apiClient) UpdateLoadBalancer(
 	ctx context.Context,
 	id v3.UUID,
 	req v3.UpdateLoadBalancerRequest,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.UpdateLoadBalancer(
 		ctx,
 		id,
@@ -1047,15 +1023,12 @@ func (c *refreshableExoscaleClient) UpdateLoadBalancer(
 	return c.exo.Wait(ctx, op, v3.OperationStateSuccess)
 }
 
-func (c *refreshableExoscaleClient) UpdateLoadBalancerService(
+func (c *apiClient) UpdateLoadBalancerService(
 	ctx context.Context,
 	id v3.UUID,
 	serviceID v3.UUID,
 	req v3.UpdateLoadBalancerServiceRequest,
 ) (*v3.Operation, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	op, err := c.exo.UpdateLoadBalancerService(
 		ctx,
 		id,
