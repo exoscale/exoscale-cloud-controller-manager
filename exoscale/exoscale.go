@@ -104,7 +104,7 @@ func (p *cloudProvider) Initialize(clientBuilder cloudprovider.ControllerClientB
 	p.ctx = ctx
 	p.stop = cancel
 
-	client, err := newRefreshableExoscaleClient(
+	client, err := newAPIClient(
 		p.ctx,
 		&p.cfg.Global,
 		v3.ZoneName(p.zone),

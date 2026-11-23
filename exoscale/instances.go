@@ -306,33 +306,24 @@ func (i *instances) InstanceShutdownByProviderID(ctx context.Context, providerID
 	return instance.State == "stopping" || instance.State == "stopped", nil
 }
 
-func (c *refreshableExoscaleClient) GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error) {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *apiClient) GetInstance(ctx context.Context, id v3.UUID) (*v3.Instance, error) {
 	return c.exo.GetInstance(
 		ctx,
 		id,
 	)
 }
 
-func (c *refreshableExoscaleClient) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *apiClient) GetInstanceType(ctx context.Context, id v3.UUID) (*v3.InstanceType, error) {
 	return c.exo.GetInstanceType(
 		ctx,
 		id,
 	)
 }
 
-func (c *refreshableExoscaleClient) ListInstances(
+func (c *apiClient) ListInstances(
 	ctx context.Context,
 	opts ...v3.ListInstancesOpt,
 ) (*v3.ListInstancesResponse, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	return c.exo.ListInstances(
 		ctx,
 		opts...,

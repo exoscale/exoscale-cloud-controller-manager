@@ -2,14 +2,12 @@ package exoscale
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
-	"sync"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -21,83 +19,81 @@ var testZoneCallback switchZone = func(ctx context.Context, client *v3.Client, z
 	return client, nil
 }
 
-func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_no_config() {
-	_, err := newRefreshableExoscaleClient(context.Background(), &testConfig_empty.Global, v3.ZoneNameCHGva2, testZoneCallback)
+func (ts *exoscaleCCMTestSuite) Test_newAPIClient_no_config() {
+	_, err := newAPIClient(context.Background(), &testConfig_empty.Global, v3.ZoneNameCHGva2, testZoneCallback)
 	ts.Require().Error(err)
 }
 
-func (ts *exoscaleCCMTestSuite) Test_newRefreshableExoscaleClient_credentials() {
-	expected := &refreshableExoscaleClient{
-		RWMutex: &sync.RWMutex{}, //nolint:staticcheck
-		apiCredentials: exoscaleAPICredentials{
-			APIKey:    testAPIKey,
-			APISecret: testAPISecret,
-		},
-	}
-
-	actual, err := newRefreshableExoscaleClient(context.Background(), &testConfig_typical.Global, v3.ZoneNameCHGva2, testZoneCallback)
+func (ts *exoscaleCCMTestSuite) Test_newAPIClient_credentials() {
+	actual, err := newAPIClient(context.Background(), &testConfig_typical.Global, v3.ZoneNameCHGva2, testZoneCallback)
 	ts.Require().NoError(err)
-	ts.Require().Equal(expected.apiCredentials, actual.apiCredentials)
 	ts.Require().NotNil(actual.exo)
 }
 
-func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_refreshCredentials() {
-	testAPICredentials := exoscaleAPICredentials{
-		APIKey:    testAPISecret,
-		APISecret: testAPISecret,
-		Name:      ts.randomString(10),
-	}
+func (ts *exoscaleCCMTestSuite) Test_newAPIClient_credentials_file_missing() {
+	config := globalConfig{APICredentialsFile: path.Join(ts.T().TempDir(), "credentials.json")}
 
-	jsonAPICredentials, err := json.Marshal(testAPICredentials)
-	ts.Require().NoError(err)
-
-	tmpdir, err := os.MkdirTemp(os.TempDir(), "exoscale-ccm")
-	ts.Require().NoError(err)
-	defer os.RemoveAll(tmpdir)
-
-	testAPICredentialsFile := path.Join(tmpdir, "credentials.json")
-
-	ts.Require().NoError(os.WriteFile(testAPICredentialsFile, jsonAPICredentials, 0o600))
-
-	client := &refreshableExoscaleClient{RWMutex: &sync.RWMutex{}}
-	client.refreshCredentialsFromFile(context.Background(), testAPICredentialsFile, v3.ZoneNameCHGva2, testZoneCallback)
-
-	client.RLock()
-	defer client.RUnlock()
-	ts.Require().Equal(testAPICredentials, client.apiCredentials)
-	ts.Require().NotNil(client.exo)
+	_, err := newAPIClient(context.Background(), &config, v3.ZoneNameCHGva2, testZoneCallback)
+	ts.Require().ErrorContains(err, "unable to read Exoscale API credentials file")
 }
 
-func (ts *exoscaleCCMTestSuite) Test_refreshableExoscaleClient_watchCredentialsFile() {
-	testAPICredentials := exoscaleAPICredentials{
-		APIKey:    testAPISecret,
-		APISecret: testAPISecret,
-		Name:      ts.randomString(10),
+// A credentials file mounted from a Kubernetes Secret is replaced by swapping the ..data symlink:
+// the client must sign its next requests with the new key, without being recreated.
+func Test_newAPIClient_credentials_file_reload(t *testing.T) {
+	const (
+		oldKey = "EXO000000000000000000000001"
+		newKey = "EXO000000000000000000000002"
+		secret = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
+	)
+
+	secretDir := t.TempDir()
+	writeSecret := func(version, apiKey string) {
+		dir := path.Join(secretDir, version)
+		require.NoError(t, os.Mkdir(dir, 0o700))
+		require.NoError(t, os.WriteFile(
+			path.Join(dir, "credentials.json"),
+			[]byte(`{"api_key":"`+apiKey+`","api_secret":"`+secret+`","name":"ccm"}`),
+			0o600,
+		))
+		require.NoError(t, os.Symlink(version, path.Join(secretDir, "..data_tmp")))
+		require.NoError(t, os.Rename(path.Join(secretDir, "..data_tmp"), path.Join(secretDir, "..data")))
 	}
+	writeSecret("..v1", oldKey)
+	require.NoError(t, os.Symlink("..data/credentials.json", path.Join(secretDir, "credentials.json")))
 
-	jsonAPICredentials, err := json.Marshal(testAPICredentials)
-	ts.Require().NoError(err)
-
-	tmpdir, err := os.MkdirTemp(os.TempDir(), "exoscale-ccm")
-	ts.Require().NoError(err)
-	defer os.RemoveAll(tmpdir)
-
-	testAPICredentialsFile := path.Join(tmpdir, "credentials.json")
+	var signedWith []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(auth, "credential="+newKey+","):
+			signedWith = append(signedWith, newKey)
+			_, _ = w.Write([]byte(`{"load-balancers":[]}`))
+		case strings.Contains(auth, "credential="+oldKey+","):
+			signedWith = append(signedWith, oldKey)
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message":"Invalid key or request signature"}`))
+		default:
+			t.Errorf("unexpected Authorization header %q", auth)
+		}
+	}))
+	defer server.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client := &refreshableExoscaleClient{RWMutex: &sync.RWMutex{}}
-	go client.watchCredentialsFile(ctx, testAPICredentialsFile, v3.ZoneNameCHGva2, testZoneCallback)
+	config := globalConfig{
+		APICredentialsFile: path.Join(secretDir, "credentials.json"),
+		APIEndpoint:        server.URL,
+	}
+	client, err := newAPIClient(ctx, &config, v3.ZoneNameCHGva2, testZoneCallback)
+	require.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
-	ts.Require().NoError(os.WriteFile(testAPICredentialsFile, jsonAPICredentials, 0o600))
-	time.Sleep(1 * time.Second)
+	writeSecret("..v2", newKey)
 
-	client.RLock()
-	defer client.RUnlock()
-	ts.Require().Equal(testAPICredentials, client.apiCredentials)
-	ts.Require().NotNil(client.exo)
+	_, err = client.ListLoadBalancers(ctx)
+	require.NoError(t, err)
+	require.Equal(t, []string{oldKey, newKey}, signedWith)
 }
 
 func Test_validateCredentials(t *testing.T) {

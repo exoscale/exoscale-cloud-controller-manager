@@ -317,22 +317,39 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 			GinkgoWriter.Printf("Static node %s initialized by CCM\n", staticNodeName)
 		})
 
-		It("should detect invalid credentials when refreshed", func() {
-			GinkgoWriter.Println("Switching to invalid credentials...")
+		It("should switch to new credentials from the file, even if the API rejects them", func() {
+			// Well-formed, but unknown to the API: used as soon as read, not validated first.
+			rejectedKey := "EXO000000000000000000000000"
+			GinkgoWriter.Println("Switching to well-formed but rejected credentials...")
+			err := suite.CCMMgr.WriteCredentialsFile(rejectedKey, "0000000000000000000000000000000000000000000", "rejected")
+			Expect(err).NotTo(HaveOccurred())
+
+			logCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+			defer cancel()
+
+			found, err := suite.CCMMgr.WaitForLog(fmt.Sprintf("Exoscale API credentials reloaded\" api_key=%q", rejectedKey), logCtx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue(), "CCM should reload the new credentials")
+
+			GinkgoWriter.Println("CCM reloaded the rejected credentials")
+		})
+
+		It("should keep the current credentials when the file is invalid", func() {
+			GinkgoWriter.Println("Switching to malformed credentials...")
 			err := suite.CCMMgr.WriteCredentialsFile("invalid-key", "invalid-secret", "invalid")
 			Expect(err).NotTo(HaveOccurred())
 
 			logCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 			defer cancel()
 
-			found, err := suite.CCMMgr.WaitForLog("failed to switch client zone", logCtx)
+			found, err := suite.CCMMgr.WaitForLog("keeping current Exoscale API credentials, unable to read new ones", logCtx)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue(), "CCM should detect invalid credentials")
+			Expect(found).To(BeTrue(), "CCM should reject malformed credentials")
 
-			GinkgoWriter.Println("CCM detected invalid credentials")
+			GinkgoWriter.Println("CCM kept its current credentials")
 		})
 
-		It("should refresh to valid credentials successfully", func() {
+		It("should reload valid credentials without restarting", func() {
 			GinkgoWriter.Println("Switching back to valid credentials...")
 			err := suite.CCMMgr.WriteCredentialsFile(suite.Config.APIKey, suite.Config.APISecret, "valid")
 			Expect(err).NotTo(HaveOccurred())
@@ -340,11 +357,11 @@ var _ = Describe("Exoscale Cloud Controller Manager", Ordered, func() {
 			logCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 			defer cancel()
 
-			found, err := suite.CCMMgr.WaitForLog("Exoscale API credentials refreshed, now using valid", logCtx)
+			found, err := suite.CCMMgr.WaitForLog(fmt.Sprintf("Exoscale API credentials reloaded\" api_key=%q", suite.Config.APIKey), logCtx)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue(), "CCM should successfully refresh to valid credentials")
+			Expect(found).To(BeTrue(), "CCM should reload the valid credentials")
 
-			GinkgoWriter.Println("CCM refreshed to valid credentials")
+			GinkgoWriter.Println("CCM reloaded the valid credentials")
 		})
 	})
 
