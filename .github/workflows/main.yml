@@ -18,11 +18,13 @@ jobs:
   unit-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: ./go.mk/.github/actions/setup
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: 'stable'
 
-      - uses: ./go.mk/.github/actions/pre-check
+      - run: make pre-check
 
       - name: Run tests
         run: make test-verbose
@@ -46,7 +48,7 @@ jobs:
       queue: max
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - name: Install Ginkgo
         shell: bash
         run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
@@ -66,9 +68,9 @@ jobs:
     needs: unit-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: ./go.mk/.github/actions/setup
+      - uses: actions/setup-go@v7.0.0
       - name: Build
         run: make build
 
@@ -76,8 +78,8 @@ jobs:
     needs: unit-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: ./go.mk/.github/actions/setup
+      - uses: actions/setup-go@v7.0.0
       - name: Build Docker image
         run: make docker
