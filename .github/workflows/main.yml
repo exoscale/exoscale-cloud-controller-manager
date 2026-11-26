@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version: 'stable'
 
@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
       - name: Build
         run: make build
 
@@ -80,6 +80,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - run: make go.mk
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
       - name: Build Docker image
         run: make docker
